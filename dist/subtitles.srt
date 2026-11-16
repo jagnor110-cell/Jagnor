@@ -1,12 +1,16 @@
 1
-00:00:00,100 --> 00:00:03,500
-Stop cramming the night before big exams.
+00:00:00,100 --> 00:00:03,725
+Stop undercharging for fixed fee projects.
 
 2
-00:00:03,450 --> 00:00:11,300
-Exam Sprint builds your custom spaced repetition schedule from your exam dates, topic weights, and daily focus hours.
+00:00:03,675 --> 00:00:09,187
+Taxes, revisions, and unbilled overhead quietly destroy your profits.
 
 3
-00:00:11,300 --> 00:00:15,425
-Study smarter and grab yours today at whop dot com.
+00:00:09,187 --> 00:00:14,725
+The Freelance True Rate and Quote Calculator prices your work accurately in seconds.
+
+4
+00:00:14,725 --> 00:00:17,650
+Grab it today at whop dot com.
 
