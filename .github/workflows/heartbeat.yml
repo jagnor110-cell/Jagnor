@@ -7,13 +7,18 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   run_company:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: 1. Open Factory Workspace
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 2. Set Up Python & FFmpeg Movie Maker
         run: |
@@ -44,3 +49,13 @@ jobs:
           git add public/ dist/
           git diff --staged --quiet || git commit -m "Daily AI Company Build"
           git push
+
+      - name: 5. Upload public/ Folder to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: 6. Deploy Live Website
+        id: deployment
+        uses: actions/deploy-pages@v4
+        
