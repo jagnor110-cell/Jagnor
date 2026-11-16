@@ -452,7 +452,7 @@ def main() -> None:
     if WHOP_API_KEY:
         print("4. Whop Agent: Creating checkout link via Whop API...")
         whop_req = urllib.request.Request(
-            "https://whop.com",
+            "https://api.whop.com/api/v1/checkout_configurations",
             data=json.dumps(
                 {
                     "variant": {
