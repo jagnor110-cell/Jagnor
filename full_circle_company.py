@@ -86,7 +86,7 @@ DIST_DIR.mkdir(exist_ok=True)
 def ask_agent(role_prompt: str, task_prompt: str) -> str:
     """Sends a structured role + task prompt to the Gemini API."""
     url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"https://googleapis.com"
         f"{MODEL}:generateContent?key={GEMINI_KEY}"
     )
     payload = {
@@ -103,7 +103,7 @@ def ask_agent(role_prompt: str, task_prompt: str) -> str:
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=300) as resp:
         data = json.loads(resp.read().decode("utf-8"))
         return data["candidates"][0]["content"]["parts"][0]["text"]
 
