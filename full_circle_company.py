@@ -1,4 +1,4 @@
-```python
+
 #!/usr/bin/env python3
 """
 full_circle_company.py — Autonomous 6-Agent App Factory & Short-Form Video Publisher
@@ -475,4 +475,59 @@ def main() -> None:
         "'caption' (social post description with the checkout link and hashtags). No fences.",
         f"Promote the new web app '{app_title}' ({app_desc}). "
         f"Direct viewers to grab it at: {checkout_url}",
- 
+ )
+    clean_promo = promo_json_raw.replace("```json", "").replace("```", "").strip()
+    try:
+        promo_data = json.loads(clean_promo)
+    except json.JSONDecodeError:
+        promo_data = {
+            "voiceover": (
+                f"Stop guessing your daily workflow. We just built {app_title}. "
+                f"Adjust your inputs, track live results right on your phone, "
+                f"and grab the full offline toolkit from the link in the description."
+            ),
+            "caption": f"Try {app_title}! Grab the full app pack here: {checkout_url} #Shorts #Reels #AI",
+        }
+
+    voiceover_script = promo_data.get("voiceover", "")
+    social_caption = promo_data.get("caption", f"{app_title} -> {checkout_url}")
+
+    screenshot_path = DIST_DIR / "app_9x16.png"
+    mp4_path = PUBLIC_DIR / "promo_short_9x16.mp4"
+
+    capture_9x16_app_screenshot(html_file, screenshot_path, app_title, app_desc)
+    render_9x16_promo_video(screenshot_path, voiceover_script, mp4_path)
+
+    yt_result = upload_to_youtube_shorts(mp4_path, app_title, social_caption)
+    public_mp4_url = (
+        f"{PUBLIC_VIDEO_BASE_URL.rstrip('/')}/promo_short_9x16.mp4"
+        if PUBLIC_VIDEO_BASE_URL
+        else ""
+    )
+    ig_result = upload_to_instagram_reels(public_mp4_url, social_caption)
+
+    # --- AGENT 6: GMAIL CEO REPORT & SUPPORT BOT ---
+    if GMAIL_USER and GMAIL_APP_PASS:
+        print("6. Gmail Agent: Sending daily CEO report...")
+        msg = EmailMessage()
+        msg["Subject"] = f"[AI Company Daily Launch] {app_title}"
+        msg["From"] = GMAIL_USER
+        msg["To"] = GMAIL_USER
+        msg.set_content(
+            f"Daily Autonomous Cycle Complete!\n\n"
+            f"Product: {app_title}\n"
+            f"Whop Checkout URL: {checkout_url}\n"
+            f"YouTube Shorts Status: {yt_result}\n"
+            f"Instagram Reels Status: {ig_result}\n\n"
+            f"Voiceover Script:\n{voiceover_script}\n\n"
+            f"Social Caption:\n{social_caption}\n"
+        )
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(GMAIL_USER, GMAIL_APP_PASS)
+            smtp.send_message(msg)
+
+    print("Full-circle app build, 9:16 MP4 render, and social upload pipeline finished!")
+
+
+if __name__ == "__main__":
+    main()
