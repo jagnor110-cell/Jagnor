@@ -1,0 +1,12 @@
+1
+00:00:00,100 --> 00:00:02,975
+Stop cramming and start remembering.
+
+2
+00:00:02,925 --> 00:00:11,312
+Meet the Spaced Repetition Exam Sprint Planner, an interactive calculator that maps your optimal daily review intervals up to exam day.
+
+3
+00:00:11,312 --> 00:00:14,312
+Hit the link to get your study schedule now.
+
