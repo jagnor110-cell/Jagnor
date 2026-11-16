@@ -181,29 +181,50 @@ def render_9x16_promo_video(
     audio_mp3 = DIST_DIR / "voiceover.mp3"
     subs_srt = DIST_DIR / "subtitles.srt"
 
-    # 1. Generate Neural TTS Audio via edge-tts CLI
+      # 1. Generate Neural TTS Audio via edge-tts CLI (45s limit + backup audio)
+    tts_ok = False
     if shutil.which("edge-tts"):
         print("   -> Generating neural voiceover MP3 + SRT subtitles via edge-tts...")
+        try:
+            subprocess.run(
+                [
+                    "edge-tts",
+                    "--voice",
+                    "en-US-ChristopherNeural",
+                    "--text",
+                    voiceover_text,
+                    "--write-media",
+                    str(audio_mp3),
+                    "--write-subtitles",
+                    str(subs_srt),
+                ],
+                check=True,
+                timeout=45,
+            )
+            tts_ok = True
+        except Exception as e:
+            print(f"   -> edge-tts notice ({e}); using 15s backup audio...")
+
+    if not tts_ok:
         subprocess.run(
             [
-                "edge-tts",
-                "--voice",
-                "en-US-ChristopherNeural",
-                "--text",
-                voiceover_text,
-                "--write-media",
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=r=44100:cl=stereo",
+                "-t",
+                "15",
+                "-q:a",
+                "9",
+                "-acodec",
+                "libmp3lame",
                 str(audio_mp3),
-                "--write-subtitles",
-                str(subs_srt),
             ],
             check=True,
         )
-    else:
-        raise RuntimeError(
-            "edge-tts is required for neural voiceover generation. "
-            "Install it with: pip install edge-tts"
-        )
-
+      
     # 2. Render 1080x1920 (9:16) MP4 with subtle zoompan motion + AAC audio via FFmpeg
     if not shutil.which("ffmpeg"):
         raise RuntimeError("FFmpeg is required to render MP4 video. Install with: apt install ffmpeg")
@@ -446,21 +467,23 @@ def main() -> None:
     print("3. Critic Agent: Auditing HTML build & bundle...")
     if "<html" not in clean_html.lower() or len(clean_html) < 200:
         raise RuntimeError("Critic Agent blocked release: HTML output failed validation.")
-      
-    # --- AGENT 4: WHOP STORE MANAGER ---
+
+      # --- AGENT 4: WHOP STORE MANAGER ---
     checkout_url = "https://whop.com"
-    if WHOP_API_KEY:
+    if WHOP_API_KEY and WHOP_COMPANY_ID:
         print("4. Whop Agent: Creating checkout link via Whop API...")
         whop_req = urllib.request.Request(
-            "https://api.whop.com/api/v1/checkout_configurations",
+            "https://whop.com",
             data=json.dumps(
                 {
-                    "variant": {
+                    "company_id": WHOP_COMPANY_ID,
+                    "plan": {
+                        "company_id": WHOP_COMPANY_ID,
                         "title": app_title[:50],
-                        "billing_type": "one_time",
+                        "plan_type": "one_time",
                         "initial_price": price_usd,
                         "currency": "usd",
-                    }
+                    },
                 }
             ).encode("utf-8"),
             headers={
@@ -474,9 +497,12 @@ def main() -> None:
                 w_data = json.loads(w_resp.read().decode("utf-8"))
                 checkout_url = w_data.get("purchase_url", checkout_url)
                 print(f"   -> Created live Whop checkout URL: {checkout_url}")
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="ignore")
+            print(f"   -> Whop API notice: HTTP {e.code} - {err_body}")
         except Exception as e:
             print(f"   -> Whop API notice: {e}")
-
+          
     # --- AGENT 5: PROMOTER, 9:16 MP4 RENDERER & SOCIAL UPLOADER ---
     print("5. Promoter Agent: Creating 9:16 Short/Reel script, screenshot, and MP4...")
     promo_json_raw = ask_agent(
