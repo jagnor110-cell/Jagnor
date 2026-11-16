@@ -3,411 +3,314 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>TrueRate — Freelance Rate & Quote Calculator</title>
+<title>Exam Sprint & Spaced Repetition Planner</title>
 <style>
   :root {
-    --bg: #080b12;
-    --surface: #111622;
-    --surface-2: #182032;
+    --bg-outer: #05070c;
+    --bg-app: #0b0f19;
+    --bg-card: #121826;
+    --bg-card-elevated: #192133;
+    --bg-input: #0e1420;
     --border: rgba(255, 255, 255, 0.08);
-    --border-active: rgba(56, 189, 248, 0.45);
-    --text: #f3f6fc;
-    --text-muted: #8b97b0;
-    --text-dim: #5e6a82;
-    --accent: #38bdf8;
+    --border-active: rgba(99, 102, 241, 0.5);
+    --text-primary: #f3f6fc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #6366f1;
+    --accent-glow: rgba(99, 102, 241, 0.35);
+    --cyan: #22d3ee;
     --emerald: #10b981;
     --amber: #f59e0b;
     --rose: #f43f5e;
-    --violet: #a78bfa;
-    --radius: 16px;
-    --radius-sm: 10px;
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --safe-bottom: env(safe-area-inset-bottom, 12px);
   }
 
   * {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
     -webkit-tap-highlight-color: transparent;
   }
 
   html, body {
-    background-color: #030508;
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 14px;
-    line-height: 1.4;
-    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    background: var(--bg-outer);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    height: 100%;
+    overflow: hidden;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    overflow-x: hidden;
+    align-items: center;
   }
 
   .app-shell {
     width: 100%;
     max-width: 430px;
-    min-height: 100dvh;
-    background: var(--bg);
+    height: 100dvh;
+    max-height: 932px;
+    background: var(--bg-app);
     display: flex;
     flex-direction: column;
     position: relative;
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.85);
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85), 0 0 0 1px var(--border);
   }
 
-  /* Header & Hero KPI */
-  .top-bar {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    background: rgba(8, 11, 18, 0.88);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+  @media (min-width: 500px) {
+    .app-shell {
+      height: 94dvh;
+      border-radius: 32px;
+    }
+  }
+
+  /* Header */
+  .app-header {
+    padding: 16px 18px 12px;
+    background: linear-gradient(180deg, rgba(18, 24, 38, 0.95) 0%, rgba(11, 15, 25, 0.85) 100%);
+    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    z-index: 10;
+    flex-shrink: 0;
   }
 
-  .brand-row {
+  .header-top {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    align-items: center;
+    margin-bottom: 10px;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
   }
 
-  .logo-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
-    background: linear-gradient(135deg, var(--accent), var(--emerald));
+  .brand-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
     display: grid;
     place-items: center;
     font-weight: 800;
-    font-size: 13px;
-    color: #041019;
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+    font-size: 14px;
+    color: #fff;
+    box-shadow: 0 4px 14px var(--accent-glow);
   }
 
-  .brand h1 {
+  .brand-title {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 
-  .reset-btn {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
+  .brand-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .status-pill {
     font-size: 11px;
     font-weight: 600;
     padding: 5px 10px;
     border-radius: 999px;
-    cursor: pointer;
-    transition: 0.15s ease;
-  }
-
-  .reset-btn:active {
-    transform: scale(0.95);
-    color: var(--text);
-  }
-
-  /* Segmented Tabs */
-  .tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    background: var(--surface);
-    padding: 4px;
-    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     border: 1px solid var(--border);
-    gap: 4px;
+    background: var(--bg-card);
   }
 
-  .tab-btn {
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-family: inherit;
-    font-size: 13px;
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 8px var(--emerald);
+  }
+
+  .status-pill.warn .status-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .status-pill.danger .status-dot { background: var(--rose); box-shadow: 0 0 8px var(--rose); }
+
+  /* Exam Preset Bar */
+  .preset-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .preset-row::-webkit-scrollbar { display: none; }
+
+  .preset-chip {
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 11.5px;
     font-weight: 600;
-    padding: 8px 10px;
-    border-radius: 9px;
+    padding: 6px 11px;
+    border-radius: 999px;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+  }
+  .preset-chip.active {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: var(--accent);
+    color: #fff;
   }
 
-  .tab-btn.active {
-    background: var(--surface-2);
-    color: var(--text);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* Scrollable Main Content */
+  .main-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 14px 16px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
   }
 
-  .tab-pill {
-    font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 999px;
-    background: rgba(56, 189, 248, 0.14);
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Main Content */
-  .content {
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .panel {
+  .tab-panel {
     display: none;
     flex-direction: column;
     gap: 14px;
-    animation: fadeIn 0.2s ease;
+    animation: fadeSlide 0.22s ease-out;
   }
-
-  .panel.active {
+  .tab-panel.active {
     display: flex;
   }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Hero Output Card */
-  .hero-card {
-    background: linear-gradient(160deg, #131c2e 0%, #0d1320 100%);
-    border: 1px solid rgba(56, 189, 248, 0.22);
-    border-radius: var(--radius);
-    padding: 16px;
+  /* KPI Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 13px;
     position: relative;
     overflow: hidden;
   }
 
-  .hero-card::before {
+  .kpi-card::after {
     content: "";
     position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 140px;
-    height: 140px;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, transparent 70%);
-    pointer-events: none;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity: 0.7;
   }
 
-  .hero-label {
+  .kpi-card.cyan::after { background: linear-gradient(90deg, var(--cyan), transparent); }
+  .kpi-card.emerald::after { background: linear-gradient(90deg, var(--emerald), transparent); }
+  .kpi-card.amber::after { background: linear-gradient(90deg, var(--amber), transparent); }
+
+  .kpi-label {
     font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    font-weight: 600;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 4px;
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
   }
 
-  .hero-badge {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--emerald);
-    letter-spacing: 0.02em;
-    text-transform: none;
-  }
-
-  .hero-value {
-    font-size: 38px;
+  .kpi-value {
+    font-size: 22px;
     font-weight: 800;
     letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-    margin: 4px 0 12px;
-    background: linear-gradient(90deg, #ffffff 0%, #bae6fd 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
+    line-height: 1.15;
   }
 
-  .hero-value span {
-    font-size: 16px;
-    font-weight: 600;
-    -webkit-text-fill-color: var(--text-muted);
-  }
-
-  .mini-kpis {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-
-  .mini-kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .mini-kpi-label {
-    font-size: 10px;
+  .kpi-sub {
+    font-size: 10.5px;
     color: var(--text-muted);
+    margin-top: 3px;
   }
 
-  .mini-kpi-val {
-    font-size: 13px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--text);
+  /* Cards & Controls */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 15px;
   }
 
-  /* Allocation Bar */
-  .bar-wrap {
-    margin-top: 12px;
-  }
-
-  .stacked-bar {
-    height: 8px;
-    border-radius: 999px;
-    background: var(--surface);
-    overflow: hidden;
-    display: flex;
-    gap: 2px;
-  }
-
-  .bar-seg {
-    height: 100%;
-    transition: width 0.25s ease;
-  }
-
-  .seg-net { background: var(--emerald); }
-  .seg-tax { background: var(--amber); }
-  .seg-over { background: var(--violet); }
-
-  .bar-legend {
+  .card-header {
     display: flex;
     justify-content: space-between;
-    margin-top: 7px;
-    font-size: 10px;
-    color: var(--text-muted);
-  }
-
-  .legend-item {
-    display: flex;
     align-items: center;
-    gap: 5px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-  }
-
-  /* Input Cards */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    margin-bottom: 12px;
   }
 
   .card-title {
-    font-size: 12px;
+    font-size: 13.5px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .card-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.1);
+    padding: 3px 8px;
+    border-radius: 6px;
   }
 
   .control-group {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
+    margin-bottom: 14px;
+  }
+  .control-group:last-child {
+    margin-bottom: 0;
   }
 
-  .control-header {
+  .control-label-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 8px;
+    align-items: baseline;
+    margin-bottom: 7px;
   }
 
   .control-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .control-sub {
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .num-input-wrap {
-    display: flex;
-    align-items: center;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px 8px;
-    transition: border-color 0.15s;
-  }
-
-  .num-input-wrap:focus-within {
-    border-color: var(--accent);
-  }
-
-  .num-prefix, .num-suffix {
-    font-size: 12px;
-    color: var(--text-muted);
+    font-size: 12.5px;
     font-weight: 600;
-    user-select: none;
+    color: var(--text-secondary);
   }
 
-  .num-input {
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: inherit;
+  .control-val {
     font-size: 13px;
     font-weight: 700;
+    color: var(--text-primary);
     font-variant-numeric: tabular-nums;
-    width: 66px;
-    text-align: right;
-    outline: none;
-    padding: 0 3px;
   }
 
-  .num-input.narrow {
-    width: 44px;
-  }
-
-  /* Custom Range Slider */
   input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
     height: 6px;
-    background: var(--surface-2);
+    background: var(--bg-input);
     border-radius: 999px;
     outline: none;
-    cursor: pointer;
+    border: 1px solid var(--border);
   }
 
   input[type="range"]::-webkit-slider-thumb {
@@ -416,916 +319,1128 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #ffffff;
+    background: #fff;
     border: 3px solid var(--accent);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 10px var(--accent-glow);
+    cursor: pointer;
     transition: transform 0.12s ease;
   }
-
   input[type="range"]::-webkit-slider-thumb:active {
-    transform: scale(1.16);
+    transform: scale(1.15);
   }
 
-  input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 3px solid var(--accent);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Toggle Switch */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--surface-2);
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
+  /* Segmented Control */
+  .seg-control {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    background: var(--bg-input);
+    padding: 4px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
   }
 
-  .switch {
-    position: relative;
-    width: 42px;
-    height: 24px;
-    flex-shrink: 0;
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider-toggle {
-    position: absolute;
-    inset: 0;
-    background: #2b354b;
-    border-radius: 999px;
-    transition: 0.2s;
-    cursor: pointer;
-  }
-
-  .slider-toggle::before {
-    content: "";
-    position: absolute;
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: 0.2s;
-  }
-
-  .switch input:checked + .slider-toggle {
-    background: var(--accent);
-  }
-
-  .switch input:checked + .slider-toggle::before {
-    transform: translateX(18px);
-  }
-
-  /* Quote Itemized Breakdown */
-  .quote-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .quote-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-  }
-
-  .quote-row-left {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .quote-row-sub {
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .quote-row-val {
+  .seg-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 11.5px;
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    padding: 7px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .seg-btn.active {
+    background: var(--bg-card-elevated);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   }
 
-  .quote-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 2px 0;
-  }
-
-  .quote-total-row {
+  /* Interval Chips */
+  .interval-strip {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: 15px;
-    font-weight: 700;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
   }
 
-  .quote-total-val {
-    font-size: 18px;
-    color: var(--emerald);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Text Input for Project Name */
-  .text-input {
-    width: 100%;
-    background: var(--surface-2);
+  .interval-node {
+    flex: 1;
+    min-width: 52px;
+    background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: inherit;
+    padding: 7px 6px;
+    text-align: center;
+  }
+
+  .interval-step {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .interval-day {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 800;
+    color: var(--cyan);
+    margin-top: 2px;
+  }
+
+  /* Workload Chart */
+  .chart-wrap {
+    height: 132px;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    padding-top: 18px;
+    padding-bottom: 4px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .budget-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1.5px dashed rgba(245, 158, 11, 0.65);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .budget-tag {
+    position: absolute;
+    right: 0;
+    top: -16px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--amber);
+    background: rgba(11, 15, 25, 0.85);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .bar-col {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    position: relative;
+    min-width: 4px;
+  }
+
+  .bar-stack {
+    width: 100%;
+    max-width: 16px;
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 3px 3px 0 0;
+    overflow: hidden;
+    transition: height 0.25s ease;
+  }
+
+  .bar-new {
+    background: var(--accent);
+    width: 100%;
+  }
+
+  .bar-rev {
+    background: var(--cyan);
+    width: 100%;
+    opacity: 0.85;
+  }
+
+  .bar-over .bar-new, .bar-over .bar-rev {
+    filter: saturate(1.2);
+  }
+
+  .chart-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 9px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .legend-items {
+    display: flex;
+    gap: 12px;
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
+
+  /* Timeline / Schedule List */
+  .day-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .day-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: border-color 0.2s, opacity 0.2s;
+  }
+
+  .day-card.done {
+    opacity: 0.58;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  .day-card.exam-day {
+    border-color: rgba(244, 63, 94, 0.5);
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.12), var(--bg-card));
+  }
+
+  .day-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    border: 2px solid var(--text-muted);
+    background: transparent;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    transition: all 0.15s ease;
+  }
+
+  .day-card.done .day-check {
+    background: var(--emerald);
+    border-color: var(--emerald);
+  }
+
+  .day-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .day-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .day-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .day-hours {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+  }
+  .day-hours.over {
+    color: var(--rose);
+    background: rgba(244, 63, 94, 0.14);
+  }
+
+  .day-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11.5px;
+  }
+
+  .tag-new {
+    color: #a5b4fc;
+    background: rgba(99, 102, 241, 0.14);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+
+  .tag-rev {
+    color: #67e8f9;
+    background: rgba(34, 211, 238, 0.12);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+
+  .tag-mock {
+    color: #fda4af;
+    background: rgba(244, 63, 94, 0.15);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+
+  .day-topics-preview {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Topics Tab */
+  .add-topic-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .text-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-size: 13px;
     outline: none;
   }
-
   .text-input:focus {
     border-color: var(--accent);
   }
 
-  /* Quick Preset Chips */
-  .chips {
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0 15px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-primary:active { opacity: 0.8; }
+
+  .topic-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 11px 12px;
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
   }
 
-  .chip {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+  .topic-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .topic-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topic-sub {
+    font-size: 11px;
     color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .conf-btn {
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .conf-btn.hard { color: var(--rose); border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.1); }
+  .conf-btn.med { color: var(--amber); border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1); }
+  .conf-btn.easy { color: var(--emerald); border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
+
+  .del-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 5px;
+  }
+
+  /* Bottom Navigation */
+  .bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: rgba(18, 24, 38, 0.96);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    padding: 8px 10px calc(8px + var(--safe-bottom));
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 0;
+    cursor: pointer;
     font-size: 11px;
     font-weight: 600;
-    padding: 5px 10px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: 0.15s;
+    transition: color 0.18s;
   }
 
-  .chip.active {
-    background: rgba(56, 189, 248, 0.15);
-    border-color: var(--accent);
+  .nav-btn svg {
+    width: 21px;
+    height: 21px;
+    stroke-width: 2;
+  }
+
+  .nav-btn.active {
     color: var(--accent);
   }
 
-  /* CTA Action Buttons */
-  .btn-primary {
+  .progress-bar-bg {
     width: 100%;
-    border: none;
-    border-radius: 12px;
-    padding: 14px 16px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    background: linear-gradient(135deg, var(--accent), #0ea5e9);
-    color: #03111c;
-    box-shadow: 0 4px 18px rgba(56, 189, 248, 0.28);
-    transition: transform 0.12s ease, opacity 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .btn-primary:active {
-    transform: scale(0.98);
-  }
-
-  .btn-secondary {
-    width: 100%;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    background: var(--surface-2);
-    color: var(--text);
-    transition: transform 0.12s ease;
-  }
-
-  .btn-secondary:active {
-    transform: scale(0.98);
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #10b981;
-    color: #041911;
-    font-weight: 700;
-    font-size: 13px;
-    padding: 10px 18px;
+    height: 6px;
+    background: var(--bg-input);
     border-radius: 999px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-    z-index: 100;
-    white-space: nowrap;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--emerald));
+    border-radius: 999px;
+    transition: width 0.3s ease;
   }
 
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  /* Warning banner */
-  .warn-note {
-    font-size: 11px;
-    color: var(--amber);
+  .helper-banner {
     background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-size: 11.5px;
+    color: #fcd34d;
+    line-height: 1.4;
     display: none;
   }
+  .helper-banner.show { display: block; }
 </style>
 </head>
 <body>
 <div class="app-shell">
-  <header class="top-bar">
-    <div class="brand-row">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
       <div class="brand">
-        <div class="logo-dot">$</div>
-        <h1>TrueRate</h1>
+        <div class="brand-icon">SR</div>
+        <div>
+          <div class="brand-title">Exam Sprint Planner</div>
+          <div class="brand-sub" id="headerSubtitle">Spaced Repetition Engine</div>
+        </div>
       </div>
-      <button class="reset-btn" id="resetBtn" type="button">Reset Defaults</button>
+      <div class="status-pill" id="feasibilityPill">
+        <span class="status-dot"></span>
+        <span id="feasibilityText">Optimal</span>
+      </div>
     </div>
-    <nav class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="rate" role="tab" aria-selected="true">
-        True Rate <span class="tab-pill" id="tabRateBadge">$0/hr</span>
-      </button>
-      <button class="tab-btn" data-tab="quote" role="tab" aria-selected="false">
-        Project Quote <span class="tab-pill" id="tabQuoteBadge">$0</span>
-      </button>
-    </nav>
+
+    <div class="preset-row" id="presetRow">
+      <button class="preset-chip active" data-preset="custom">Custom Sprint</button>
+      <button class="preset-chip" data-preset="med">Med / Bio Board</button>
+      <button class="preset-chip" data-preset="cs">CS &amp; Algos</button>
+      <button class="preset-chip" data-preset="law">Bar / Law</button>
+      <button class="preset-chip" data-preset="lang">Vocab Cram</button>
+    </div>
   </header>
 
-  <main class="content">
-    <!-- TAB 1: TRUE RATE CALCULATOR -->
-    <section id="panel-rate" class="panel active">
-      <div class="hero-card">
-        <div class="hero-label">
-          <span>Minimum Billable Rate</span>
-          <span class="hero-badge" id="billableHoursBadge">1,344 billable hrs/yr</span>
+  <!-- Main Content -->
+  <main class="main-scroll">
+    <!-- TAB 1: PLANNER -->
+    <section class="tab-panel active" id="tab-planner">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">New Pace <span>/ day</span></div>
+          <div class="kpi-value" id="kpiNewPace">3.0</div>
+          <div class="kpi-sub" id="kpiNewSub">All covered by Day 14</div>
         </div>
-        <div class="hero-value" id="trueRateDisplay">$0<span>/hr</span></div>
-
-        <div class="mini-kpis">
-          <div class="mini-kpi">
-            <span class="mini-kpi-label">Gross Target</span>
-            <span class="mini-kpi-val" id="grossTargetDisplay">$0</span>
-          </div>
-          <div class="mini-kpi">
-            <span class="mini-kpi-label">Tax Reserve</span>
-            <span class="mini-kpi-val" id="taxReserveDisplay" style="color: var(--amber);">$0</span>
-          </div>
-          <div class="mini-kpi">
-            <span class="mini-kpi-label">All-Hours Eff.</span>
-            <span class="mini-kpi-val" id="effRateDisplay">$0/hr</span>
-          </div>
+        <div class="kpi-card cyan">
+          <div class="kpi-label">Peak Load <span>hrs/day</span></div>
+          <div class="kpi-value" id="kpiPeakHours">2.8h</div>
+          <div class="kpi-sub" id="kpiAvgHours">Avg 2.1h / day</div>
         </div>
-
-        <div class="bar-wrap">
-          <div class="stacked-bar">
-            <div class="bar-seg seg-net" id="barNet" style="width: 65%"></div>
-            <div class="bar-seg seg-tax" id="barTax" style="width: 25%"></div>
-            <div class="bar-seg seg-over" id="barOver" style="width: 10%"></div>
-          </div>
-          <div class="bar-legend">
-            <span class="legend-item"><span class="dot seg-net"></span>Net <span id="pctNet">0%</span></span>
-            <span class="legend-item"><span class="dot seg-tax"></span>Tax <span id="pctTax">0%</span></span>
-            <span class="legend-item"><span class="dot seg-over"></span>Overhead <span id="pctOver">0%</span></span>
-          </div>
+        <div class="kpi-card emerald">
+          <div class="kpi-label">Est. Retention</div>
+          <div class="kpi-value" id="kpiRetention">91%</div>
+          <div class="kpi-sub" id="kpiTouches">~4.2 touches / topic</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Total Sprint</div>
+          <div class="kpi-value" id="kpiTotalHours">42h</div>
+          <div class="kpi-sub" id="kpiReviewsTotal">160 spaced reviews</div>
         </div>
       </div>
 
-      <div class="warn-note" id="rateWarning">
-        High non-billable time or tax rate sharply increases your required hourly rate.
-      </div>
+      <div class="helper-banner" id="overloadBanner"></div>
 
-      <!-- Income & Overhead -->
+      <!-- Sliders Card -->
       <div class="card">
-        <div class="card-title">
-          <span>Financial Targets</span>
-          <span style="color: var(--emerald); font-variant-numeric: tabular-nums;" id="monthlyNetLabel">$0/mo take-home</span>
+        <div class="card-header">
+          <div class="card-title">Sprint Parameters</div>
+          <span class="card-badge" id="examCountdownBadge">21 Days Left</span>
         </div>
 
         <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Desired Net Income</div>
-              <div class="control-sub">Annual take-home after tax & expenses</div>
-            </div>
-            <div class="num-input-wrap">
-              <span class="num-prefix">$</span>
-              <input type="number" class="num-input" id="netIncomeNum" min="15000" max="500000" step="1000" value="90000">
-            </div>
+          <div class="control-label-row">
+            <span class="control-label">Days Until Exam</span>
+            <span class="control-val" id="valDays">21 days</span>
           </div>
-          <input type="range" id="netIncomeRange" min="20000" max="300000" step="2500" value="90000">
+          <input type="range" id="inputDays" min="3" max="60" step="1" value="21">
         </div>
 
         <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Annual Business Overhead</div>
-              <div class="control-sub">Software, gear, insurance, coworking</div>
-            </div>
-            <div class="num-input-wrap">
-              <span class="num-prefix">$</span>
-              <input type="number" class="num-input" id="overheadNum" min="0" max="100000" step="250" value="6000">
-            </div>
+          <div class="control-label-row">
+            <span class="control-label">Total Topics / Decks</span>
+            <span class="control-val" id="valTopics">36 topics</span>
           </div>
-          <input type="range" id="overheadRange" min="0" max="40000" step="500" value="6000">
+          <input type="range" id="inputTopics" min="5" max="120" step="1" value="36">
         </div>
 
         <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Tax Reserve Rate</div>
-              <div class="control-sub">Federal, state & self-employment tax</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="taxRateNum" min="0" max="60" step="1" value="28">
-              <span class="num-suffix">%</span>
-            </div>
+          <div class="control-label-row">
+            <span class="control-label">Daily Study Budget</span>
+            <span class="control-val" id="valBudget">3.0 hrs/day</span>
           </div>
-          <input type="range" id="taxRateRange" min="5" max="55" step="1" value="28">
+          <input type="range" id="inputBudget" min="0.5" max="8.0" step="0.5" value="3.0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span class="control-label">Target Retention</span>
+            <span class="control-val" id="valRetention">90%</span>
+          </div>
+          <input type="range" id="inputRetention" min="80" max="98" step="1" value="90">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span class="control-label">Forgetting Curve Profile</span>
+            <span class="control-val" id="valCurve">Standard SM-2</span>
+          </div>
+          <div class="seg-control" id="curveSelector">
+            <button class="seg-btn" data-curve="gentle">Gentle</button>
+            <button class="seg-btn active" data-curve="standard">SM-2</button>
+            <button class="seg-btn" data-curve="steep">Dense/Cram</button>
+          </div>
         </div>
       </div>
 
-      <!-- Time & Utilization -->
+      <!-- Compressed Intervals Card -->
       <div class="card">
-        <div class="card-title">
-          <span>Capacity & Non-Billable Overhead</span>
-          <span style="color: var(--accent); font-variant-numeric: tabular-nums;" id="utilLabel">70% billable</span>
+        <div class="card-header">
+          <div class="card-title">Calculated Review Intervals</div>
+          <span class="card-badge" id="compressionBadge">1.0x Scale</span>
         </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Non-Billable Time</div>
-              <div class="control-sub">Admin, sales, proposals, bookkeeping</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="nonBillableNum" min="0" max="75" step="1" value="30">
-              <span class="num-suffix">%</span>
-            </div>
-          </div>
-          <input type="range" id="nonBillableRange" min="0" max="65" step="1" value="30">
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Weekly Working Hours</div>
-              <div class="control-sub">Total hours worked per week</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="weeklyHoursNum" min="5" max="80" step="1" value="40">
-              <span class="num-suffix">h</span>
-            </div>
-          </div>
-          <input type="range" id="weeklyHoursRange" min="10" max="65" step="1" value="40">
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Working Weeks / Year</div>
-              <div class="control-sub" id="vacationSub">4 weeks off (holidays & PTO)</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="workWeeksNum" min="10" max="52" step="1" value="48">
-              <span class="num-suffix">w</span>
-            </div>
-          </div>
-          <input type="range" id="workWeeksRange" min="26" max="52" step="1" value="48">
-        </div>
+        <div class="interval-strip" id="intervalStrip"></div>
       </div>
 
-      <button class="btn-primary" id="useRateForQuoteBtn" type="button">
-        Build Client Quote at <span id="ctaRateSpan">$0/hr</span> →
-      </button>
+      <!-- Daily Workload Projection -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Daily Load Projection</div>
+          <span class="card-badge" id="peakDayBadge">Peak: Day 12</span>
+        </div>
+        <div class="chart-wrap" id="workloadChart">
+          <div class="budget-line" id="budgetLine">
+            <span class="budget-tag" id="budgetTag">3.0h limit</span>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-items">
+            <span><i class="legend-dot" style="background:var(--accent)"></i>New Learn</span>
+            <span><i class="legend-dot" style="background:var(--cyan)"></i>Spaced Review</span>
+          </div>
+          <span id="chartRangeLabel">Day 1 → 21</span>
+        </div>
+      </div>
     </section>
 
-    <!-- TAB 2: PROJECT QUOTE BUILDER -->
-    <section id="panel-quote" class="panel">
-      <div class="hero-card">
-        <div class="hero-label">
-          <span>Client Project Quote</span>
-          <span class="hero-badge" id="quoteRatePill">Using $0/hr</span>
-        </div>
-        <div class="hero-value" id="quoteTotalDisplay">$0</div>
-
-        <div class="mini-kpis">
-          <div class="mini-kpi">
-            <span class="mini-kpi-label">Deposit Due</span>
-            <span class="mini-kpi-val" id="depositDisplay" style="color: var(--accent);">$0</span>
-          </div>
-          <div class="mini-kpi">
-            <span class="mini-kpi-label">Tax Set-Aside</span>
-            <span class="mini-kpi-val" id="quoteTaxDisplay" style="color: var(--amber);">$0</span>
-          </div>
-          <div class="mini-kpi">
-            <span class="mini-kpi-label">Est. Net Profit</span>
-            <span class="mini-kpi-val" id="quoteNetDisplay" style="color: var(--emerald);">$0</span>
-          </div>
-        </div>
-      </div>
-
+    <!-- TAB 2: SCHEDULE -->
+    <section class="tab-panel" id="tab-schedule">
       <div class="card">
-        <div class="card-title">
-          <span>Project Details</span>
-          <span style="color: var(--text-dim);">Instant Scope</span>
+        <div class="card-header" style="margin-bottom:6px">
+          <div class="card-title">Sprint Execution</div>
+          <span class="card-badge" id="completionBadge">0 / 21 Days</span>
         </div>
-
-        <input type="text" class="text-input" id="projectNameInput" value="Website Redesign & Webflow Build" placeholder="Project / Client Name">
-
-        <div class="toggle-row">
-          <div>
-            <div class="control-label">Sync with True Rate</div>
-            <div class="control-sub" id="syncSub">Locked to calculated rate</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="syncRateToggle" checked>
-            <span class="slider-toggle"></span>
-          </label>
+        <div style="font-size:12px; color:var(--text-secondary);" id="scheduleSummaryText">
+          Tap a day checkbox as you complete sessions.
         </div>
-
-        <div class="control-group" id="customRateGroup" style="display: none;">
-          <div class="control-header">
-            <div class="control-label">Custom Hourly Rate</div>
-            <div class="num-input-wrap">
-              <span class="num-prefix">$</span>
-              <input type="number" class="num-input narrow" id="customRateNum" min="10" max="1000" step="5" value="125">
-              <span class="num-suffix">/h</span>
-            </div>
-          </div>
-          <input type="range" id="customRateRange" min="25" max="400" step="5" value="125">
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Estimated Billable Hours</div>
-              <div class="control-sub">Design, dev, QA & client calls</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="projHoursNum" min="1" max="1000" step="1" value="35">
-              <span class="num-suffix">h</span>
-            </div>
-          </div>
-          <input type="range" id="projHoursRange" min="2" max="200" step="1" value="35">
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Scope / Revision Buffer</div>
-              <div class="control-sub">Protects against scope creep</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="bufferNum" min="0" max="50" step="1" value="15">
-              <span class="num-suffix">%</span>
-            </div>
-          </div>
-          <input type="range" id="bufferRange" min="0" max="40" step="5" value="15">
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Urgency / Rush Fee</div>
-              <div class="control-sub">Expedited turnaround premium</div>
-            </div>
-            <span style="font-size: 12px; font-weight: 700; color: var(--accent);" id="rushValLabel">0%</span>
-          </div>
-          <div class="chips" id="rushChips">
-            <button type="button" class="chip active" data-rush="0">Standard (0%)</button>
-            <button type="button" class="chip" data-rush="15">Fast (+15%)</button>
-            <button type="button" class="chip" data-rush="25">Rush (+25%)</button>
-            <button type="button" class="chip" data-rush="50">Weekend (+50%)</button>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Pass-Through Costs</div>
-              <div class="control-sub">Fonts, stock assets, plugins, hosting</div>
-            </div>
-            <div class="num-input-wrap">
-              <span class="num-prefix">$</span>
-              <input type="number" class="num-input" id="passThroughNum" min="0" max="50000" step="25" value="250">
-            </div>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="control-header">
-            <div>
-              <div class="control-label">Upfront Deposit</div>
-              <div class="control-sub">Required to lock start date</div>
-            </div>
-            <div class="num-input-wrap">
-              <input type="number" class="num-input narrow" id="depositPctNum" min="0" max="100" step="5" value="50">
-              <span class="num-suffix">%</span>
-            </div>
-          </div>
-          <input type="range" id="depositPctRange" min="0" max="100" step="5" value="50">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="sprintProgressFill" style="width:0%"></div>
         </div>
       </div>
 
-      <!-- Itemized Client Breakdown -->
+      <div class="day-list" id="dayList"></div>
+    </section>
+
+    <!-- TAB 3: TOPICS -->
+    <section class="tab-panel" id="tab-topics">
       <div class="card">
-        <div class="card-title">
-          <span>Itemized Client Estimate</span>
-          <span style="color: var(--emerald);">Ready to Send</span>
+        <div class="card-header" style="margin-bottom:8px">
+          <div class="card-title">Topic Queue &amp; Confidence</div>
+          <span class="card-badge" id="topicQueueCount">36 Topics</span>
         </div>
-
-        <div class="quote-list">
-          <div class="quote-row">
-            <div class="quote-row-left">
-              <span>Core Production Labor</span>
-              <span class="quote-row-sub" id="itemLaborSub">35 hrs × $0/hr</span>
-            </div>
-            <span class="quote-row-val" id="itemLaborVal">$0</span>
-          </div>
-
-          <div class="quote-row" id="itemBufferRow">
-            <div class="quote-row-left">
-              <span>Contingency & Revisions Buffer</span>
-              <span class="quote-row-sub" id="itemBufferSub">15% scope buffer</span>
-            </div>
-            <span class="quote-row-val" id="itemBufferVal">$0</span>
-          </div>
-
-          <div class="quote-row" id="itemRushRow" style="display: none;">
-            <div class="quote-row-left">
-              <span>Expedited Delivery Premium</span>
-              <span class="quote-row-sub" id="itemRushSub">25% rush fee</span>
-            </div>
-            <span class="quote-row-val" id="itemRushVal">$0</span>
-          </div>
-
-          <div class="quote-row" id="itemPassRow">
-            <div class="quote-row-left">
-              <span>Licenses & Pass-Through Expenses</span>
-              <span class="quote-row-sub">Billed at cost</span>
-            </div>
-            <span class="quote-row-val" id="itemPassVal">$0</span>
-          </div>
-
-          <div class="quote-divider"></div>
-
-          <div class="quote-total-row">
-            <span>Total Project Investment</span>
-            <span class="quote-total-val" id="itemTotalVal">$0</span>
-          </div>
-
-          <div class="quote-row" style="color: var(--text-muted); font-size: 12px;">
-            <span id="itemDepositLabel">50% Deposit to Begin</span>
-            <span style="font-weight: 700; color: var(--text);" id="itemDepositVal">$0</span>
-          </div>
+        <div class="add-topic-row">
+          <input type="text" class="text-input" id="newTopicInput" placeholder="Add topic (e.g. Dynamic Programming)...">
+          <button class="btn-primary" id="addTopicBtn">Add</button>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+          Tap confidence badge (Hard / Med / Easy) to dynamically adjust review frequency weight.
         </div>
       </div>
 
-      <button class="btn-primary" id="copyQuoteBtn" type="button">
-        Copy Itemized Client Quote
-      </button>
+      <div class="day-list" id="topicList"></div>
     </section>
   </main>
-</div>
 
-<div class="toast" id="toast">Copied to clipboard!</div>
+  <!-- Bottom Tab Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="planner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20V10M18 20V4M6 20v-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Planner</span>
+    </button>
+    <button class="nav-btn" data-tab="schedule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Schedule</span>
+    </button>
+    <button class="nav-btn" data-tab="topics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Topics</span>
+    </button>
+  </nav>
+</div>
 
 <script>
 (function () {
-  const DEFAULTS = {
-    netIncome: 90000,
-    overhead: 6000,
-    taxRate: 28,
-    nonBillable: 30,
-    weeklyHours: 40,
-    workWeeks: 48,
-    syncRate: true,
-    customRate: 125,
-    projHours: 35,
-    bufferPct: 15,
-    rushPct: 0,
-    passThrough: 250,
-    depositPct: 50,
-    projectName: "Website Redesign & Webflow Build"
+  const PRESETS = {
+    custom: { name: "Custom Sprint", days: 21, topics: 36, budget: 3.0, retention: 90, curve: "standard", samplePrefix: "Topic" },
+    med: {
+      name: "Med / Bio Board", days: 30, topics: 60, budget: 4.5, retention: 94, curve: "steep",
+      samples: ["Cardio Physiology", "Renal Pharmacology", "Neuroanatomy", "Microbiology Gram+", "Endocrine Axis", "Pathology Neoplasia", "Autonomic Drugs", "Immunology T-Cells"]
+    },
+    cs: {
+      name: "CS & Algos", days: 14, topics: 28, budget: 2.5, retention: 88, curve: "standard",
+      samples: ["Graph BFS/DFS", "Dynamic Programming", "Sliding Window", "Tries & Heaps", "System Caching", "Consistent Hashing", "SQL Indexing", "Concurrency Locks"]
+    },
+    law: {
+      name: "Bar / Law", days: 28, topics: 45, budget: 4.0, retention: 92, curve: "steep",
+      samples: ["Torts Negligence", "Contracts UCC Art. 2", "Con Law Commerce", "Evidence Hearsay", "CivPro Personal Juris", "CrimPro 4th Amend", "Property Future Int", "Corps Fiduciary"]
+    },
+    lang: {
+      name: "Vocab Cram", days: 10, topics: 50, budget: 1.5, retention: 85, curve: "gentle",
+      samples: ["Core Verbs Set A", "Connectors & Idioms", "Business Terms", "Travel Phrases", "Irregular Past", "Subjunctive Mood", "Academic Nouns", "Listening Drill"]
+    }
   };
 
-  let state = { ...DEFAULTS };
-
-  const $ = (id) => document.getElementById(id);
-
-  const fmtMoney = (n) => {
-    const rounded = Math.round(n);
-    return "$" + rounded.toLocaleString("en-US");
+  const state = {
+    preset: "custom",
+    days: 21,
+    topicsCount: 36,
+    budgetHours: 3.0,
+    targetRetention: 90,
+    curve: "standard",
+    completedDays: new Set(),
+    topics: [],
+    activeTab: "planner"
   };
 
-  const fmtRate = (n) => {
-    return "$" + Math.ceil(n).toLocaleString("en-US");
+  // DOM Elements
+  const els = {
+    inputDays: document.getElementById("inputDays"),
+    inputTopics: document.getElementById("inputTopics"),
+    inputBudget: document.getElementById("inputBudget"),
+    inputRetention: document.getElementById("inputRetention"),
+    valDays: document.getElementById("valDays"),
+    valTopics: document.getElementById("valTopics"),
+    valBudget: document.getElementById("valBudget"),
+    valRetention: document.getElementById("valRetention"),
+    valCurve: document.getElementById("valCurve"),
+    examCountdownBadge: document.getElementById("examCountdownBadge"),
+    compressionBadge: document.getElementById("compressionBadge"),
+    intervalStrip: document.getElementById("intervalStrip"),
+    workloadChart: document.getElementById("workloadChart"),
+    budgetLine: document.getElementById("budgetLine"),
+    budgetTag: document.getElementById("budgetTag"),
+    peakDayBadge: document.getElementById("peakDayBadge"),
+    chartRangeLabel: document.getElementById("chartRangeLabel"),
+    kpiNewPace: document.getElementById("kpiNewPace"),
+    kpiNewSub: document.getElementById("kpiNewSub"),
+    kpiPeakHours: document.getElementById("kpiPeakHours"),
+    kpiAvgHours: document.getElementById("kpiAvgHours"),
+    kpiRetention: document.getElementById("kpiRetention"),
+    kpiTouches: document.getElementById("kpiTouches"),
+    kpiTotalHours: document.getElementById("kpiTotalHours"),
+    kpiReviewsTotal: document.getElementById("kpiReviewsTotal"),
+    feasibilityPill: document.getElementById("feasibilityPill"),
+    feasibilityText: document.getElementById("feasibilityText"),
+    overloadBanner: document.getElementById("overloadBanner"),
+    headerSubtitle: document.getElementById("headerSubtitle"),
+    dayList: document.getElementById("dayList"),
+    completionBadge: document.getElementById("completionBadge"),
+    sprintProgressFill: document.getElementById("sprintProgressFill"),
+    scheduleSummaryText: document.getElementById("scheduleSummaryText"),
+    topicList: document.getElementById("topicList"),
+    topicQueueCount: document.getElementById("topicQueueCount"),
+    newTopicInput: document.getElementById("newTopicInput"),
+    addTopicBtn: document.getElementById("addTopicBtn")
   };
 
-  // Sync range & number pairs
-  function bindPair(rangeId, numId, key, min, max) {
-    const rangeEl = $(rangeId);
-    const numEl = $(numId);
+  function syncTopicsArray(targetCount, presetKey) {
+    const preset = PRESETS[presetKey] || PRESETS.custom;
+    const samples = preset.samples || [];
+    while (state.topics.length < targetCount) {
+      const idx = state.topics.length;
+      const label = samples[idx] ? samples[idx] : `${preset.samplePrefix || "Module"} #${idx + 1}`;
+      const confPool = ["med", "med", "hard", "easy"];
+      state.topics.push({
+        id: "t_" + Date.now() + "_" + idx + "_" + Math.random().toString(36).slice(2, 6),
+        name: label,
+        confidence: confPool[idx % confPool.length]
+      });
+    }
+    if (state.topics.length > targetCount) {
+      state.topics.length = targetCount;
+    }
+  }
 
-    rangeEl.addEventListener("input", () => {
-      const val = parseFloat(rangeEl.value) || 0;
-      state[key] = val;
-      numEl.value = val;
-      updateAll();
-    });
+  function computePlan() {
+    const D = state.days;
+    const N = state.topicsCount;
+    const budget = state.budgetHours;
 
-    numEl.addEventListener("input", () => {
-      let val = parseFloat(numEl.value);
-      if (isNaN(val)) val = 0;
-      state[key] = Math.max(0, val);
-      rangeEl.value = Math.min(max, Math.max(min, state[key]));
-      updateAll();
-    });
+    // Curve multipliers
+    const curveFactor = state.curve === "gentle" ? 1.18 : state.curve === "steep" ? 0.78 : 1.0;
+    const retentionTightness = 1 - ((state.targetRetention - 85) * 0.018); // higher retention = tighter intervals
 
-    numEl.addEventListener("blur", () => {
-      if (numEl.value === "" || isNaN(parseFloat(numEl.value))) {
-        numEl.value = state[key];
+    // Leave final day for synthesis/mock if D >= 5
+    const hasMockFinal = D >= 5;
+    const activeLearnWindow = Math.max(1, Math.min(D - (hasMockFinal ? 1 : 0), Math.ceil(D * 0.72)));
+
+    // Base SM-2 offsets from initial learn day: +1, +3, +7, +14, +25
+    const rawOffsets = [1, 3, 7, 14, 24];
+    const timeCompression = Math.min(1.25, Math.max(0.28, D / 28));
+    const scale = timeCompression * curveFactor * retentionTightness;
+
+    // Compute unique increasing spaced offsets within sprint horizon
+    const intervals = [];
+    let lastOffset = 0;
+    for (let i = 0; i < rawOffsets.length; i++) {
+      let scaled = Math.max(lastOffset + 1, Math.round(rawOffsets[i] * scale));
+      if (scaled < D) {
+        intervals.push(scaled);
+        lastOffset = scaled;
+      }
+    }
+    if (intervals.length === 0 && D > 1) {
+      intervals.push(1);
+    }
+
+    // Time cost per new topic & review (adjusted by curve & average topic difficulty)
+    const diffWeights = state.topics.reduce((acc, t) => {
+      return acc + (t.confidence === "hard" ? 1.3 : t.confidence === "easy" ? 0.75 : 1.0);
+    }, 0);
+    const avgDiffWeight = state.topics.length ? diffWeights / state.topics.length : 1.0;
+
+    const baseHoursPerNew = (state.curve === "steep" ? 0.55 : state.curve === "gentle" ? 0.35 : 0.45) * avgDiffWeight;
+    const baseHoursPerReview = (state.curve === "steep" ? 0.19 : state.curve === "gentle" ? 0.12 : 0.15) * avgDiffWeight;
+
+    // Build day-by-day schedule [1..D]
+    const schedule = Array.from({ length: D }, (_, i) => ({
+      day: i + 1,
+      newTopics: [],
+      reviewTopics: [],
+      hoursNew: 0,
+      hoursRev: 0,
+      totalHours: 0,
+      isExamEve: hasMockFinal && (i + 1 === D)
+    }));
+
+    // Distribute N topics evenly across activeLearnWindow
+    for (let i = 0; i < N; i++) {
+      const learnDayIdx = Math.min(activeLearnWindow - 1, Math.floor((i * activeLearnWindow) / N));
+      const topicObj = state.topics[i] || { name: `Topic ${i + 1}`, confidence: "med" };
+      schedule[learnDayIdx].newTopics.push(topicObj);
+
+      // Schedule spaced reviews for this topic
+      // Hard topics get an extra early review if space permits
+      const topicIntervals = [...intervals];
+      if (topicObj.confidence === "hard" && !topicIntervals.includes(2) && learnDayIdx + 2 < D) {
+        topicIntervals.push(2);
+        topicIntervals.sort((a, b) => a - b);
+      }
+
+      topicIntervals.forEach((offset) => {
+        const revIdx = learnDayIdx + offset;
+        if (revIdx < D) {
+          // Avoid scheduling heavy normal review on exam eve unless short sprint
+          if (hasMockFinal && revIdx === D - 1 && D > 7) return;
+          schedule[revIdx].reviewTopics.push(topicObj);
+        }
+      });
+    }
+
+    // Compute hours per day
+    let totalHours = 0;
+    let totalReviews = 0;
+    let peakHours = 0;
+    let peakDay = 1;
+    let overBudgetDays = 0;
+
+    schedule.forEach((d) => {
+      const nHours = d.newTopics.reduce((s, t) => s + baseHoursPerNew * (t.confidence === "hard" ? 1.2 : t.confidence === "easy" ? 0.8 : 1.0), 0);
+      const rHours = d.reviewTopics.reduce((s, t) => s + baseHoursPerReview * (t.confidence === "hard" ? 1.25 : t.confidence === "easy" ? 0.75 : 1.0), 0);
+      const mockHours = d.isExamEve ? Math.min(budget, 2.0) : 0;
+
+      d.hoursNew = nHours;
+      d.hoursRev = rHours + mockHours;
+      d.totalHours = nHours + rHours + mockHours;
+
+      totalHours += d.totalHours;
+      totalReviews += d.reviewTopics.length;
+
+      if (d.totalHours > peakHours) {
+        peakHours = d.totalHours;
+        peakDay = d.day;
+      }
+      if (d.totalHours > budget + 0.05) {
+        overBudgetDays++;
       }
     });
-  }
 
-  bindPair("netIncomeRange", "netIncomeNum", "netIncome", 20000, 300000);
-  bindPair("overheadRange", "overheadNum", "overhead", 0, 40000);
-  bindPair("taxRateRange", "taxRateNum", "taxRate", 5, 55);
-  bindPair("nonBillableRange", "nonBillableNum", "nonBillable", 0, 65);
-  bindPair("weeklyHoursRange", "weeklyHoursNum", "weeklyHours", 10, 65);
-  bindPair("workWeeksRange", "workWeeksNum", "workWeeks", 26, 52);
-  bindPair("customRateRange", "customRateNum", "customRate", 25, 400);
-  bindPair("projHoursRange", "projHoursNum", "projHours", 2, 200);
-  bindPair("bufferRange", "bufferNum", "bufferPct", 0, 40);
-  bindPair("depositPctRange", "depositPctNum", "depositPct", 0, 100);
+    const avgHours = totalHours / D;
+    const avgTouches = N > 0 ? (N + totalReviews) / N : 0;
 
-  $("passThroughNum").addEventListener("input", (e) => {
-    state.passThrough = Math.max(0, parseFloat(e.target.value) || 0);
-    updateAll();
-  });
-
-  $("projectNameInput").addEventListener("input", (e) => {
-    state.projectName = e.target.value;
-  });
-
-  $("syncRateToggle").addEventListener("change", (e) => {
-    state.syncRate = e.target.checked;
-    $("customRateGroup").style.display = state.syncRate ? "none" : "flex";
-    $("syncSub").textContent = state.syncRate ? "Locked to calculated rate" : "Using custom override rate";
-    updateAll();
-  });
-
-  // Rush chips
-  $("rushChips").addEventListener("click", (e) => {
-    const btn = e.target.closest(".chip");
-    if (!btn) return;
-    document.querySelectorAll("#rushChips .chip").forEach((c) => c.classList.remove("active"));
-    btn.classList.add("active");
-    state.rushPct = parseFloat(btn.dataset.rush) || 0;
-    $("rushValLabel").textContent = state.rushPct + "%";
-    updateAll();
-  });
-
-  // Tabs
-  function switchTab(tabName) {
-    document.querySelectorAll(".tab-btn").forEach((btn) => {
-      const isMatch = btn.dataset.tab === tabName;
-      btn.classList.toggle("active", isMatch);
-      btn.setAttribute("aria-selected", isMatch ? "true" : "false");
-    });
-    document.querySelectorAll(".panel").forEach((p) => {
-      p.classList.toggle("active", p.id === "panel-" + tabName);
-    });
-  }
-
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
-  });
-
-  $("useRateForQuoteBtn").addEventListener("click", () => {
-    switchTab("quote");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-
-  // Reset
-  $("resetBtn").addEventListener("click", () => {
-    state = { ...DEFAULTS };
-    $("netIncomeRange").value = $("netIncomeNum").value = state.netIncome;
-    $("overheadRange").value = $("overheadNum").value = state.overhead;
-    $("taxRateRange").value = $("taxRateNum").value = state.taxRate;
-    $("nonBillableRange").value = $("nonBillableNum").value = state.nonBillable;
-    $("weeklyHoursRange").value = $("weeklyHoursNum").value = state.weeklyHours;
-    $("workWeeksRange").value = $("workWeeksNum").value = state.workWeeks;
-    $("customRateRange").value = $("customRateNum").value = state.customRate;
-    $("projHoursRange").value = $("projHoursNum").value = state.projHours;
-    $("bufferRange").value = $("bufferNum").value = state.bufferPct;
-    $("depositPctRange").value = $("depositPctNum").value = state.depositPct;
-    $("passThroughNum").value = state.passThrough;
-    $("projectNameInput").value = state.projectName;
-    $("syncRateToggle").checked = true;
-    $("customRateGroup").style.display = "none";
-    $("syncSub").textContent = "Locked to calculated rate";
-    document.querySelectorAll("#rushChips .chip").forEach((c) => {
-      c.classList.toggle("active", parseFloat(c.dataset.rush) === 0);
-    });
-    $("rushValLabel").textContent = "0%";
-    updateAll();
-    showToast("Defaults restored");
-  });
-
-  // Calculation Engine
-  function compute() {
-    const taxDecimal = Math.min(0.85, Math.max(0, state.taxRate / 100));
-    const billableRatio = Math.max(0.05, 1 - state.nonBillable / 100);
-    const totalWorkHours = Math.max(1, state.weeklyHours * state.workWeeks);
-    const billableHours = Math.max(1, totalWorkHours * billableRatio);
-
-    const preTaxProfitNeeded = state.netIncome / (1 - taxDecimal);
-    const taxReserve = preTaxProfitNeeded - state.netIncome;
-    const grossTarget = preTaxProfitNeeded + state.overhead;
-
-    const trueHourlyRate = grossTarget / billableHours;
-    const effectiveAllHoursRate = grossTarget / totalWorkHours;
-
-    // Quote calc
-    const activeHourlyRate = state.syncRate ? Math.ceil(trueHourlyRate) : state.customRate;
-    const baseLabor = state.projHours * activeHourlyRate;
-    const bufferAmt = baseLabor * (state.bufferPct / 100);
-    const rushAmt = (baseLabor + bufferAmt) * (state.rushPct / 100);
-    const totalLabor = baseLabor + bufferAmt + rushAmt;
-    const quoteTotal = totalLabor + state.passThrough;
-    const depositDue = quoteTotal * (state.depositPct / 100);
-    const quoteTaxReserve = totalLabor * taxDecimal;
-    const quoteNetProfit = totalLabor - quoteTaxReserve;
+    // Estimated retention model based on touches & target
+    const touchBonus = Math.min(9, (avgTouches - 1) * 2.4);
+    const overloadPenalty = overBudgetDays > D * 0.35 ? 4 : 0;
+    const estRetention = Math.min(98, Math.max(68, Math.round(74 + touchBonus + (state.targetRetention - 85) * 0.55 - overloadPenalty)));
 
     return {
-      totalWorkHours,
-      billableHours,
-      billableRatio,
-      taxReserve,
-      grossTarget,
-      trueHourlyRate,
-      effectiveAllHoursRate,
-      activeHourlyRate,
-      baseLabor,
-      bufferAmt,
-      rushAmt,
-      totalLabor,
-      quoteTotal,
-      depositDue,
-      quoteTaxReserve,
-      quoteNetProfit
+      D, N, budget, scale, intervals, activeLearnWindow, hasMockFinal,
+      schedule, totalHours, totalReviews, peakHours, peakDay, avgHours,
+      avgTouches, estRetention, overBudgetDays
     };
   }
 
-  let latestCalc = {};
+  function render() {
+    const plan = computePlan();
 
-  function updateAll() {
-    const c = compute();
-    latestCalc = c;
+    // Update control readouts
+    els.valDays.textContent = `${state.days} days`;
+    els.valTopics.textContent = `${state.topicsCount} topics`;
+    els.valBudget.textContent = `${state.budgetHours.toFixed(1)} hrs/day`;
+    els.valRetention.textContent = `${state.targetRetention}%`;
+    els.valCurve.textContent = state.curve === "gentle" ? "Gentle" : state.curve === "steep" ? "Dense / Cram" : "Standard SM-2";
+    els.examCountdownBadge.textContent = `${state.days} Days Left`;
+    els.headerSubtitle.textContent = `${PRESETS[state.preset].name} · ${state.topicsCount} Topics`;
 
-    // Tab 1 UI
-    const roundedRate = Math.ceil(c.trueHourlyRate);
-    $("trueRateDisplay").innerHTML = `${fmtMoney(roundedRate)}<span>/hr</span>`;
-    $("tabRateBadge").textContent = `${fmtMoney(roundedRate)}/hr`;
-    $("ctaRateSpan").textContent = `${fmtMoney(roundedRate)}/hr`;
+    // KPIs
+    const newPace = (state.topicsCount / plan.activeLearnWindow).toFixed(1);
+    els.kpiNewPace.textContent = newPace;
+    els.kpiNewSub.textContent = `All covered by Day ${plan.activeLearnWindow}`;
+    els.kpiPeakHours.textContent = `${plan.peakHours.toFixed(1)}h`;
+    els.kpiAvgHours.textContent = `Avg ${plan.avgHours.toFixed(1)}h / day`;
+    els.kpiRetention.textContent = `${plan.estRetention}%`;
+    els.kpiTouches.textContent = `~${plan.avgTouches.toFixed(1)} touches / topic`;
+    els.kpiTotalHours.textContent = `${Math.round(plan.totalHours)}h`;
+    els.kpiReviewsTotal.textContent = `${plan.totalReviews} spaced reviews`;
 
-    $("billableHoursBadge").textContent = `${Math.round(c.billableHours).toLocaleString()} billable hrs/yr`;
-    $("grossTargetDisplay").textContent = fmtMoney(c.grossTarget);
-    $("taxReserveDisplay").textContent = fmtMoney(c.taxReserve);
-    $("effRateDisplay").textContent = `${fmtMoney(c.effectiveAllHoursRate)}/hr`;
-    $("monthlyNetLabel").textContent = `${fmtMoney(state.netIncome / 12)}/mo take-home`;
-    $("utilLabel").textContent = `${Math.round(c.billableRatio * 100)}% billable`;
+    // Feasibility pill & warning banner
+    els.feasibilityPill.classList.remove("warn", "danger");
+    if (plan.peakHours <= state.budgetHours * 1.02) {
+      els.feasibilityText.textContent = "Optimal";
+      els.overloadBanner.classList.remove("show");
+    } else if (plan.peakHours <= state.budgetHours * 1.3) {
+      els.feasibilityPill.classList.add("warn");
+      els.feasibilityText.textContent = "Tight Pace";
+      els.overloadBanner.textContent = `Peak review wave hits ${plan.peakHours.toFixed(1)}h on Day ${plan.peakDay} (${plan.overBudgetDays} days exceed your ${state.budgetHours.toFixed(1)}h budget). Consider +0.5h daily budget or fewer topics.`;
+      els.overloadBanner.classList.add("show");
+    } else {
+      els.feasibilityPill.classList.add("danger");
+      els.feasibilityText.textContent = "Overloaded";
+      els.overloadBanner.textContent = `Burnout alert: Peak load reaches ${plan.peakHours.toFixed(1)}h/day vs ${state.budgetHours.toFixed(1)}h limit. Increase days, raise daily budget, or trim topics.`;
+      els.overloadBanner.classList.add("show");
+    }
 
-    const weeksOff = Math.max(0, 52 - state.workWeeks);
-    $("vacationSub").textContent = weeksOff === 0
-      ? "0 weeks off (52 working weeks)"
-      : `${weeksOff} week${weeksOff > 1 ? "s" : ""} off (holidays & PTO)`;
+    // Interval Strip
+    els.compressionBadge.textContent = `${plan.scale.toFixed(2)}x Scale`;
+    const stripNodes = [{ label: "Learn", day: "Day 0" }];
+    plan.intervals.forEach((off, idx) => {
+      stripNodes.push({ label: `Rev ${idx + 1}`, day: `+${off}d` });
+    });
+    els.intervalStrip.innerHTML = stripNodes.map(n => `
+      <div class="interval-node">
+        <div class="interval-step">${n.label}</div>
+        <div class="interval-day">${n.day}</div>
+      </div>
+    `).join("");
 
-    // Stacked bar percentages
-    const pctNet = Math.round((state.netIncome / c.grossTarget) * 100);
-    const pctTax = Math.round((c.taxReserve / c.grossTarget) * 100);
-    const pctOver = Math.max(0, 100 - pctNet - pctTax);
+    // Workload Chart
+    els.peakDayBadge.textContent = `Peak: Day ${plan.peakDay}`;
+    els.chartRangeLabel.textContent = `Day 1 → ${plan.D}`;
+    const maxChartHours = Math.max(state.budgetHours * 1.15, plan.peakHours * 1.08, 1);
 
-    $("barNet").style.width = pctNet + "%";
-    $("barTax").style.width = pctTax + "%";
-    $("barOver").style.width = pctOver + "%";
-    $("pctNet").textContent = pctNet + "%";
-    $("pctTax").textContent = pctTax + "%";
-    $("pctOver").textContent = pctOver + "%";
+    // Budget dashed line position (chart height = 132px, padding-top 18px, bottom 4px => usable 110px)
+    const usablePx = 110;
+    const budgetPx = Math.min(usablePx + 4, (state.budgetHours / maxChartHours) * usablePx);
+    els.budgetLine.style.bottom = `${4 + budgetPx}px`;
+    els.budgetTag.textContent = `${state.budgetHours.toFixed(1)}h limit`;
 
-    // Warning note
-    const showWarn = state.nonBillable >= 45 || state.taxRate >= 42;
-    $("rateWarning").style.display = showWarn ? "block" : "none";
+    // Clear old bars while preserving budgetLine
+    Array.from(els.workloadChart.querySelectorAll(".bar-col")).forEach(el => el.remove());
 
-    // Tab 2 UI
-    $("quoteTotalDisplay").textContent = fmtMoney(c.quoteTotal);
-    $("tabQuoteBadge").textContent = fmtMoney(c.quoteTotal);
-    $("quoteRatePill").textContent = `Using ${fmtMoney(c.activeHourlyRate)}/hr`;
-    $("depositDisplay").textContent = fmtMoney(c.depositDue);
-    $("quoteTaxDisplay").textContent = fmtMoney(c.quoteTaxReserve);
-    $("quoteNetDisplay").textContent = fmtMoney(c.quoteNetProfit);
+    const barFrag = document.createDocumentFragment();
+    plan.schedule.forEach(d => {
+      const col = document.createElement("div");
+      col.className = "bar-col" + (d.totalHours > state.budgetHours + 0.05 ? " bar-over" : "");
+      col.title = `Day ${d.day}: ${d.totalHours.toFixed(1)}h (${d.newTopics.length} new, ${d.reviewTopics.length} rev)`;
 
-    // Itemized breakdown
-    $("itemLaborSub").textContent = `${state.projHours} hrs × ${fmtMoney(c.activeHourlyRate)}/hr`;
-    $("itemLaborVal").textContent = fmtMoney(c.baseLabor);
+      const totalH = Math.min(100, (d.totalHours / maxChartHours) * 100);
+      const newRatio = d.totalHours > 0 ? (d.hoursNew / d.totalHours) * 100 : 0;
+      const revRatio = 100 - newRatio;
 
-    $("itemBufferRow").style.display = state.bufferPct > 0 ? "flex" : "none";
-    $("itemBufferSub").textContent = `${state.bufferPct}% scope & revisions buffer`;
-    $("itemBufferVal").textContent = fmtMoney(c.bufferAmt);
+      col.innerHTML = `
+        <div class="bar-stack" style="height:${totalH.toFixed(1)}%">
+          <div class="bar-new" style="height:${newRatio.toFixed(1)}%"></div>
+          <div class="bar-rev" style="height:${revRatio.toFixed(1)}%"></div>
+        </div>
+      `;
+      barFrag.appendChild(col);
+    });
+    els.workloadChart.appendChild(barFrag);
 
-    $("itemRushRow").style.display = state.rushPct > 0 ? "flex" : "none";
-    $("itemRushSub").textContent = `${state.rushPct}% expedited turnaround`;
-    $("itemRushVal").textContent = fmtMoney(c.rushAmt);
+    // Schedule Tab
+    const validDoneCount = Array.from(state.completedDays).filter(day => day <= plan.D).length;
+    els.completionBadge.textContent = `${validDoneCount} / ${plan.D} Days`;
+    els.sprintProgressFill.style.width = `${Math.round((validDoneCount / plan.D) * 100)}%`;
 
-    $("itemPassRow").style.display = state.passThrough > 0 ? "flex" : "none";
-    $("itemPassVal").textContent = fmtMoney(state.passThrough);
+    els.dayList.innerHTML = plan.schedule.map(d => {
+      const isDone = state.completedDays.has(d.day);
+      const isOver = d.totalHours > state.budgetHours + 0.05;
+      const previewNames = [...d.newTopics.slice(0, 2).map(t => t.name), ...d.reviewTopics.slice(0, 2).map(t => t.name)];
+      const previewText = d.isExamEve
+        ? "Final synthesis, weak-spot triage & full mock simulation"
+        : previewNames.length
+          ? previewNames.join(" · ") + (d.newTopics.length + d.reviewTopics.length > 4 ? " …" : "")
+          : "Light consolidation / catch-up buffer";
 
-    $("itemTotalVal").textContent = fmtMoney(c.quoteTotal);
-    $("itemDepositLabel").textContent = `${state.depositPct}% Deposit to Begin`;
-    $("itemDepositVal").textContent = fmtMoney(c.depositDue);
+      return `
+        <div class="day-card ${isDone ? "done" : ""} ${d.isExamEve ? "exam-day" : ""}" data-day="${d.day}">
+          <button class="day-check" aria-label="Mark Day ${d.day} complete">${isDone ? "✓" : ""}</button>
+          <div class="day-body">
+            <div class="day-top">
+              <span class="day-title">Day ${d.day} ${d.isExamEve ? "· Exam Eve" : d.day === 1 ? "· Kickoff" : ""}</span>
+              <span class="day-hours ${isOver ? "over" : ""}">${d.totalHours.toFixed(1)}h</span>
+            </div>
+            <div class="day-meta">
+              ${d.newTopics.length ? `<span class="tag-new">+${d.newTopics.length} New</span>` : ""}
+              ${d.reviewTopics.length ? `<span class="tag-rev">↻ ${d.reviewTopics.length} Reviews</span>` : ""}
+              ${d.isExamEve ? `<span class="tag-mock">★ Final Mock &amp; Taper</span>` : ""}
+              ${!d.newTopics.length && !d.reviewTopics.length && !d.isExamEve ? `<span class="tag-rev">Buffer Day</span>` : ""}
+            </div>
+            <div class="day-topics-preview">${escapeHtml(previewText)}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Topics Tab
+    els.topicQueueCount.textContent = `${state.topics.length} Topics`;
+    els.topicList.innerHTML = state.topics.map((t, idx) => {
+      const confLabel = t.confidence === "hard" ? "Hard · 1.3x" : t.confidence === "easy" ? "Easy · 0.75x" : "Med · 1.0x";
+      return `
+        <div class="topic-item" data-id="${t.id}">
+          <div class="topic-info">
+            <div class="topic-name">${idx + 1}. ${escapeHtml(t.name)}</div>
+            <div class="topic-sub">Priority weight: ${t.confidence === "hard" ? "Extra early review" : t.confidence === "easy" ? "Standard intervals" : "Balanced SM-2"}</div>
+          </div>
+          <button class="conf-btn ${t.confidence}" data-action="cycle">${confLabel}</button>
+          <button class="del-btn" data-action="delete" title="Remove">×</button>
+        </div>
+      `;
+    }).join("");
   }
 
-  // Copy Client Quote
-  $("copyQuoteBtn").addEventListener("click", async () => {
-    const c = latestCalc;
-    const title = state.projectName.trim() || "Project Proposal";
-    const lines = [
-      `PROJECT ESTIMATE: ${title}`,
-      `----------------------------------------`,
-      `• Core Production (${state.projHours} hrs @ ${fmtMoney(c.activeHourlyRate)}/hr): ${fmtMoney(c.baseLabor)}`
-    ];
-    if (state.bufferPct > 0) {
-      lines.push(`• Scope & Revisions Buffer (${state.bufferPct}%): ${fmtMoney(c.bufferAmt)}`);
-    }
-    if (state.rushPct > 0) {
-      lines.push(`• Expedited Delivery Fee (+${state.rushPct}%): ${fmtMoney(c.rushAmt)}`);
-    }
-    if (state.passThrough > 0) {
-      lines.push(`• Third-Party Licenses / Expenses: ${fmtMoney(state.passThrough)}`);
-    }
-    lines.push(
-      `----------------------------------------`,
-      `TOTAL INVESTMENT: ${fmtMoney(c.quoteTotal)}`,
-      `Deposit Due to Start (${state.depositPct}%): ${fmtMoney(c.depositDue)}`,
-      `Balance Upon Completion: ${fmtMoney(c.quoteTotal - c.depositDue)}`
-    );
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+  }
 
-    const text = lines.join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast("Client quote copied to clipboard!");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      showToast("Client quote copied!");
+  // Event Listeners: Sliders
+  els.inputDays.addEventListener("input", (e) => {
+    state.days = parseInt(e.target.value, 10);
+    render();
+  });
+
+  els.inputTopics.addEventListener("input", (e) => {
+    state.topicsCount = parseInt(e.target.value, 10);
+    syncTopicsArray(state.topicsCount, state.preset);
+    render();
+  });
+
+  els.inputBudget.addEventListener("input", (e) => {
+    state.budgetHours = parseFloat(e.target.value);
+    render();
+  });
+
+  els.inputRetention.addEventListener("input", (e) => {
+    state.targetRetention = parseInt(e.target.value, 10);
+    render();
+  });
+
+  // Curve segmented control
+  document.getElementById("curveSelector").addEventListener("click", (e) => {
+    const btn = e.target.closest(".seg-btn");
+    if (!btn) return;
+    document.querySelectorAll("#curveSelector .seg-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.curve = btn.dataset.curve;
+    render();
+  });
+
+  // Presets
+  document.getElementById("presetRow").addEventListener("click", (e) => {
+    const chip = e.target.closest(".preset-chip");
+    if (!chip) return;
+    document.querySelectorAll(".preset-chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+
+    const key = chip.dataset.preset;
+    const p = PRESETS[key];
+    state.preset = key;
+    state.days = p.days;
+    state.topicsCount = p.topics;
+    state.budgetHours = p.budget;
+    state.targetRetention = p.retention;
+    state.curve = p.curve;
+    state.completedDays.clear();
+    state.topics = [];
+    syncTopicsArray(state.topicsCount, key);
+
+    // Sync inputs
+    els.inputDays.value = state.days;
+    els.inputTopics.value = state.topicsCount;
+    els.inputBudget.value = state.budgetHours;
+    els.inputRetention.value = state.targetRetention;
+    document.querySelectorAll("#curveSelector .seg-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.curve === state.curve);
+    });
+
+    render();
+  });
+
+  // Schedule check toggle
+  els.dayList.addEventListener("click", (e) => {
+    const check = e.target.closest(".day-check");
+    if (!check) return;
+    const card = check.closest(".day-card");
+    const dayNum = parseInt(card.dataset.day, 10);
+    if (state.completedDays.has(dayNum)) {
+      state.completedDays.delete(dayNum);
+    } else {
+      state.completedDays.add(dayNum);
+    }
+    render();
+  });
+
+  // Topic actions
+  els.topicList.addEventListener("click", (e) => {
+    const item = e.target.closest(".topic-item");
+    if (!item) return;
+    const id = item.dataset.id;
+    const actionBtn = e.target.closest("[data-action]");
+    if (!actionBtn) return;
+
+    const action = actionBtn.dataset.action;
+    const idx = state.topics.findIndex(t => t.id === id);
+    if (idx === -1) return;
+
+    if (action === "cycle") {
+      const order = ["med", "hard", "easy"];
+      const next = order[(order.indexOf(state.topics[idx].confidence) + 1) % order.length];
+      state.topics[idx].confidence = next;
+      render();
+    } else if (action === "delete") {
+      if (state.topics.length <= 5) return; // keep slider minimum 5
+      state.topics.splice(idx, 1);
+      state.topicsCount = state.topics.length;
+      els.inputTopics.value = state.topicsCount;
+      render();
     }
   });
 
-  let toastTimer;
-  function showToast(msg) {
-    const el = $("toast");
-    el.textContent = msg;
-    el.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  function addNewTopic() {
+    const val = els.newTopicInput.value.trim();
+    if (!val) return;
+    if (state.topics.length >= 120) return;
+    state.topics.unshift({
+      id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
+      name: val,
+      confidence: "hard"
+    });
+    state.topicsCount = state.topics.length;
+    els.inputTopics.value = state.topicsCount;
+    els.newTopicInput.value = "";
+    render();
   }
 
-  // Initialize
-  updateAll();
+  els.addTopicBtn.addEventListener("click", addNewTopic);
+  els.newTopicInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addNewTopic();
+  });
+
+  // Bottom Nav Tabs
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + tab).classList.add("active");
+      document.querySelector(".main-scroll").scrollTop = 0;
+    });
+  });
+
+  // Init
+  syncTopicsArray(state.topicsCount, state.preset);
+  render();
 })();
 </script>
 </body>

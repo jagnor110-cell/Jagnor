@@ -1,12 +1,16 @@
 1
-00:00:00,100 --> 00:00:05,412
-Stop guessing your freelance prices and losing money to taxes and admin work.
+00:00:00,100 --> 00:00:03,237
+Stop cramming the night before your exam.
 
 2
-00:00:05,362 --> 00:00:12,187
-The Freelance True Rate Calculator computes your real hourly rate and builds instant itemized client quotes.
+00:00:03,187 --> 00:00:06,987
+Meet the Exam Sprint and Spaced Repetition Planner.
 
 3
-00:00:12,187 --> 00:00:14,375
-Grab it at the link now.
+00:00:06,987 --> 00:00:12,450
+It calculates your exact daily review intervals and topic pacing before test day.
+
+4
+00:00:12,450 --> 00:00:15,637
+Study smarter and grab yours on Whop.
 
