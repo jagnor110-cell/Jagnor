@@ -1,16 +1,16 @@
 1
-00:00:00,100 --> 00:00:03,725
-Stop undercharging for fixed fee projects.
+00:00:00,100 --> 00:00:02,925
+Stop cramming before finals.
 
 2
-00:00:03,675 --> 00:00:09,187
-Taxes, revisions, and unbilled overhead quietly destroy your profits.
+00:00:02,875 --> 00:00:08,900
+Meet ExamSprint, the spaced repetition planner that builds your optimal daily review schedule.
 
 3
-00:00:09,187 --> 00:00:14,725
-The Freelance True Rate and Quote Calculator prices your work accurately in seconds.
+00:00:08,900 --> 00:00:14,012
+Just enter your exam date, topic difficulty, and available hours.
 
 4
-00:00:14,725 --> 00:00:17,650
-Grab it today at whop dot com.
+00:00:14,012 --> 00:00:17,262
+Study smarter and grab it on Whop today.
 
