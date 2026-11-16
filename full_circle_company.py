@@ -52,7 +52,7 @@ from pathlib import Path
 # 0. ENVIRONMENT CONFIGURATION & CREDENTIALS
 # =====================================================================
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "PASTE_GEMINI_KEY")
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-4-hydrogen"
 
 # Whop Store Credentials (https://docs.whop.com/developer/quickstart)
 WHOP_API_KEY = os.environ.get("WHOP_API_KEY", "")          # Starts with apik_
