@@ -3,47 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Exam Sprint & Spaced Repetition Planner</title>
+<title>Exam Sprint — Adaptive Study Block Planner</title>
 <style>
   :root {
-    --bg-outer: #05070c;
-    --bg-app: #0b0f19;
-    --bg-card: #121826;
-    --bg-card-elevated: #192133;
-    --bg-input: #0e1420;
+    --bg: #080a0f;
+    --surface: #111520;
+    --surface-2: #181e2e;
+    --surface-3: #222a3f;
     --border: rgba(255, 255, 255, 0.08);
-    --border-active: rgba(99, 102, 241, 0.5);
-    --text-primary: #f3f6fc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent: #6366f1;
-    --accent-glow: rgba(99, 102, 241, 0.35);
-    --cyan: #22d3ee;
+    --border-bright: rgba(255, 255, 255, 0.16);
+    --text: #f3f6fc;
+    --text-dim: #8f9bb3;
+    --text-muted: #5c667d;
+    --primary: #6366f1;
+    --primary-glow: rgba(99, 102, 241, 0.35);
     --emerald: #10b981;
+    --emerald-dim: rgba(16, 185, 129, 0.14);
     --amber: #f59e0b;
+    --amber-dim: rgba(245, 158, 11, 0.14);
     --rose: #f43f5e;
-    --radius-lg: 18px;
-    --radius-md: 12px;
-    --radius-sm: 8px;
-    --safe-bottom: env(safe-area-inset-bottom, 12px);
+    --rose-dim: rgba(244, 63, 94, 0.14);
+    --cyan: #06b6d4;
+    --violet: #a855f7;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
   }
 
   * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
     -webkit-tap-highlight-color: transparent;
   }
 
   html, body {
-    margin: 0;
-    padding: 0;
-    background: var(--bg-outer);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    background: #030407;
+    color: var(--text);
+    font-family: var(--font);
     height: 100%;
     overflow: hidden;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* 9:16 Mobile Frame */
+  .viewport {
+    width: 100%;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
+    background: radial-gradient(circle at 50% 0%, #151b30 0%, #030407 70%);
   }
 
   .app-shell {
@@ -51,7 +62,7 @@
     max-width: 430px;
     height: 100dvh;
     max-height: 932px;
-    background: var(--bg-app);
+    background: var(--bg);
     display: flex;
     flex-direction: column;
     position: relative;
@@ -62,15 +73,15 @@
   @media (min-width: 500px) {
     .app-shell {
       height: 94dvh;
-      border-radius: 32px;
+      border-radius: 36px;
+      border: 1px solid rgba(255,255,255,0.12);
     }
   }
 
-  /* Header */
-  .app-header {
+  /* Top Header & Live Metrics */
+  .header {
     padding: 16px 18px 12px;
-    background: linear-gradient(180deg, rgba(18, 24, 38, 0.95) 0%, rgba(11, 15, 25, 0.85) 100%);
-    backdrop-filter: blur(12px);
+    background: linear-gradient(180deg, rgba(17,21,32,0.98) 0%, rgba(8,10,15,0.92) 100%);
     border-bottom: 1px solid var(--border);
     z-index: 10;
     flex-shrink: 0;
@@ -80,226 +91,191 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
   }
 
   .brand-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--violet));
     display: grid;
     place-items: center;
+    box-shadow: 0 4px 16px var(--primary-glow);
     font-weight: 800;
-    font-size: 14px;
-    color: #fff;
-    box-shadow: 0 4px 14px var(--accent-glow);
+    font-size: 16px;
+    letter-spacing: -0.5px;
   }
 
-  .brand-title {
-    font-size: 15px;
+  .brand-text h1 {
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.3px;
     line-height: 1.1;
   }
 
-  .brand-sub {
+  .brand-text span {
     font-size: 11px;
-    color: var(--text-secondary);
-    font-weight: 500;
+    color: var(--text-dim);
+    display: block;
+    margin-top: 2px;
   }
 
-  .status-pill {
+  .reset-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
     font-size: 11px;
     font-weight: 600;
-    padding: 5px 10px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:active {
+    transform: scale(0.95);
+    color: var(--text);
+  }
+
+  /* Live Metric Strip */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
     border: 1px solid var(--border);
-    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .kpi-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .kpi-val {
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .kpi-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
   }
 
   .status-dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--emerald);
-    box-shadow: 0 0 8px var(--emerald);
+    display: inline-block;
   }
 
-  .status-pill.warn .status-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
-  .status-pill.danger .status-dot { background: var(--rose); box-shadow: 0 0 8px var(--rose); }
-
-  /* Exam Preset Bar */
-  .preset-row {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-  .preset-row::-webkit-scrollbar { display: none; }
-
-  .preset-chip {
-    flex-shrink: 0;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    font-size: 11.5px;
-    font-weight: 600;
-    padding: 6px 11px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .preset-chip.active {
-    background: rgba(99, 102, 241, 0.18);
-    border-color: var(--accent);
-    color: #fff;
-  }
-
-  /* Scrollable Main Content */
-  .main-scroll {
+  /* Scrollable Main Area */
+  .content {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 14px 16px 24px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.12) transparent;
+    padding: 14px 16px 90px;
+    scroll-behavior: smooth;
+  }
+
+  .content::-webkit-scrollbar {
+    width: 4px;
+  }
+  .content::-webkit-scrollbar-thumb {
+    background: var(--surface-3);
+    border-radius: 4px;
   }
 
   .tab-panel {
     display: none;
-    flex-direction: column;
-    gap: 14px;
-    animation: fadeSlide 0.22s ease-out;
-  }
-  .tab-panel.active {
-    display: flex;
+    animation: fadeIn 0.2s ease-out;
   }
 
-  @keyframes fadeSlide {
-    from { opacity: 0; transform: translateY(6px); }
+  .tab-panel.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* KPI Grid */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  /* Section Titles */
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 4px 0 10px;
   }
 
-  .kpi-card {
-    background: var(--bg-card);
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-dim);
+  }
+
+  /* Cards & Sliders */
+  .card {
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 12px 13px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .kpi-card::after {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), transparent);
-    opacity: 0.7;
-  }
-
-  .kpi-card.cyan::after { background: linear-gradient(90deg, var(--cyan), transparent); }
-  .kpi-card.emerald::after { background: linear-gradient(90deg, var(--emerald), transparent); }
-  .kpi-card.amber::after { background: linear-gradient(90deg, var(--amber), transparent); }
-
-  .kpi-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    margin-bottom: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .kpi-value {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
-    line-height: 1.15;
-  }
-
-  .kpi-sub {
-    font-size: 10.5px;
-    color: var(--text-muted);
-    margin-top: 3px;
-  }
-
-  /* Cards & Controls */
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 15px;
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 14px;
     margin-bottom: 12px;
   }
 
-  .card-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
-  }
-
-  .card-badge {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--cyan);
-    background: rgba(34, 211, 238, 0.1);
-    padding: 3px 8px;
-    border-radius: 6px;
-  }
-
-  .control-group {
+  .slider-group {
     margin-bottom: 14px;
   }
-  .control-group:last-child {
+
+  .slider-group:last-child {
     margin-bottom: 0;
   }
 
-  .control-label-row {
+  .slider-header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 7px;
+    align-items: center;
+    margin-bottom: 8px;
   }
 
-  .control-label {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-  }
-
-  .control-val {
+  .slider-label {
     font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .slider-badge {
+    font-size: 12px;
     font-weight: 700;
-    color: var(--text-primary);
     font-variant-numeric: tabular-nums;
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.14);
+    padding: 3px 9px;
+    border-radius: 99px;
   }
 
   input[type="range"] {
@@ -307,10 +283,10 @@
     appearance: none;
     width: 100%;
     height: 6px;
-    background: var(--bg-input);
-    border-radius: 999px;
+    border-radius: 99px;
+    background: var(--surface-3);
     outline: none;
-    border: 1px solid var(--border);
+    cursor: pointer;
   }
 
   input[type="range"]::-webkit-slider-thumb {
@@ -320,1127 +296,1485 @@
     height: 20px;
     border-radius: 50%;
     background: #fff;
-    border: 3px solid var(--accent);
-    box-shadow: 0 2px 10px var(--accent-glow);
-    cursor: pointer;
-    transition: transform 0.12s ease;
+    border: 3px solid var(--primary);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.12s;
   }
+
   input[type="range"]::-webkit-slider-thumb:active {
     transform: scale(1.15);
   }
 
-  /* Segmented Control */
-  .seg-control {
+  /* Segmented Chip Selector */
+  .chip-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-    background: var(--bg-input);
-    padding: 4px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-  }
-
-  .seg-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 11.5px;
-    font-weight: 600;
-    padding: 7px 4px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.18s ease;
-  }
-  .seg-btn.active {
-    background: var(--bg-card-elevated);
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-
-  /* Interval Chips */
-  .interval-strip {
-    display: flex;
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
-    flex-wrap: wrap;
     margin-top: 6px;
   }
 
-  .interval-node {
-    flex: 1;
-    min-width: 52px;
-    background: var(--bg-input);
+  .chip-btn {
+    background: var(--surface-2);
     border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 4px;
     border-radius: var(--radius-sm);
-    padding: 7px 6px;
-    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-variant-numeric: tabular-nums;
   }
 
-  .interval-step {
-    font-size: 9.5px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    font-weight: 700;
-    letter-spacing: 0.04em;
+  .chip-btn.active {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
   }
 
-  .interval-day {
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--cyan);
-    margin-top: 2px;
-  }
-
-  /* Workload Chart */
-  .chart-wrap {
-    height: 132px;
+  /* Alert Banner */
+  .alert-banner {
     display: flex;
-    align-items: flex-end;
-    gap: 3px;
-    padding-top: 18px;
-    padding-bottom: 4px;
-    position: relative;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .budget-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 1.5px dashed rgba(245, 158, 11, 0.65);
-    pointer-events: none;
-    z-index: 2;
-  }
-
-  .budget-tag {
-    position: absolute;
-    right: 0;
-    top: -16px;
-    font-size: 9.5px;
-    font-weight: 700;
-    color: var(--amber);
-    background: rgba(11, 15, 25, 0.85);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-
-  .bar-col {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
     align-items: center;
-    position: relative;
-    min-width: 4px;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    line-height: 1.35;
+    margin-bottom: 12px;
+    border: 1px solid transparent;
   }
 
-  .bar-stack {
-    width: 100%;
-    max-width: 16px;
+  .alert-warn {
+    background: var(--amber-dim);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fcd34d;
+  }
+
+  .alert-ok {
+    background: var(--emerald-dim);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+  }
+
+  .alert-danger {
+    background: var(--rose-dim);
+    border-color: rgba(244, 63, 94, 0.3);
+    color: #fda4af;
+  }
+
+  /* Day Scroller */
+  .day-scroller {
     display: flex;
-    flex-direction: column-reverse;
-    border-radius: 3px 3px 0 0;
-    overflow: hidden;
-    transition: height 0.25s ease;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 10px;
+    margin-bottom: 10px;
+    scrollbar-width: none;
   }
 
-  .bar-new {
-    background: var(--accent);
-    width: 100%;
+  .day-scroller::-webkit-scrollbar {
+    display: none;
   }
 
-  .bar-rev {
-    background: var(--cyan);
-    width: 100%;
-    opacity: 0.85;
+  .day-pill {
+    flex: 0 0 auto;
+    min-width: 62px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
   }
 
-  .bar-over .bar-new, .bar-over .bar-rev {
-    filter: saturate(1.2);
+  .day-pill.active {
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.08));
+    border-color: var(--primary);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
   }
 
-  .chart-legend {
+  .day-pill-name {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .day-pill-num {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 2px 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .day-pill-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    height: 5px;
+    margin-top: 3px;
+  }
+
+  .day-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  .exam-badge-mini {
+    position: absolute;
+    top: -5px;
+    right: -4px;
+    background: var(--rose);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 99px;
+    letter-spacing: 0.3px;
+  }
+
+  /* Study Block List */
+  .day-summary-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 9px;
-    font-size: 11px;
-    color: var(--text-secondary);
+    margin-bottom: 10px;
+    padding: 0 2px;
   }
 
-  .legend-items {
-    display: flex;
-    gap: 12px;
+  .day-summary-title {
+    font-size: 15px;
+    font-weight: 700;
   }
 
-  .legend-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    margin-right: 4px;
+  .day-summary-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Timeline / Schedule List */
-  .day-list {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-  }
-
-  .day-card {
-    background: var(--bg-card);
+  .block-card {
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 12px;
+    margin-bottom: 9px;
     display: flex;
+    align-items: center;
     gap: 12px;
-    align-items: flex-start;
-    transition: border-color 0.2s, opacity 0.2s;
-  }
-
-  .day-card.done {
-    opacity: 0.58;
-    border-color: rgba(16, 185, 129, 0.3);
-  }
-
-  .day-card.exam-day {
-    border-color: rgba(244, 63, 94, 0.5);
-    background: linear-gradient(135deg, rgba(244, 63, 94, 0.12), var(--bg-card));
-  }
-
-  .day-check {
-    width: 22px;
-    height: 22px;
-    border-radius: 7px;
-    border: 2px solid var(--text-muted);
-    background: transparent;
-    flex-shrink: 0;
-    margin-top: 2px;
     cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .block-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--topic-color, var(--primary));
+  }
+
+  .block-card.completed {
+    opacity: 0.55;
+    background: rgba(17, 21, 32, 0.5);
+  }
+
+  .block-card.completed .block-title {
+    text-decoration: line-through;
+  }
+
+  .check-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border-bright);
     display: grid;
     place-items: center;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 800;
-    transition: all 0.15s ease;
+    flex-shrink: 0;
+    transition: all 0.15s;
   }
 
-  .day-card.done .day-check {
+  .block-card.completed .check-circle {
     background: var(--emerald);
     border-color: var(--emerald);
   }
 
-  .day-body {
+  .block-body {
     flex: 1;
     min-width: 0;
   }
 
-  .day-top {
+  .block-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    gap: 8px;
+    margin-bottom: 4px;
   }
 
-  .day-title {
-    font-size: 13px;
+  .block-title {
+    font-size: 14px;
     font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .day-hours {
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 6px;
-    background: var(--bg-input);
-    color: var(--text-secondary);
-  }
-  .day-hours.over {
-    color: var(--rose);
-    background: rgba(244, 63, 94, 0.14);
-  }
-
-  .day-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    font-size: 11.5px;
-  }
-
-  .tag-new {
-    color: #a5b4fc;
-    background: rgba(99, 102, 241, 0.14);
-    padding: 2px 7px;
-    border-radius: 5px;
-    font-weight: 600;
-  }
-
-  .tag-rev {
-    color: #67e8f9;
-    background: rgba(34, 211, 238, 0.12);
-    padding: 2px 7px;
-    border-radius: 5px;
-    font-weight: 600;
-  }
-
-  .tag-mock {
-    color: #fda4af;
-    background: rgba(244, 63, 94, 0.15);
-    padding: 2px 7px;
-    border-radius: 5px;
-    font-weight: 600;
-  }
-
-  .day-topics-preview {
-    margin-top: 6px;
-    font-size: 11px;
-    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .sr-tag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+
+  .sr-new { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
+  .sr-rev { background: rgba(6, 182, 212, 0.18); color: #67e8f9; }
+  .sr-deep { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
+  .sr-cram { background: rgba(244, 63, 94, 0.2); color: #fda4af; }
+
+  .block-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .exam-banner-day {
+    background: linear-gradient(90deg, rgba(244, 63, 94, 0.18), rgba(244, 63, 94, 0.04));
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fecdd3;
   }
 
   /* Topics Tab */
-  .add-topic-row {
+  .add-btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--primary-glow);
+  }
+
+  .topic-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 13px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .topic-head {
     display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
     gap: 8px;
   }
 
-  .text-input {
-    flex: 1;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 10px 12px;
-    color: var(--text-primary);
-    font-size: 13px;
-    outline: none;
-  }
-  .text-input:focus {
-    border-color: var(--accent);
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 0 15px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.15s;
-  }
-  .btn-primary:active { opacity: 0.8; }
-
-  .topic-item {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 11px 12px;
+  .topic-name-wrap {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
   }
 
-  .topic-info {
-    min-width: 0;
-    flex: 1;
+  .color-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
   .topic-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .topic-sub {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .conf-btn {
+  .topic-del {
+    background: var(--surface-2);
     border: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 5px 9px;
+    color: var(--text-dim);
+    width: 26px;
+    height: 26px;
     border-radius: 8px;
+    font-size: 14px;
     cursor: pointer;
+    display: grid;
+    place-items: center;
     flex-shrink: 0;
   }
-  .conf-btn.hard { color: var(--rose); border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.1); }
-  .conf-btn.med { color: var(--amber); border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1); }
-  .conf-btn.easy { color: var(--emerald); border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
 
-  .del-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
+  .topic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .mini-field label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .mini-input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 9px;
+    border-radius: 8px;
+    outline: none;
+    color-scheme: dark;
+  }
+
+  .topic-stats-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Add Topic Form Drawer */
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(3, 4, 7, 0.78);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    display: none;
+    align-items: flex-end;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+  }
+
+  .modal-sheet {
+    width: 100%;
+    background: var(--surface);
+    border-top: 1px solid var(--border-bright);
+    border-radius: 24px 24px 0 0;
+    padding: 18px 18px 28px;
+    animation: slideUp 0.22s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-title {
     font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .form-row {
+    margin-bottom: 12px;
+  }
+
+  .form-row label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+
+  .text-input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: var(--font);
+    outline: none;
+    color-scheme: dark;
+  }
+
+  .color-picker {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     cursor: pointer;
-    padding: 2px 5px;
+    border: 2px solid transparent;
+    transition: transform 0.12s;
+  }
+
+  .color-swatch.selected {
+    border-color: #fff;
+    transform: scale(1.12);
+  }
+
+  .primary-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary), #4f46e5);
+    color: #fff;
+    border: none;
+    padding: 13px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+    box-shadow: 0 6px 20px var(--primary-glow);
+  }
+
+  /* Analytics Tab */
+  .ring-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 92px;
+    height: 92px;
+    flex-shrink: 0;
+  }
+
+  .ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-pct {
+    font-size: 20px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ring-sub {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 110px;
+    padding-top: 16px;
+    margin-top: 6px;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
+  .bar-track {
+    width: 100%;
+    max-width: 24px;
+    height: 80px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column-reverse;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    width: 100%;
+    border-radius: 4px;
+    transition: height 0.3s ease;
+  }
+
+  .bar-lbl {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .topic-breakdown-item {
+    margin-bottom: 10px;
+  }
+  .topic-breakdown-item:last-child {
+    margin-bottom: 0;
+  }
+  .tb-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tb-track {
+    height: 7px;
+    background: var(--surface-2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .tb-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.3s ease;
   }
 
   /* Bottom Navigation */
   .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background: rgba(17, 21, 32, 0.92);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    background: rgba(18, 24, 38, 0.96);
-    backdrop-filter: blur(14px);
-    border-top: 1px solid var(--border);
-    padding: 8px 10px calc(8px + var(--safe-bottom));
-    flex-shrink: 0;
-    z-index: 10;
+    padding: 6px 12px 12px;
+    z-index: 20;
   }
 
   .nav-btn {
-    background: transparent;
+    background: none;
     border: none;
     color: var(--text-muted);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
-    padding: 5px 0;
+    justify-content: center;
+    gap: 4px;
     cursor: pointer;
+    font-family: var(--font);
     font-size: 11px;
     font-weight: 600;
-    transition: color 0.18s;
+    transition: color 0.15s;
+  }
+
+  .nav-btn.active {
+    color: var(--primary);
   }
 
   .nav-btn svg {
     width: 21px;
     height: 21px;
-    stroke-width: 2;
   }
 
-  .nav-btn.active {
-    color: var(--accent);
+  .empty-state {
+    text-align: center;
+    padding: 36px 16px;
+    color: var(--text-dim);
+    font-size: 13px;
   }
-
-  .progress-bar-bg {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-input);
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 8px;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--emerald));
-    border-radius: 999px;
-    transition: width 0.3s ease;
-  }
-
-  .helper-banner {
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: var(--radius-md);
-    padding: 10px 12px;
-    font-size: 11.5px;
-    color: #fcd34d;
-    line-height: 1.4;
-    display: none;
-  }
-  .helper-banner.show { display: block; }
 </style>
 </head>
 <body>
-<div class="app-shell">
-  <!-- Header -->
-  <header class="app-header">
-    <div class="header-top">
-      <div class="brand">
-        <div class="brand-icon">SR</div>
-        <div>
-          <div class="brand-title">Exam Sprint Planner</div>
-          <div class="brand-sub" id="headerSubtitle">Spaced Repetition Engine</div>
+<div class="viewport">
+  <div class="app-shell">
+    <!-- Top Sticky Header -->
+    <header class="header">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon">ES</div>
+          <div class="brand-text">
+            <h1>Exam Sprint</h1>
+            <span id="headerSubtitle">Adaptive Spaced-Rep Planner</span>
+          </div>
         </div>
+        <button class="reset-btn" id="resetBtn" title="Reset Demo Data">Reset Demo</button>
       </div>
-      <div class="status-pill" id="feasibilityPill">
-        <span class="status-dot"></span>
-        <span id="feasibilityText">Optimal</span>
-      </div>
-    </div>
 
-    <div class="preset-row" id="presetRow">
-      <button class="preset-chip active" data-preset="custom">Custom Sprint</button>
-      <button class="preset-chip" data-preset="med">Med / Bio Board</button>
-      <button class="preset-chip" data-preset="cs">CS &amp; Algos</button>
-      <button class="preset-chip" data-preset="law">Bar / Law</button>
-      <button class="preset-chip" data-preset="lang">Vocab Cram</button>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="main-scroll">
-    <!-- TAB 1: PLANNER -->
-    <section class="tab-panel active" id="tab-planner">
-      <div class="kpi-grid">
+      <div class="kpi-strip">
         <div class="kpi-card">
-          <div class="kpi-label">New Pace <span>/ day</span></div>
-          <div class="kpi-value" id="kpiNewPace">3.0</div>
-          <div class="kpi-sub" id="kpiNewSub">All covered by Day 14</div>
+          <span class="kpi-label">Readiness</span>
+          <div class="kpi-val" id="kpiReadiness">
+            <span>78%</span>
+            <span class="status-dot" style="background: var(--emerald);"></span>
+          </div>
+          <span class="kpi-sub" id="kpiRetentionSub">Est. retention</span>
         </div>
-        <div class="kpi-card cyan">
-          <div class="kpi-label">Peak Load <span>hrs/day</span></div>
-          <div class="kpi-value" id="kpiPeakHours">2.8h</div>
-          <div class="kpi-sub" id="kpiAvgHours">Avg 2.1h / day</div>
+        <div class="kpi-card">
+          <span class="kpi-label">Sprint Load</span>
+          <div class="kpi-val" id="kpiHours">0.0h</div>
+          <span class="kpi-sub" id="kpiBlocksSub">0 blocks left</span>
         </div>
-        <div class="kpi-card emerald">
-          <div class="kpi-label">Est. Retention</div>
-          <div class="kpi-value" id="kpiRetention">91%</div>
-          <div class="kpi-sub" id="kpiTouches">~4.2 touches / topic</div>
-        </div>
-        <div class="kpi-card amber">
-          <div class="kpi-label">Total Sprint</div>
-          <div class="kpi-value" id="kpiTotalHours">42h</div>
-          <div class="kpi-sub" id="kpiReviewsTotal">160 spaced reviews</div>
+        <div class="kpi-card">
+          <span class="kpi-label">Next Exam</span>
+          <div class="kpi-val" id="kpiNextExam">--d</div>
+          <span class="kpi-sub" id="kpiNextTopic">No exams</span>
         </div>
       </div>
+    </header>
 
-      <div class="helper-banner" id="overloadBanner"></div>
-
-      <!-- Sliders Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Sprint Parameters</div>
-          <span class="card-badge" id="examCountdownBadge">21 Days Left</span>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label-row">
-            <span class="control-label">Days Until Exam</span>
-            <span class="control-val" id="valDays">21 days</span>
+    <!-- Main Scrollable Content -->
+    <main class="content">
+      <!-- TAB 1: PLANNER -->
+      <section id="tab-plan" class="tab-panel active">
+        <div class="card">
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">Daily Focus Capacity</span>
+              <span class="slider-badge" id="dailyHoursBadge">4.5 hrs/day</span>
+            </div>
+            <input type="range" id="dailyHoursSlider" min="1" max="10" step="0.5" value="4.5">
           </div>
-          <input type="range" id="inputDays" min="3" max="60" step="1" value="21">
-        </div>
 
-        <div class="control-group">
-          <div class="control-label-row">
-            <span class="control-label">Total Topics / Decks</span>
-            <span class="control-val" id="valTopics">36 topics</span>
-          </div>
-          <input type="range" id="inputTopics" min="5" max="120" step="1" value="36">
-        </div>
-
-        <div class="control-group">
-          <div class="control-label-row">
-            <span class="control-label">Daily Study Budget</span>
-            <span class="control-val" id="valBudget">3.0 hrs/day</span>
-          </div>
-          <input type="range" id="inputBudget" min="0.5" max="8.0" step="0.5" value="3.0">
-        </div>
-
-        <div class="control-group">
-          <div class="control-label-row">
-            <span class="control-label">Target Retention</span>
-            <span class="control-val" id="valRetention">90%</span>
-          </div>
-          <input type="range" id="inputRetention" min="80" max="98" step="1" value="90">
-        </div>
-
-        <div class="control-group">
-          <div class="control-label-row">
-            <span class="control-label">Forgetting Curve Profile</span>
-            <span class="control-val" id="valCurve">Standard SM-2</span>
-          </div>
-          <div class="seg-control" id="curveSelector">
-            <button class="seg-btn" data-curve="gentle">Gentle</button>
-            <button class="seg-btn active" data-curve="standard">SM-2</button>
-            <button class="seg-btn" data-curve="steep">Dense/Cram</button>
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">Study Block Duration</span>
+              <span class="slider-badge" id="blockMinsBadge">45 min</span>
+            </div>
+            <div class="chip-row" id="blockChips">
+              <button class="chip-btn" data-mins="25">25m</button>
+              <button class="chip-btn active" data-mins="45">45m</button>
+              <button class="chip-btn" data-mins="60">60m</button>
+              <button class="chip-btn" data-mins="90">90m</button>
+            </div>
           </div>
         </div>
+
+        <div id="capacityAlert"></div>
+
+        <div class="section-head">
+          <span class="section-title">Sprint Timeline</span>
+          <span class="kpi-sub" id="timelineRangeLabel">Next 14 days</span>
+        </div>
+
+        <div class="day-scroller" id="dayScroller"></div>
+
+        <div class="day-summary-bar">
+          <span class="day-summary-title" id="selectedDayTitle">Today</span>
+          <span class="day-summary-meta" id="selectedDayMeta">0 blocks • 0.0 hrs</span>
+        </div>
+
+        <div id="dayExamBanners"></div>
+        <div id="blocksContainer"></div>
+      </section>
+
+      <!-- TAB 2: EXAMS & TOPICS -->
+      <section id="tab-topics" class="tab-panel">
+        <div class="section-head">
+          <span class="section-title">Exams & Topic Weights</span>
+          <button class="add-btn" id="openModalBtn">+ Add Exam</button>
+        </div>
+        <div id="topicsList"></div>
+      </section>
+
+      <!-- TAB 3: ANALYTICS -->
+      <section id="tab-analytics" class="tab-panel">
+        <div class="section-head">
+          <span class="section-title">Retention & Load Forecast</span>
+        </div>
+
+        <div class="card ring-card">
+          <div class="ring-wrap">
+            <svg width="92" height="92" viewBox="0 0 92 92">
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--surface-3)" stroke-width="8"></circle>
+              <circle id="readinessRing" cx="46" cy="46" r="38" fill="none" stroke="var(--emerald)" stroke-width="8" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="60" transform="rotate(-90 46 46)"></circle>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-pct" id="ringPct">0%</span>
+              <span class="ring-sub">Ready</span>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;" id="forecastTitle">Optimal Pace</div>
+            <div style="font-size:12px;color:var(--text-dim);line-height:1.4;" id="forecastDesc">
+              Your spaced-repetition intervals cover all weighted topics prior to exam dates.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="slider-header" style="margin-bottom:4px;">
+            <span class="slider-label">7-Day Workload Distribution</span>
+            <span class="kpi-sub" id="chartCapLabel">Cap: 4.5h/d</span>
+          </div>
+          <div class="bar-chart" id="workloadChart"></div>
+        </div>
+
+        <div class="card">
+          <div class="slider-header" style="margin-bottom:10px;">
+            <span class="slider-label">Topic Allocation & Mastery</span>
+            <span class="kpi-sub">Target vs Done</span>
+          </div>
+          <div id="topicBreakdown"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="plan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>
+        <span>Sprint Plan</span>
+      </button>
+      <button class="nav-btn" data-tab="topics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Topics (<span id="topicCountNav">0</span>)</span>
+      </button>
+      <button class="nav-btn" data-tab="analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+        <span>Metrics</span>
+      </button>
+    </nav>
+
+    <!-- Add Exam / Topic Modal -->
+    <div class="modal-backdrop" id="topicModal">
+      <div class="modal-sheet">
+        <div class="modal-title">
+          <span>Add Exam / Topic</span>
+          <button class="topic-del" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="form-row">
+          <label>Subject / Topic Name</label>
+          <input type="text" id="newTopicName" class="text-input" placeholder="e.g., Thermodynamics & Kinetics" maxlength="40">
+        </div>
+        <div class="topic-grid">
+          <div class="form-row">
+            <label>Exam Date</label>
+            <input type="date" id="newTopicDate" class="text-input">
+          </div>
+          <div class="form-row">
+            <label>Exam Weight (1-5)</label>
+            <input type="number" id="newTopicWeight" class="text-input" min="1" max="5" value="4">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="slider-header" style="margin-bottom:4px;">
+            <label style="margin:0;">Current Mastery</label>
+            <span class="slider-badge" id="newMasteryBadge">35%</span>
+          </div>
+          <input type="range" id="newTopicMastery" min="0" max="95" step="5" value="35">
+        </div>
+        <div class="form-row">
+          <label>Accent Color</label>
+          <div class="color-picker" id="colorPicker">
+            <div class="color-swatch selected" data-color="#6366f1" style="background:#6366f1;"></div>
+            <div class="color-swatch" data-color="#10b981" style="background:#10b981;"></div>
+            <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b;"></div>
+            <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e;"></div>
+            <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4;"></div>
+            <div class="color-swatch" data-color="#a855f7" style="background:#a855f7;"></div>
+          </div>
+        </div>
+        <button class="primary-btn" id="saveTopicBtn">Add to Adaptive Sprint</button>
       </div>
-
-      <!-- Compressed Intervals Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Calculated Review Intervals</div>
-          <span class="card-badge" id="compressionBadge">1.0x Scale</span>
-        </div>
-        <div class="interval-strip" id="intervalStrip"></div>
-      </div>
-
-      <!-- Daily Workload Projection -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Daily Load Projection</div>
-          <span class="card-badge" id="peakDayBadge">Peak: Day 12</span>
-        </div>
-        <div class="chart-wrap" id="workloadChart">
-          <div class="budget-line" id="budgetLine">
-            <span class="budget-tag" id="budgetTag">3.0h limit</span>
-          </div>
-        </div>
-        <div class="chart-legend">
-          <div class="legend-items">
-            <span><i class="legend-dot" style="background:var(--accent)"></i>New Learn</span>
-            <span><i class="legend-dot" style="background:var(--cyan)"></i>Spaced Review</span>
-          </div>
-          <span id="chartRangeLabel">Day 1 → 21</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 2: SCHEDULE -->
-    <section class="tab-panel" id="tab-schedule">
-      <div class="card">
-        <div class="card-header" style="margin-bottom:6px">
-          <div class="card-title">Sprint Execution</div>
-          <span class="card-badge" id="completionBadge">0 / 21 Days</span>
-        </div>
-        <div style="font-size:12px; color:var(--text-secondary);" id="scheduleSummaryText">
-          Tap a day checkbox as you complete sessions.
-        </div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="sprintProgressFill" style="width:0%"></div>
-        </div>
-      </div>
-
-      <div class="day-list" id="dayList"></div>
-    </section>
-
-    <!-- TAB 3: TOPICS -->
-    <section class="tab-panel" id="tab-topics">
-      <div class="card">
-        <div class="card-header" style="margin-bottom:8px">
-          <div class="card-title">Topic Queue &amp; Confidence</div>
-          <span class="card-badge" id="topicQueueCount">36 Topics</span>
-        </div>
-        <div class="add-topic-row">
-          <input type="text" class="text-input" id="newTopicInput" placeholder="Add topic (e.g. Dynamic Programming)...">
-          <button class="btn-primary" id="addTopicBtn">Add</button>
-        </div>
-        <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
-          Tap confidence badge (Hard / Med / Easy) to dynamically adjust review frequency weight.
-        </div>
-      </div>
-
-      <div class="day-list" id="topicList"></div>
-    </section>
-  </main>
-
-  <!-- Bottom Tab Navigation -->
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="planner">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20V10M18 20V4M6 20v-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Planner</span>
-    </button>
-    <button class="nav-btn" data-tab="schedule">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>Schedule</span>
-    </button>
-    <button class="nav-btn" data-tab="topics">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Topics</span>
-    </button>
-  </nav>
+    </div>
+  </div>
 </div>
 
 <script>
-(function () {
-  const PRESETS = {
-    custom: { name: "Custom Sprint", days: 21, topics: 36, budget: 3.0, retention: 90, curve: "standard", samplePrefix: "Topic" },
-    med: {
-      name: "Med / Bio Board", days: 30, topics: 60, budget: 4.5, retention: 94, curve: "steep",
-      samples: ["Cardio Physiology", "Renal Pharmacology", "Neuroanatomy", "Microbiology Gram+", "Endocrine Axis", "Pathology Neoplasia", "Autonomic Drugs", "Immunology T-Cells"]
-    },
-    cs: {
-      name: "CS & Algos", days: 14, topics: 28, budget: 2.5, retention: 88, curve: "standard",
-      samples: ["Graph BFS/DFS", "Dynamic Programming", "Sliding Window", "Tries & Heaps", "System Caching", "Consistent Hashing", "SQL Indexing", "Concurrency Locks"]
-    },
-    law: {
-      name: "Bar / Law", days: 28, topics: 45, budget: 4.0, retention: 92, curve: "steep",
-      samples: ["Torts Negligence", "Contracts UCC Art. 2", "Con Law Commerce", "Evidence Hearsay", "CivPro Personal Juris", "CrimPro 4th Amend", "Property Future Int", "Corps Fiduciary"]
-    },
-    lang: {
-      name: "Vocab Cram", days: 10, topics: 50, budget: 1.5, retention: 85, curve: "gentle",
-      samples: ["Core Verbs Set A", "Connectors & Idioms", "Business Terms", "Travel Phrases", "Irregular Past", "Subjunctive Mood", "Academic Nouns", "Listening Drill"]
-    }
-  };
+(function() {
+  const STORAGE_KEY = 'exam_sprint_state_v1';
 
-  const state = {
-    preset: "custom",
-    days: 21,
-    topicsCount: 36,
-    budgetHours: 3.0,
-    targetRetention: 90,
-    curve: "standard",
-    completedDays: new Set(),
-    topics: [],
-    activeTab: "planner"
-  };
-
-  // DOM Elements
-  const els = {
-    inputDays: document.getElementById("inputDays"),
-    inputTopics: document.getElementById("inputTopics"),
-    inputBudget: document.getElementById("inputBudget"),
-    inputRetention: document.getElementById("inputRetention"),
-    valDays: document.getElementById("valDays"),
-    valTopics: document.getElementById("valTopics"),
-    valBudget: document.getElementById("valBudget"),
-    valRetention: document.getElementById("valRetention"),
-    valCurve: document.getElementById("valCurve"),
-    examCountdownBadge: document.getElementById("examCountdownBadge"),
-    compressionBadge: document.getElementById("compressionBadge"),
-    intervalStrip: document.getElementById("intervalStrip"),
-    workloadChart: document.getElementById("workloadChart"),
-    budgetLine: document.getElementById("budgetLine"),
-    budgetTag: document.getElementById("budgetTag"),
-    peakDayBadge: document.getElementById("peakDayBadge"),
-    chartRangeLabel: document.getElementById("chartRangeLabel"),
-    kpiNewPace: document.getElementById("kpiNewPace"),
-    kpiNewSub: document.getElementById("kpiNewSub"),
-    kpiPeakHours: document.getElementById("kpiPeakHours"),
-    kpiAvgHours: document.getElementById("kpiAvgHours"),
-    kpiRetention: document.getElementById("kpiRetention"),
-    kpiTouches: document.getElementById("kpiTouches"),
-    kpiTotalHours: document.getElementById("kpiTotalHours"),
-    kpiReviewsTotal: document.getElementById("kpiReviewsTotal"),
-    feasibilityPill: document.getElementById("feasibilityPill"),
-    feasibilityText: document.getElementById("feasibilityText"),
-    overloadBanner: document.getElementById("overloadBanner"),
-    headerSubtitle: document.getElementById("headerSubtitle"),
-    dayList: document.getElementById("dayList"),
-    completionBadge: document.getElementById("completionBadge"),
-    sprintProgressFill: document.getElementById("sprintProgressFill"),
-    scheduleSummaryText: document.getElementById("scheduleSummaryText"),
-    topicList: document.getElementById("topicList"),
-    topicQueueCount: document.getElementById("topicQueueCount"),
-    newTopicInput: document.getElementById("newTopicInput"),
-    addTopicBtn: document.getElementById("addTopicBtn")
-  };
-
-  function syncTopicsArray(targetCount, presetKey) {
-    const preset = PRESETS[presetKey] || PRESETS.custom;
-    const samples = preset.samples || [];
-    while (state.topics.length < targetCount) {
-      const idx = state.topics.length;
-      const label = samples[idx] ? samples[idx] : `${preset.samplePrefix || "Module"} #${idx + 1}`;
-      const confPool = ["med", "med", "hard", "easy"];
-      state.topics.push({
-        id: "t_" + Date.now() + "_" + idx + "_" + Math.random().toString(36).slice(2, 6),
-        name: label,
-        confidence: confPool[idx % confPool.length]
-      });
-    }
-    if (state.topics.length > targetCount) {
-      state.topics.length = targetCount;
-    }
+  function addDaysStr(baseDate, days) {
+    const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
-  function computePlan() {
-    const D = state.days;
-    const N = state.topicsCount;
-    const budget = state.budgetHours;
+  function parseLocalDate(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
 
-    // Curve multipliers
-    const curveFactor = state.curve === "gentle" ? 1.18 : state.curve === "steep" ? 0.78 : 1.0;
-    const retentionTightness = 1 - ((state.targetRetention - 85) * 0.018); // higher retention = tighter intervals
+  function getTodayMidnight() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
 
-    // Leave final day for synthesis/mock if D >= 5
-    const hasMockFinal = D >= 5;
-    const activeLearnWindow = Math.max(1, Math.min(D - (hasMockFinal ? 1 : 0), Math.ceil(D * 0.72)));
+  function diffDays(a, b) {
+    return Math.round((b - a) / (1000 * 60 * 60 * 24));
+  }
 
-    // Base SM-2 offsets from initial learn day: +1, +3, +7, +14, +25
-    const rawOffsets = [1, 3, 7, 14, 24];
-    const timeCompression = Math.min(1.25, Math.max(0.28, D / 28));
-    const scale = timeCompression * curveFactor * retentionTightness;
-
-    // Compute unique increasing spaced offsets within sprint horizon
-    const intervals = [];
-    let lastOffset = 0;
-    for (let i = 0; i < rawOffsets.length; i++) {
-      let scaled = Math.max(lastOffset + 1, Math.round(rawOffsets[i] * scale));
-      if (scaled < D) {
-        intervals.push(scaled);
-        lastOffset = scaled;
-      }
-    }
-    if (intervals.length === 0 && D > 1) {
-      intervals.push(1);
-    }
-
-    // Time cost per new topic & review (adjusted by curve & average topic difficulty)
-    const diffWeights = state.topics.reduce((acc, t) => {
-      return acc + (t.confidence === "hard" ? 1.3 : t.confidence === "easy" ? 0.75 : 1.0);
-    }, 0);
-    const avgDiffWeight = state.topics.length ? diffWeights / state.topics.length : 1.0;
-
-    const baseHoursPerNew = (state.curve === "steep" ? 0.55 : state.curve === "gentle" ? 0.35 : 0.45) * avgDiffWeight;
-    const baseHoursPerReview = (state.curve === "steep" ? 0.19 : state.curve === "gentle" ? 0.12 : 0.15) * avgDiffWeight;
-
-    // Build day-by-day schedule [1..D]
-    const schedule = Array.from({ length: D }, (_, i) => ({
-      day: i + 1,
-      newTopics: [],
-      reviewTopics: [],
-      hoursNew: 0,
-      hoursRev: 0,
-      totalHours: 0,
-      isExamEve: hasMockFinal && (i + 1 === D)
-    }));
-
-    // Distribute N topics evenly across activeLearnWindow
-    for (let i = 0; i < N; i++) {
-      const learnDayIdx = Math.min(activeLearnWindow - 1, Math.floor((i * activeLearnWindow) / N));
-      const topicObj = state.topics[i] || { name: `Topic ${i + 1}`, confidence: "med" };
-      schedule[learnDayIdx].newTopics.push(topicObj);
-
-      // Schedule spaced reviews for this topic
-      // Hard topics get an extra early review if space permits
-      const topicIntervals = [...intervals];
-      if (topicObj.confidence === "hard" && !topicIntervals.includes(2) && learnDayIdx + 2 < D) {
-        topicIntervals.push(2);
-        topicIntervals.sort((a, b) => a - b);
-      }
-
-      topicIntervals.forEach((offset) => {
-        const revIdx = learnDayIdx + offset;
-        if (revIdx < D) {
-          // Avoid scheduling heavy normal review on exam eve unless short sprint
-          if (hasMockFinal && revIdx === D - 1 && D > 7) return;
-          schedule[revIdx].reviewTopics.push(topicObj);
-        }
-      });
-    }
-
-    // Compute hours per day
-    let totalHours = 0;
-    let totalReviews = 0;
-    let peakHours = 0;
-    let peakDay = 1;
-    let overBudgetDays = 0;
-
-    schedule.forEach((d) => {
-      const nHours = d.newTopics.reduce((s, t) => s + baseHoursPerNew * (t.confidence === "hard" ? 1.2 : t.confidence === "easy" ? 0.8 : 1.0), 0);
-      const rHours = d.reviewTopics.reduce((s, t) => s + baseHoursPerReview * (t.confidence === "hard" ? 1.25 : t.confidence === "easy" ? 0.75 : 1.0), 0);
-      const mockHours = d.isExamEve ? Math.min(budget, 2.0) : 0;
-
-      d.hoursNew = nHours;
-      d.hoursRev = rHours + mockHours;
-      d.totalHours = nHours + rHours + mockHours;
-
-      totalHours += d.totalHours;
-      totalReviews += d.reviewTopics.length;
-
-      if (d.totalHours > peakHours) {
-        peakHours = d.totalHours;
-        peakDay = d.day;
-      }
-      if (d.totalHours > budget + 0.05) {
-        overBudgetDays++;
-      }
-    });
-
-    const avgHours = totalHours / D;
-    const avgTouches = N > 0 ? (N + totalReviews) / N : 0;
-
-    // Estimated retention model based on touches & target
-    const touchBonus = Math.min(9, (avgTouches - 1) * 2.4);
-    const overloadPenalty = overBudgetDays > D * 0.35 ? 4 : 0;
-    const estRetention = Math.min(98, Math.max(68, Math.round(74 + touchBonus + (state.targetRetention - 85) * 0.55 - overloadPenalty)));
-
+  function getDefaultState() {
+    const today = getTodayMidnight();
     return {
-      D, N, budget, scale, intervals, activeLearnWindow, hasMockFinal,
-      schedule, totalHours, totalReviews, peakHours, peakDay, avgHours,
-      avgTouches, estRetention, overBudgetDays
+      dailyHours: 4.5,
+      blockMinutes: 45,
+      selectedDayOffset: 0,
+      completedKeys: {},
+      topics: [
+        {
+          id: 't1',
+          name: 'Cellular Neurobiology',
+          examDate: addDaysStr(today, 5),
+          weight: 5,
+          mastery: 35,
+          color: '#f43f5e'
+        },
+        {
+          id: 't2',
+          name: 'Organic Chemistry II',
+          examDate: addDaysStr(today, 8),
+          weight: 4,
+          mastery: 45,
+          color: '#6366f1'
+        },
+        {
+          id: 't3',
+          name: 'Linear Algebra & Eigenvalues',
+          examDate: addDaysStr(today, 12),
+          weight: 3,
+          mastery: 60,
+          color: '#10b981'
+        }
+      ]
     };
   }
 
-  function render() {
-    const plan = computePlan();
+  let state = loadState();
+  let selectedColor = '#6366f1';
 
-    // Update control readouts
-    els.valDays.textContent = `${state.days} days`;
-    els.valTopics.textContent = `${state.topicsCount} topics`;
-    els.valBudget.textContent = `${state.budgetHours.toFixed(1)} hrs/day`;
-    els.valRetention.textContent = `${state.targetRetention}%`;
-    els.valCurve.textContent = state.curve === "gentle" ? "Gentle" : state.curve === "steep" ? "Dense / Cram" : "Standard SM-2";
-    els.examCountdownBadge.textContent = `${state.days} Days Left`;
-    els.headerSubtitle.textContent = `${PRESETS[state.preset].name} · ${state.topicsCount} Topics`;
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.topics)) return parsed;
+      }
+    } catch (e) {}
+    return getDefaultState();
+  }
 
-    // KPIs
-    const newPace = (state.topicsCount / plan.activeLearnWindow).toFixed(1);
-    els.kpiNewPace.textContent = newPace;
-    els.kpiNewSub.textContent = `All covered by Day ${plan.activeLearnWindow}`;
-    els.kpiPeakHours.textContent = `${plan.peakHours.toFixed(1)}h`;
-    els.kpiAvgHours.textContent = `Avg ${plan.avgHours.toFixed(1)}h / day`;
-    els.kpiRetention.textContent = `${plan.estRetention}%`;
-    els.kpiTouches.textContent = `~${plan.avgTouches.toFixed(1)} touches / topic`;
-    els.kpiTotalHours.textContent = `${Math.round(plan.totalHours)}h`;
-    els.kpiReviewsTotal.textContent = `${plan.totalReviews} spaced reviews`;
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
 
-    // Feasibility pill & warning banner
-    els.feasibilityPill.classList.remove("warn", "danger");
-    if (plan.peakHours <= state.budgetHours * 1.02) {
-      els.feasibilityText.textContent = "Optimal";
-      els.overloadBanner.classList.remove("show");
-    } else if (plan.peakHours <= state.budgetHours * 1.3) {
-      els.feasibilityPill.classList.add("warn");
-      els.feasibilityText.textContent = "Tight Pace";
-      els.overloadBanner.textContent = `Peak review wave hits ${plan.peakHours.toFixed(1)}h on Day ${plan.peakDay} (${plan.overBudgetDays} days exceed your ${state.budgetHours.toFixed(1)}h budget). Consider +0.5h daily budget or fewer topics.`;
-      els.overloadBanner.classList.add("show");
-    } else {
-      els.feasibilityPill.classList.add("danger");
-      els.feasibilityText.textContent = "Overloaded";
-      els.overloadBanner.textContent = `Burnout alert: Peak load reaches ${plan.peakHours.toFixed(1)}h/day vs ${state.budgetHours.toFixed(1)}h limit. Increase days, raise daily budget, or trim topics.`;
-      els.overloadBanner.classList.add("show");
+  // Adaptive Spaced-Repetition Scheduler
+  function computeSchedule() {
+    const today = getTodayMidnight();
+    const maxBlocksPerDay = Math.max(1, Math.floor((state.dailyHours * 60) / state.blockMinutes));
+
+    // Process active topics
+    const enrichedTopics = state.topics.map(t => {
+      const examD = parseLocalDate(t.examDate);
+      const daysUntil = Math.max(0, diffDays(today, examD));
+      const studyDaysWindow = Math.max(1, daysUntil); // days 0 .. daysUntil-1 (or 0 if today)
+      const gapRatio = (100 - t.mastery) / 100;
+      // Target study hours needed scales with weight & knowledge gap
+      const targetHours = Math.max(1.0, (t.weight * 3.2) * (0.35 + gapRatio * 0.9));
+      const targetBlocks = Math.max(1, Math.round((targetHours * 60) / state.blockMinutes));
+      return {
+        ...t,
+        daysUntil,
+        studyDaysWindow,
+        targetBlocks,
+        urgency: (t.weight * (1.1 - t.mastery / 100)) / Math.max(1, daysUntil)
+      };
+    }).sort((a, b) => a.daysUntil - b.daysUntil || b.urgency - a.urgency);
+
+    const maxHorizon = Math.min(21, Math.max(7, ...enrichedTopics.map(t => t.daysUntil + 1)));
+    const days = [];
+    for (let i = 0; i < maxHorizon; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const dateStr = addDaysStr(today, i);
+      days.push({
+        offset: i,
+        date: d,
+        dateStr,
+        dayName: i === 0 ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNum: d.getDate(),
+        monthShort: d.toLocaleDateString('en-US', { month: 'short' }),
+        blocks: [],
+        examsToday: enrichedTopics.filter(t => t.daysUntil === i)
+      });
     }
 
-    // Interval Strip
-    els.compressionBadge.textContent = `${plan.scale.toFixed(2)}x Scale`;
-    const stripNodes = [{ label: "Learn", day: "Day 0" }];
-    plan.intervals.forEach((off, idx) => {
-      stripNodes.push({ label: `Rev ${idx + 1}`, day: `+${off}d` });
+    // Track per-topic scheduled blocks to determine spaced-rep stage
+    const topicAssigned = {};
+    enrichedTopics.forEach(t => { topicAssigned[t.id] = []; });
+
+    let unscheduledBlocks = 0;
+
+    // Schedule topic by topic (earliest exam & highest urgency first)
+    for (const topic of enrichedTopics) {
+      const endOffset = Math.max(0, Math.min(maxHorizon - 1, topic.daysUntil === 0 ? 0 : topic.daysUntil - 1));
+      const desired = topic.targetBlocks;
+
+      for (let b = 0; b < desired; b++) {
+        // Score each eligible day [0 .. endOffset]
+        let bestDay = -1;
+        let bestScore = -Infinity;
+
+        for (let d = 0; d <= endOffset; d++) {
+          const dayObj = days[d];
+          if (dayObj.blocks.length >= maxBlocksPerDay) continue;
+
+          // Count how many blocks of THIS topic already on day d
+          const sameTopicToday = dayObj.blocks.filter(blk => blk.topicId === topic.id).length;
+
+          // Spaced-repetition affinity:
+          // Prefer spacing blocks across window (acquisition early, spaced reviews mid, consolidation at endOffset)
+          const existingOffsets = topicAssigned[topic.id];
+          let minDist = 99;
+          for (const prev of existingOffsets) {
+            minDist = Math.min(minDist, Math.abs(d - prev));
+          }
+
+          let score = 0;
+          // Interleaving penalty if same topic already appears today
+          score -= sameTopicToday * 18;
+          // Slight load-balancing preference for less crowded days
+          score -= dayObj.blocks.length * 1.4;
+          // Spaced repetition bonus: ideal gap grows (1, 2, 4, 7)
+          if (existingOffsets.length === 0) {
+            score += (endOffset - d) * 1.5; // Start early!
+          } else {
+            const idealGap = existingOffsets.length === 1 ? 2 : existingOffsets.length === 2 ? 3 : 4;
+            score += Math.min(6, minDist) * 2.5 - Math.abs(minDist - idealGap);
+          }
+          // Pre-exam consolidation boost on endOffset
+          if (d === endOffset && b === desired - 1) {
+            score += 6;
+          }
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestDay = d;
+          }
+        }
+
+        if (bestDay !== -1) {
+          topicAssigned[topic.id].push(bestDay);
+          const occurrenceIdx = topicAssigned[topic.id].length;
+          let stage = 'New Concept';
+          let stageClass = 'sr-new';
+          if (bestDay === endOffset && topic.daysUntil > 0 && occurrenceIdx > 1) {
+            stage = 'Final Recall';
+            stageClass = 'sr-cram';
+          } else if (occurrenceIdx === 2) {
+            stage = 'Recall R1';
+            stageClass = 'sr-rev';
+          } else if (occurrenceIdx === 3) {
+            stage = 'Spaced R2';
+            stageClass = 'sr-rev';
+          } else if (occurrenceIdx >= 4) {
+            stage = 'Deep Mastery';
+            stageClass = 'sr-deep';
+          }
+
+          const key = `${days[bestDay].dateStr}_${topic.id}_${occurrenceIdx}`;
+          days[bestDay].blocks.push({
+            key,
+            topicId: topic.id,
+            topicName: topic.name,
+            color: topic.color,
+            minutes: state.blockMinutes,
+            stage,
+            stageClass,
+            weight: topic.weight,
+            completed: !!state.completedKeys[key]
+          });
+        } else {
+          unscheduledBlocks++;
+        }
+      }
+    }
+
+    // Sort blocks within each day for pleasant interleaving (avoid consecutive identical topics if possible)
+    days.forEach(day => {
+      day.blocks.sort((a, b) => a.topicName.localeCompare(b.topicName));
     });
-    els.intervalStrip.innerHTML = stripNodes.map(n => `
-      <div class="interval-node">
-        <div class="interval-step">${n.label}</div>
-        <div class="interval-day">${n.day}</div>
+
+    return {
+      days,
+      enrichedTopics,
+      maxBlocksPerDay,
+      unscheduledBlocks,
+      topicAssigned
+    };
+  }
+
+  function renderAll() {
+    const data = computeSchedule();
+    if (state.selectedDayOffset >= data.days.length) {
+      state.selectedDayOffset = 0;
+    }
+
+    renderHeaderKPIs(data);
+    renderPlanner(data);
+    renderTopics(data);
+    renderAnalytics(data);
+    document.getElementById('topicCountNav').textContent = state.topics.length;
+  }
+
+  function renderHeaderKPIs(data) {
+    let totalBlocks = 0;
+    let completedBlocks = 0;
+    data.days.forEach(d => {
+      d.blocks.forEach(b => {
+        totalBlocks++;
+        if (b.completed) completedBlocks++;
+      });
+    });
+
+    const remainingBlocks = totalBlocks - completedBlocks;
+    const remainingHours = (remainingBlocks * state.blockMinutes) / 60;
+
+    // Weighted readiness calculation: base mastery + planned coverage + completed boost
+    let weightedSum = 0;
+    let weightTotal = 0;
+    data.enrichedTopics.forEach(t => {
+      const assignedCount = (data.topicAssigned[t.id] || []).length;
+      const doneCount = data.days.reduce((acc, d) => acc + d.blocks.filter(b => b.topicId === t.id && b.completed).length, 0);
+      const coverage = Math.min(1, assignedCount / Math.max(1, t.targetBlocks));
+      const doneRatio = doneCount / Math.max(1, t.targetBlocks);
+      const projected = Math.min(99, t.mastery + (100 - t.mastery) * (coverage * 0.45 + doneRatio * 0.55));
+      weightedSum += projected * t.weight;
+      weightTotal += t.weight;
+    });
+
+    const readiness = weightTotal > 0 ? Math.round(weightedSum / weightTotal) : 100;
+    const dotColor = readiness >= 80 ? 'var(--emerald)' : readiness >= 60 ? 'var(--amber)' : 'var(--rose)';
+
+    document.getElementById('kpiReadiness').innerHTML = `<span>${readiness}%</span><span class="status-dot" style="background:${dotColor};"></span>`;
+    document.getElementById('kpiHours').textContent = `${remainingHours.toFixed(1)}h`;
+    document.getElementById('kpiBlocksSub').textContent = `${remainingBlocks} of ${totalBlocks} blocks`;
+
+    const upcoming = data.enrichedTopics[0];
+    if (upcoming) {
+      document.getElementById('kpiNextExam').textContent = upcoming.daysUntil === 0 ? 'Today' : `${upcoming.daysUntil}d`;
+      document.getElementById('kpiNextTopic').textContent = upcoming.name.slice(0, 14) + (upcoming.name.length > 14 ? '…' : '');
+    } else {
+      document.getElementById('kpiNextExam').textContent = '--';
+      document.getElementById('kpiNextTopic').textContent = 'Add an exam';
+    }
+  }
+
+  function renderPlanner(data) {
+    // Sync slider & chips UI
+    document.getElementById('dailyHoursSlider').value = state.dailyHours;
+    document.getElementById('dailyHoursBadge').textContent = `${state.dailyHours.toFixed(1)} hrs/day`;
+    document.getElementById('blockMinsBadge').textContent = `${state.blockMinutes} min`;
+
+    document.querySelectorAll('#blockChips .chip-btn').forEach(btn => {
+      btn.classList.toggle('active', Number(btn.dataset.mins) === state.blockMinutes);
+    });
+
+    // Capacity alert
+    const alertEl = document.getElementById('capacityAlert');
+    if (state.topics.length === 0) {
+      alertEl.innerHTML = '';
+    } else if (data.unscheduledBlocks > 0) {
+      const missingHrs = ((data.unscheduledBlocks * state.blockMinutes) / 60).toFixed(1);
+      alertEl.innerHTML = `<div class="alert-banner alert-danger"><span>⚠️</span><div><strong>Capacity Bottleneck:</strong> ${data.unscheduledBlocks} spaced blocks (${missingHrs}h) couldn't fit before exams. Increase daily focus hours or trim low-priority topics.</div></div>`;
+    } else {
+      const peakLoad = Math.max(...data.days.map(d => d.blocks.length));
+      const utilPct = Math.round((peakLoad / data.maxBlocksPerDay) * 100);
+      if (utilPct >= 90) {
+        alertEl.innerHTML = `<div class="alert-banner alert-warn"><span>⚡</span><div><strong>High Sprint Intensity:</strong> Peak days hit ${utilPct}% of your ${state.dailyHours}h focus cap. Keep breaks sharp.</div></div>`;
+      } else {
+        alertEl.innerHTML = `<div class="alert-banner alert-ok"><span>✓</span><div><strong>Optimal Spaced Plan:</strong> All ${data.days.reduce((a,d)=>a+d.blocks.length,0)} blocks fit comfortably within your daily limit.</div></div>`;
+      }
+    }
+
+    document.getElementById('timelineRangeLabel').textContent = `Next ${data.days.length} days`;
+
+    // Day Scroller
+    const scroller = document.getElementById('dayScroller');
+    scroller.innerHTML = data.days.map(d => {
+      const uniqueColors = [...new Set(d.blocks.map(b => b.color))].slice(0, 4);
+      const dotsHtml = uniqueColors.map(c => `<span class="day-dot" style="background:${c};"></span>`).join('');
+      const examBadge = d.examsToday.length > 0 ? `<span class="exam-badge-mini">EXAM</span>` : '';
+      return `
+        <div class="day-pill ${d.offset === state.selectedDayOffset ? 'active' : ''}" data-offset="${d.offset}">
+          ${examBadge}
+          <div class="day-pill-name">${d.dayName}</div>
+          <div class="day-pill-num">${d.dayNum}</div>
+          <div class="day-pill-dots">${dotsHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    scroller.querySelectorAll('.day-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        state.selectedDayOffset = Number(pill.dataset.offset);
+        saveState();
+        renderPlanner(computeSchedule());
+      });
+    });
+
+    // Selected Day Header & Blocks
+    const activeDay = data.days[state.selectedDayOffset];
+    const totalDayMins = activeDay.blocks.reduce((acc, b) => acc + b.minutes, 0);
+    const doneDayCount = activeDay.blocks.filter(b => b.completed).length;
+
+    document.getElementById('selectedDayTitle').textContent =
+      activeDay.offset === 0 ? `Today · ${activeDay.monthShort} ${activeDay.dayNum}` :
+      activeDay.offset === 1 ? `Tomorrow · ${activeDay.monthShort} ${activeDay.dayNum}` :
+      `${activeDay.dayName} · ${activeDay.monthShort} ${activeDay.dayNum}`;
+
+    document.getElementById('selectedDayMeta').textContent =
+      `${doneDayCount}/${activeDay.blocks.length} blocks • ${(totalDayMins / 60).toFixed(1)} hrs`;
+
+    // Exam Banners for selected day
+    const bannersEl = document.getElementById('dayExamBanners');
+    bannersEl.innerHTML = activeDay.examsToday.map(ex => `
+      <div class="exam-banner-day">
+        <span>🎯</span>
+        <div>Exam Day: <strong>${escapeHtml(ex.name)}</strong> (Weight ${ex.weight}/5)</div>
       </div>
-    `).join("");
+    `).join('');
 
-    // Workload Chart
-    els.peakDayBadge.textContent = `Peak: Day ${plan.peakDay}`;
-    els.chartRangeLabel.textContent = `Day 1 → ${plan.D}`;
-    const maxChartHours = Math.max(state.budgetHours * 1.15, plan.peakHours * 1.08, 1);
+    // Study Blocks List
+    const container = document.getElementById('blocksContainer');
+    if (activeDay.blocks.length === 0) {
+      container.innerHTML = `<div class="empty-state">No study blocks scheduled for this day.<br>Use this as a recovery buffer or add a new exam.</div>`;
+    } else {
+      let runningMins = 9 * 60; // Suggest starting at 09:00 AM
+      container.innerHTML = activeDay.blocks.map((blk, idx) => {
+        const startStr = formatTime(runningMins);
+        runningMins += blk.minutes;
+        const endStr = formatTime(runningMins);
+        runningMins += 10; // 10 min break between blocks
 
-    // Budget dashed line position (chart height = 132px, padding-top 18px, bottom 4px => usable 110px)
-    const usablePx = 110;
-    const budgetPx = Math.min(usablePx + 4, (state.budgetHours / maxChartHours) * usablePx);
-    els.budgetLine.style.bottom = `${4 + budgetPx}px`;
-    els.budgetTag.textContent = `${state.budgetHours.toFixed(1)}h limit`;
+        return `
+          <div class="block-card ${blk.completed ? 'completed' : ''}" data-key="${blk.key}" style="--topic-color:${blk.color};">
+            <div class="check-circle">
+              ${blk.completed ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            </div>
+            <div class="block-body">
+              <div class="block-top">
+                <span class="block-title">${escapeHtml(blk.topicName)}</span>
+                <span class="sr-tag ${blk.stageClass}">${blk.stage}</span>
+              </div>
+              <div class="block-meta">
+                <span>⏱ ${blk.minutes}m</span>
+                <span>🕒 ${startStr} – ${endStr}</span>
+                <span>★ Wt ${blk.weight}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
 
-    // Clear old bars while preserving budgetLine
-    Array.from(els.workloadChart.querySelectorAll(".bar-col")).forEach(el => el.remove());
+      container.querySelectorAll('.block-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const key = card.dataset.key;
+          if (state.completedKeys[key]) {
+            delete state.completedKeys[key];
+          } else {
+            state.completedKeys[key] = true;
+          }
+          saveState();
+          renderAll();
+        });
+      });
+    }
+  }
 
-    const barFrag = document.createDocumentFragment();
-    plan.schedule.forEach(d => {
-      const col = document.createElement("div");
-      col.className = "bar-col" + (d.totalHours > state.budgetHours + 0.05 ? " bar-over" : "");
-      col.title = `Day ${d.day}: ${d.totalHours.toFixed(1)}h (${d.newTopics.length} new, ${d.reviewTopics.length} rev)`;
+  function renderTopics(data) {
+    const list = document.getElementById('topicsList');
+    if (state.topics.length === 0) {
+      list.innerHTML = `<div class="empty-state">No exams added yet. Tap <strong>+ Add Exam</strong> to build your adaptive sprint.</div>`;
+      return;
+    }
 
-      const totalH = Math.min(100, (d.totalHours / maxChartHours) * 100);
-      const newRatio = d.totalHours > 0 ? (d.hoursNew / d.totalHours) * 100 : 0;
-      const revRatio = 100 - newRatio;
-
-      col.innerHTML = `
-        <div class="bar-stack" style="height:${totalH.toFixed(1)}%">
-          <div class="bar-new" style="height:${newRatio.toFixed(1)}%"></div>
-          <div class="bar-rev" style="height:${revRatio.toFixed(1)}%"></div>
+    list.innerHTML = data.enrichedTopics.map(t => {
+      const assigned = (data.topicAssigned[t.id] || []).length;
+      return `
+        <div class="topic-card" data-id="${t.id}">
+          <div class="topic-head">
+            <div class="topic-name-wrap">
+              <span class="color-dot" style="background:${t.color};"></span>
+              <span class="topic-name">${escapeHtml(t.name)}</span>
+            </div>
+            <button class="topic-del" data-del="${t.id}" title="Remove Topic">&times;</button>
+          </div>
+          <div class="topic-grid">
+            <div class="mini-field">
+              <label>Exam Date (${t.daysUntil === 0 ? 'Today' : t.daysUntil + 'd left'})</label>
+              <input type="date" class="mini-input topic-date-input" value="${t.examDate}" data-id="${t.id}">
+            </div>
+            <div class="mini-field">
+              <label>Weight (1-5)</label>
+              <input type="number" class="mini-input topic-weight-input" min="1" max="5" value="${t.weight}" data-id="${t.id}">
+            </div>
+          </div>
+          <div class="slider-group" style="margin-bottom:8px;">
+            <div class="slider-header" style="margin-bottom:4px;">
+              <span style="font-size:11px;color:var(--text-dim);font-weight:600;">Current Mastery</span>
+              <span class="slider-badge" style="font-size:11px;">${t.mastery}%</span>
+            </div>
+            <input type="range" class="topic-mastery-input" min="0" max="95" step="5" value="${t.mastery}" data-id="${t.id}">
+          </div>
+          <div class="topic-stats-row">
+            <span>Planned: <strong>${assigned}/${t.targetBlocks} blocks</strong></span>
+            <span>Est. Focus: <strong>${((assigned * state.blockMinutes)/60).toFixed(1)} hrs</strong></span>
+          </div>
         </div>
       `;
-      barFrag.appendChild(col);
+    }).join('');
+
+    list.querySelectorAll('.topic-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.del;
+        state.topics = state.topics.filter(t => t.id !== id);
+        saveState();
+        renderAll();
+      });
     });
-    els.workloadChart.appendChild(barFrag);
 
-    // Schedule Tab
-    const validDoneCount = Array.from(state.completedDays).filter(day => day <= plan.D).length;
-    els.completionBadge.textContent = `${validDoneCount} / ${plan.D} Days`;
-    els.sprintProgressFill.style.width = `${Math.round((validDoneCount / plan.D) * 100)}%`;
+    list.querySelectorAll('.topic-date-input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const t = state.topics.find(x => x.id === inp.dataset.id);
+        if (t && inp.value) {
+          t.examDate = inp.value;
+          saveState();
+          renderAll();
+        }
+      });
+    });
 
-    els.dayList.innerHTML = plan.schedule.map(d => {
-      const isDone = state.completedDays.has(d.day);
-      const isOver = d.totalHours > state.budgetHours + 0.05;
-      const previewNames = [...d.newTopics.slice(0, 2).map(t => t.name), ...d.reviewTopics.slice(0, 2).map(t => t.name)];
-      const previewText = d.isExamEve
-        ? "Final synthesis, weak-spot triage & full mock simulation"
-        : previewNames.length
-          ? previewNames.join(" · ") + (d.newTopics.length + d.reviewTopics.length > 4 ? " …" : "")
-          : "Light consolidation / catch-up buffer";
+    list.querySelectorAll('.topic-weight-input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const t = state.topics.find(x => x.id === inp.dataset.id);
+        if (t) {
+          t.weight = Math.min(5, Math.max(1, Number(inp.value) || 3));
+          saveState();
+          renderAll();
+        }
+      });
+    });
 
+    list.querySelectorAll('.topic-mastery-input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const t = state.topics.find(x => x.id === inp.dataset.id);
+        if (t) {
+          t.mastery = Number(inp.value);
+          saveState();
+          renderAll();
+        }
+      });
+    });
+  }
+
+  function renderAnalytics(data) {
+    // Readiness Ring
+    const kpiText = document.getElementById('kpiReadiness').innerText.replace('%', '').trim();
+    const readiness = parseInt(kpiText, 10) || 0;
+    const circumference = 238.76;
+    const offset = circumference - (readiness / 100) * circumference;
+    const ring = document.getElementById('readinessRing');
+    ring.style.strokeDashoffset = offset;
+    ring.style.stroke = readiness >= 80 ? 'var(--emerald)' : readiness >= 60 ? 'var(--amber)' : 'var(--rose)';
+    document.getElementById('ringPct').textContent = `${readiness}%`;
+
+    const titleEl = document.getElementById('forecastTitle');
+    const descEl = document.getElementById('forecastDesc');
+    if (data.unscheduledBlocks > 0) {
+      titleEl.textContent = 'Capacity Deficit';
+      descEl.textContent = `${data.unscheduledBlocks} blocks overflowed your daily limit. Raising daily hours will unlock full spaced repetition.`;
+    } else if (readiness >= 80) {
+      titleEl.textContent = 'High Exam Readiness';
+      descEl.textContent = 'Spaced recall intervals and pre-exam consolidation blocks are fully aligned with your exam weights.';
+    } else {
+      titleEl.textContent = 'Building Momentum';
+      descEl.textContent = 'Complete scheduled blocks on the Sprint Plan tab to drive projected retention above 80%.';
+    }
+
+    // 7-Day Workload Chart
+    document.getElementById('chartCapLabel').textContent = `Cap: ${state.dailyHours.toFixed(1)}h/d`;
+    const chart = document.getElementById('workloadChart');
+    const next7 = data.days.slice(0, 7);
+    const maxHours = Math.max(state.dailyHours, ...next7.map(d => (d.blocks.length * state.blockMinutes) / 60), 1);
+
+    chart.innerHTML = next7.map(d => {
+      const hrs = (d.blocks.length * state.blockMinutes) / 60;
+      const pct = Math.min(100, Math.round((hrs / maxHours) * 100));
+      const doneHrs = (d.blocks.filter(b => b.completed).length * state.blockMinutes) / 60;
+      const barColor = hrs >= state.dailyHours * 0.92 ? 'var(--amber)' : 'var(--primary)';
       return `
-        <div class="day-card ${isDone ? "done" : ""} ${d.isExamEve ? "exam-day" : ""}" data-day="${d.day}">
-          <button class="day-check" aria-label="Mark Day ${d.day} complete">${isDone ? "✓" : ""}</button>
-          <div class="day-body">
-            <div class="day-top">
-              <span class="day-title">Day ${d.day} ${d.isExamEve ? "· Exam Eve" : d.day === 1 ? "· Kickoff" : ""}</span>
-              <span class="day-hours ${isOver ? "over" : ""}">${d.totalHours.toFixed(1)}h</span>
-            </div>
-            <div class="day-meta">
-              ${d.newTopics.length ? `<span class="tag-new">+${d.newTopics.length} New</span>` : ""}
-              ${d.reviewTopics.length ? `<span class="tag-rev">↻ ${d.reviewTopics.length} Reviews</span>` : ""}
-              ${d.isExamEve ? `<span class="tag-mock">★ Final Mock &amp; Taper</span>` : ""}
-              ${!d.newTopics.length && !d.reviewTopics.length && !d.isExamEve ? `<span class="tag-rev">Buffer Day</span>` : ""}
-            </div>
-            <div class="day-topics-preview">${escapeHtml(previewText)}</div>
+        <div class="bar-col">
+          <span class="bar-lbl">${hrs.toFixed(1)}h</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="height:${pct}%;background:${barColor};opacity:${doneHrs > 0 ? 1 : 0.85};"></div>
           </div>
+          <span class="bar-lbl">${d.offset === 0 ? 'Today' : d.dayName}</span>
         </div>
       `;
-    }).join("");
+    }).join('');
 
-    // Topics Tab
-    els.topicQueueCount.textContent = `${state.topics.length} Topics`;
-    els.topicList.innerHTML = state.topics.map((t, idx) => {
-      const confLabel = t.confidence === "hard" ? "Hard · 1.3x" : t.confidence === "easy" ? "Easy · 0.75x" : "Med · 1.0x";
-      return `
-        <div class="topic-item" data-id="${t.id}">
-          <div class="topic-info">
-            <div class="topic-name">${idx + 1}. ${escapeHtml(t.name)}</div>
-            <div class="topic-sub">Priority weight: ${t.confidence === "hard" ? "Extra early review" : t.confidence === "easy" ? "Standard intervals" : "Balanced SM-2"}</div>
+    // Topic Breakdown
+    const bd = document.getElementById('topicBreakdown');
+    if (data.enrichedTopics.length === 0) {
+      bd.innerHTML = `<div style="font-size:12px;color:var(--text-dim);">No topics configured.</div>`;
+    } else {
+      bd.innerHTML = data.enrichedTopics.map(t => {
+        const assigned = (data.topicAssigned[t.id] || []).length;
+        const done = data.days.reduce((acc, d) => acc + d.blocks.filter(b => b.topicId === t.id && b.completed).length, 0);
+        const pct = Math.min(100, Math.round((assigned / Math.max(1, t.targetBlocks)) * 100));
+        return `
+          <div class="topic-breakdown-item">
+            <div class="tb-head">
+              <span>${escapeHtml(t.name)}</span>
+              <span style="color:var(--text-dim);">${done} done / ${assigned} planned (${t.targetBlocks} req)</span>
+            </div>
+            <div class="tb-track">
+              <div class="tb-fill" style="width:${pct}%;background:${t.color};"></div>
+            </div>
           </div>
-          <button class="conf-btn ${t.confidence}" data-action="cycle">${confLabel}</button>
-          <button class="del-btn" data-action="delete" title="Remove">×</button>
-        </div>
-      `;
-    }).join("");
+        `;
+      }).join('');
+    }
+  }
+
+  // Helpers
+  function formatTime(totalMinutes) {
+    const h24 = Math.floor(totalMinutes / 60) % 24;
+    const m = totalMinutes % 60;
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
   function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    return str.replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
 
-  // Event Listeners: Sliders
-  els.inputDays.addEventListener("input", (e) => {
-    state.days = parseInt(e.target.value, 10);
-    render();
+  // Event Listeners
+  document.getElementById('dailyHoursSlider').addEventListener('input', e => {
+    state.dailyHours = parseFloat(e.target.value);
+    saveState();
+    renderAll();
   });
 
-  els.inputTopics.addEventListener("input", (e) => {
-    state.topicsCount = parseInt(e.target.value, 10);
-    syncTopicsArray(state.topicsCount, state.preset);
-    render();
-  });
-
-  els.inputBudget.addEventListener("input", (e) => {
-    state.budgetHours = parseFloat(e.target.value);
-    render();
-  });
-
-  els.inputRetention.addEventListener("input", (e) => {
-    state.targetRetention = parseInt(e.target.value, 10);
-    render();
-  });
-
-  // Curve segmented control
-  document.getElementById("curveSelector").addEventListener("click", (e) => {
-    const btn = e.target.closest(".seg-btn");
-    if (!btn) return;
-    document.querySelectorAll("#curveSelector .seg-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    state.curve = btn.dataset.curve;
-    render();
-  });
-
-  // Presets
-  document.getElementById("presetRow").addEventListener("click", (e) => {
-    const chip = e.target.closest(".preset-chip");
-    if (!chip) return;
-    document.querySelectorAll(".preset-chip").forEach(c => c.classList.remove("active"));
-    chip.classList.add("active");
-
-    const key = chip.dataset.preset;
-    const p = PRESETS[key];
-    state.preset = key;
-    state.days = p.days;
-    state.topicsCount = p.topics;
-    state.budgetHours = p.budget;
-    state.targetRetention = p.retention;
-    state.curve = p.curve;
-    state.completedDays.clear();
-    state.topics = [];
-    syncTopicsArray(state.topicsCount, key);
-
-    // Sync inputs
-    els.inputDays.value = state.days;
-    els.inputTopics.value = state.topicsCount;
-    els.inputBudget.value = state.budgetHours;
-    els.inputRetention.value = state.targetRetention;
-    document.querySelectorAll("#curveSelector .seg-btn").forEach(b => {
-      b.classList.toggle("active", b.dataset.curve === state.curve);
-    });
-
-    render();
-  });
-
-  // Schedule check toggle
-  els.dayList.addEventListener("click", (e) => {
-    const check = e.target.closest(".day-check");
-    if (!check) return;
-    const card = check.closest(".day-card");
-    const dayNum = parseInt(card.dataset.day, 10);
-    if (state.completedDays.has(dayNum)) {
-      state.completedDays.delete(dayNum);
-    } else {
-      state.completedDays.add(dayNum);
-    }
-    render();
-  });
-
-  // Topic actions
-  els.topicList.addEventListener("click", (e) => {
-    const item = e.target.closest(".topic-item");
-    if (!item) return;
-    const id = item.dataset.id;
-    const actionBtn = e.target.closest("[data-action]");
-    if (!actionBtn) return;
-
-    const action = actionBtn.dataset.action;
-    const idx = state.topics.findIndex(t => t.id === id);
-    if (idx === -1) return;
-
-    if (action === "cycle") {
-      const order = ["med", "hard", "easy"];
-      const next = order[(order.indexOf(state.topics[idx].confidence) + 1) % order.length];
-      state.topics[idx].confidence = next;
-      render();
-    } else if (action === "delete") {
-      if (state.topics.length <= 5) return; // keep slider minimum 5
-      state.topics.splice(idx, 1);
-      state.topicsCount = state.topics.length;
-      els.inputTopics.value = state.topicsCount;
-      render();
-    }
-  });
-
-  function addNewTopic() {
-    const val = els.newTopicInput.value.trim();
-    if (!val) return;
-    if (state.topics.length >= 120) return;
-    state.topics.unshift({
-      id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
-      name: val,
-      confidence: "hard"
-    });
-    state.topicsCount = state.topics.length;
-    els.inputTopics.value = state.topicsCount;
-    els.newTopicInput.value = "";
-    render();
-  }
-
-  els.addTopicBtn.addEventListener("click", addNewTopic);
-  els.newTopicInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") addNewTopic();
-  });
-
-  // Bottom Nav Tabs
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const tab = btn.dataset.tab;
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      document.getElementById("tab-" + tab).classList.add("active");
-      document.querySelector(".main-scroll").scrollTop = 0;
+  document.querySelectorAll('#blockChips .chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.blockMinutes = Number(btn.dataset.mins);
+      saveState();
+      renderAll();
     });
   });
 
-  // Init
-  syncTopicsArray(state.topicsCount, state.preset);
-  render();
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${target}`));
+    });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state = getDefaultState();
+    saveState();
+    renderAll();
+  });
+
+  // Modal logic
+  const modal = document.getElementById('topicModal');
+  document.getElementById('openModalBtn').addEventListener('click', () => {
+    const defaultDate = addDaysStr(getTodayMidnight(), 7);
+    document.getElementById('newTopicDate').value = defaultDate;
+    document.getElementById('newTopicName').value = '';
+    modal.classList.add('open');
+  });
+
+  document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+
+  document.getElementById('newTopicMastery').addEventListener('input', e => {
+    document.getElementById('newMasteryBadge').textContent = `${e.target.value}%`;
+  });
+
+  document.querySelectorAll('#colorPicker .color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('#colorPicker .color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      selectedColor = sw.dataset.color;
+    });
+  });
+
+  document.getElementById('saveTopicBtn').addEventListener('click', () => {
+    const name = document.getElementById('newTopicName').value.trim();
+    const examDate = document.getElementById('newTopicDate').value;
+    const weight = Math.min(5, Math.max(1, Number(document.getElementById('newTopicWeight').value) || 3));
+    const mastery = Number(document.getElementById('newTopicMastery').value) || 0;
+
+    if (!name || !examDate) return;
+
+    state.topics.push({
+      id: 't_' + Date.now(),
+      name,
+      examDate,
+      weight,
+      mastery,
+      color: selectedColor
+    });
+    saveState();
+    modal.classList.remove('open');
+    renderAll();
+  });
+
+  // Initial render
+  renderAll();
 })();
 </script>
 </body>
