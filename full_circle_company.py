@@ -86,7 +86,7 @@ DIST_DIR.mkdir(exist_ok=True)
 def ask_agent(role_prompt: str, task_prompt: str) -> str:
     """Sends a structured role + task prompt to the Gemini API with auto-retry."""
     url = (
-        f"https://googleapis.com"
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{MODEL}:generateContent?key={GEMINI_KEY}"
     )
     payload = {
