@@ -13,6 +13,7 @@ permissions:
 jobs:
   run_company:
     runs-on: ubuntu-latest
+    timeout-minutes: 10   # Safety timer: never hang for 35+ minutes again
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -40,7 +41,7 @@ jobs:
           PUBLIC_VIDEO_BASE_URL: ${{ secrets.PUBLIC_VIDEO_BASE_URL }}
           COMPANY_GMAIL: ${{ secrets.COMPANY_GMAIL }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: python3 full_circle_company.py
+        run: python3 -u full_circle_company.py
 
       - name: 4. Save Built App, Zip & 9x16 Video to Repo
         run: |
