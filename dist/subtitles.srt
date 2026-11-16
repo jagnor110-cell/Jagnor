@@ -1,12 +1,12 @@
 1
-00:00:00,100 --> 00:00:02,975
-Stop cramming and start remembering.
+00:00:00,100 --> 00:00:05,412
+Stop guessing your freelance prices and losing money to taxes and admin work.
 
 2
-00:00:02,925 --> 00:00:11,312
-Meet the Spaced Repetition Exam Sprint Planner, an interactive calculator that maps your optimal daily review intervals up to exam day.
+00:00:05,362 --> 00:00:12,187
+The Freelance True Rate Calculator computes your real hourly rate and builds instant itemized client quotes.
 
 3
-00:00:11,312 --> 00:00:14,312
-Hit the link to get your study schedule now.
+00:00:12,187 --> 00:00:14,375
+Grab it at the link now.
 

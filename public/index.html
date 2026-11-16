@@ -3,31 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#090B10">
-<title>Spaced Repetition Exam Sprint Planner</title>
+<title>TrueRate — Freelance Rate & Quote Calculator</title>
 <style>
   :root {
-    --bg: #090B10;
-    --surface-1: #111520;
-    --surface-2: #181E2E;
-    --surface-3: #20283D;
+    --bg: #080b12;
+    --surface: #111622;
+    --surface-2: #182032;
     --border: rgba(255, 255, 255, 0.08);
-    --border-bright: rgba(255, 255, 255, 0.16);
-    --text: #F4F6FB;
-    --text-dim: #94A0B8;
-    --text-muted: #626E88;
-    --accent: #7C5CFF;
-    --accent-glow: rgba(124, 92, 255, 0.28);
-    --mint: #2EE6A6;
-    --mint-dim: rgba(46, 230, 166, 0.16);
-    --amber: #FFB020;
-    --amber-dim: rgba(255, 176, 32, 0.16);
-    --coral: #FF5C7A;
-    --coral-dim: rgba(255, 92, 122, 0.16);
-    --radius-lg: 20px;
-    --radius-md: 14px;
+    --border-active: rgba(56, 189, 248, 0.45);
+    --text: #f3f6fc;
+    --text-muted: #8b97b0;
+    --text-dim: #5e6a82;
+    --accent: #38bdf8;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --violet: #a78bfa;
+    --radius: 16px;
     --radius-sm: 10px;
-    --safe-bottom: env(safe-area-inset-bottom, 16px);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
   }
 
   * {
@@ -38,162 +32,135 @@
   }
 
   html, body {
-    background: #040508;
+    background-color: #030508;
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font);
     font-size: 14px;
     line-height: 1.4;
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
     overflow-x: hidden;
   }
 
   .app-shell {
     width: 100%;
     max-width: 430px;
-    min-height: 100vh;
+    min-height: 100dvh;
     background: var(--bg);
-    position: relative;
     display: flex;
     flex-direction: column;
-    padding-bottom: calc(82px + var(--safe-bottom));
+    position: relative;
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.85);
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 
-  @media (min-width: 460px) {
-    .app-shell {
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-    }
-  }
-
-  .num {
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Header */
-  .header {
+  /* Header & Hero KPI */
+  .top-bar {
     position: sticky;
     top: 0;
     z-index: 30;
-    background: rgba(9, 11, 16, 0.86);
+    background: rgba(8, 11, 18, 0.88);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-    padding: 14px 16px 12px;
     border-bottom: 1px solid var(--border);
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
   }
 
-  .header-top {
+  .brand-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
-  .brand-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), #4E35D8);
+  .logo-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), var(--emerald));
     display: grid;
     place-items: center;
-    box-shadow: 0 4px 16px var(--accent-glow);
-    flex-shrink: 0;
+    font-weight: 800;
+    font-size: 13px;
+    color: #041019;
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
   }
 
-  .brand-title {
+  .brand h1 {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+
+  .reset-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.15s ease;
+  }
+
+  .reset-btn:active {
+    transform: scale(0.95);
     color: var(--text);
   }
 
-  .brand-sub {
-    font-size: 11px;
-    color: var(--text-dim);
+  /* Segmented Tabs */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    gap: 4px;
+  }
+
+  .tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
   }
 
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-  }
-
-  .status-pill.optimal {
-    background: var(--mint-dim);
-    color: var(--mint);
-    border-color: rgba(46, 230, 166, 0.28);
-  }
-
-  .status-pill.heavy {
-    background: var(--amber-dim);
-    color: var(--amber);
-    border-color: rgba(255, 176, 32, 0.28);
-  }
-
-  .status-pill.overload {
-    background: var(--coral-dim);
-    color: var(--coral);
-    border-color: rgba(255, 92, 122, 0.28);
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  .progress-strip {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .progress-track {
-    flex: 1;
-    height: 5px;
-    border-radius: 99px;
+  .tab-btn.active {
     background: var(--surface-2);
-    overflow: hidden;
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
-  .progress-fill {
-    height: 100%;
-    width: 0%;
-    border-radius: 99px;
-    background: linear-gradient(90deg, var(--accent), var(--mint));
-    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  .tab-pill {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.14);
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
   }
 
-  .progress-label {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-weight: 600;
-    min-width: 56px;
-    text-align: right;
-  }
-
-  /* Main Container */
+  /* Main Content */
   .content {
     padding: 14px 16px;
     display: flex;
@@ -201,182 +168,244 @@
     gap: 14px;
   }
 
-  /* KPI Grid */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  .panel {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+    animation: fadeIn 0.2s ease;
   }
 
-  .kpi-card {
-    background: var(--surface-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px 13px;
+  .panel.active {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hero Output Card */
+  .hero-card {
+    background: linear-gradient(160deg, #131c2e 0%, #0d1320 100%);
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    border-radius: var(--radius);
+    padding: 16px;
     position: relative;
     overflow: hidden;
   }
 
-  .kpi-card::after {
+  .hero-card::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    top: -40px;
+    right: -40px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, transparent 70%);
+    pointer-events: none;
   }
 
-  .kpi-label {
+  .hero-label {
     font-size: 11px;
-    color: var(--text-dim);
-    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
-  .kpi-value {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: var(--text);
+  .hero-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--emerald);
+    letter-spacing: 0.02em;
+    text-transform: none;
   }
 
-  .kpi-sub {
-    font-size: 11px;
+  .hero-value {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    margin: 4px 0 12px;
+    background: linear-gradient(90deg, #ffffff 0%, #bae6fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-value span {
+    font-size: 16px;
+    font-weight: 600;
+    -webkit-text-fill-color: var(--text-muted);
+  }
+
+  .mini-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .mini-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mini-kpi-label {
+    font-size: 10px;
     color: var(--text-muted);
   }
 
-  .kpi-value.accent { color: #A692FF; }
-  .kpi-value.mint { color: var(--mint); }
-  .kpi-value.amber { color: var(--amber); }
-  .kpi-value.coral { color: var(--coral); }
+  .mini-kpi-val {
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
 
-  /* Card */
+  /* Allocation Bar */
+  .bar-wrap {
+    margin-top: 12px;
+  }
+
+  .stacked-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--surface);
+    overflow: hidden;
+    display: flex;
+    gap: 2px;
+  }
+
+  .bar-seg {
+    height: 100%;
+    transition: width 0.25s ease;
+  }
+
+  .seg-net { background: var(--emerald); }
+  .seg-tax { background: var(--amber); }
+  .seg-over { background: var(--violet); }
+
+  .bar-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 7px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  /* Input Cards */
   .card {
-    background: var(--surface-1);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 15px;
+    border-radius: var(--radius);
+    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 14px;
   }
 
-  .card-header {
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    align-items: center;
   }
 
-  .card-title {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    color: var(--text);
+  .control-group {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 7px;
   }
 
-  .card-badge {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-dim);
-    background: var(--surface-2);
-    padding: 3px 8px;
-    border-radius: 99px;
-    border: 1px solid var(--border);
-  }
-
-  /* Controls */
-  .control-row {
+  .control-header {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .control-head {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
     gap: 8px;
   }
 
   .control-label {
-    font-size: 12.5px;
-    color: var(--text-dim);
-    font-weight: 500;
-  }
-
-  .control-val {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--text);
-    background: var(--surface-2);
-    padding: 3px 9px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
   }
 
-  .date-input-wrap {
+  .control-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .num-input-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 9px 12px;
+    border-radius: 8px;
+    padding: 4px 8px;
+    transition: border-color 0.15s;
   }
 
-  input[type="date"] {
-    flex: 1;
+  .num-input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+
+  .num-prefix, .num-suffix {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    user-select: none;
+  }
+
+  .num-input {
     background: transparent;
     border: none;
     color: var(--text);
     font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    width: 66px;
+    text-align: right;
     outline: none;
-    color-scheme: dark;
+    padding: 0 3px;
   }
 
-  .quick-days {
-    display: flex;
-    gap: 6px;
+  .num-input.narrow {
+    width: 44px;
   }
 
-  .quick-chip {
-    background: var(--surface-3);
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .quick-chip.active, .quick-chip:active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
-
-  /* Range Sliders */
+  /* Custom Range Slider */
   input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
     height: 6px;
-    border-radius: 99px;
-    background: var(--surface-3);
+    background: var(--surface-2);
+    border-radius: 999px;
     outline: none;
     cursor: pointer;
   }
@@ -387,439 +416,229 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #FFFFFF;
+    background: #ffffff;
     border: 3px solid var(--accent);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(124, 92, 255, 0.16);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     transition: transform 0.12s ease;
   }
 
   input[type="range"]::-webkit-slider-thumb:active {
-    transform: scale(1.14);
+    transform: scale(1.16);
   }
 
   input[type="range"]::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #FFFFFF;
+    background: #ffffff;
     border: 3px solid var(--accent);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
-  /* Segmented Control */
-  .segmented {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-    background: var(--surface-2);
-    padding: 4px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-
-  .seg-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    padding: 8px 6px;
-    border-radius: 9px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-  }
-
-  .seg-btn span {
-    font-size: 10px;
-    font-weight: 500;
-    opacity: 0.72;
-  }
-
-  .seg-btn.active {
-    background: var(--surface-3);
-    color: var(--text);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255,255,255,0.08);
-  }
-
-  .seg-btn.active span {
-    color: var(--mint);
-    opacity: 1;
-  }
-
-  /* Workload Chart */
-  .chart-legend {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .legend-swatch {
-    width: 8px;
-    height: 8px;
-    border-radius: 3px;
-  }
-
-  .chart-wrap {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-  }
-
-  .chart-wrap::-webkit-scrollbar {
-    display: none;
-  }
-
-  .chart-svg {
-    display: block;
-    min-width: 100%;
-    height: 148px;
-    user-select: none;
-  }
-
-  .chart-bar-group {
-    cursor: pointer;
-  }
-
-  .chart-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  /* Schedule Filter Pills */
-  .filter-bar {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-
-  .filter-bar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .filter-pill {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 6px 12px;
-    border-radius: 99px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .filter-pill.active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-    box-shadow: 0 2px 12px var(--accent-glow);
-  }
-
-  /* Timeline Day Cards */
-  .timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .day-card {
-    background: var(--surface-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 13px;
-    transition: border-color 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
-    scroll-margin-top: 105px;
-  }
-
-  .day-card.selected {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(124, 92, 255, 0.14);
-  }
-
-  .day-card.completed {
-    opacity: 0.62;
-  }
-
-  .day-card.exam-day {
-    background: linear-gradient(135deg, rgba(124, 92, 255, 0.18), rgba(46, 230, 166, 0.10));
-    border-color: rgba(124, 92, 255, 0.35);
-  }
-
-  .day-top {
+  /* Toggle Switch */
+  .toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-  }
-
-  .day-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .day-check {
-    width: 22px;
-    height: 22px;
-    border-radius: 7px;
-    border: 1.5px solid var(--border-bright);
     background: var(--surface-2);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all 0.15s ease;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
   }
 
-  .day-check.checked {
-    background: var(--mint);
-    border-color: var(--mint);
-    color: #06130E;
-  }
-
-  .day-date {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .today-tag {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    background: var(--accent);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 5px;
-  }
-
-  .buffer-tag {
-    font-size: 10px;
-    font-weight: 600;
-    background: var(--mint-dim);
-    color: var(--mint);
-    padding: 2px 6px;
-    border-radius: 5px;
-  }
-
-  .day-sub {
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 1px;
-  }
-
-  .day-mins {
-    text-align: right;
+  .switch {
+    position: relative;
+    width: 42px;
+    height: 24px;
     flex-shrink: 0;
   }
 
-  .day-mins-val {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
 
-  .day-mins-val.over {
-    color: var(--coral);
+  .slider-toggle {
+    position: absolute;
+    inset: 0;
+    background: #2b354b;
+    border-radius: 999px;
+    transition: 0.2s;
+    cursor: pointer;
   }
 
-  .day-mins-bar {
-    width: 58px;
-    height: 4px;
-    border-radius: 99px;
-    background: var(--surface-3);
-    margin-top: 4px;
-    margin-left: auto;
-    overflow: hidden;
+  .slider-toggle::before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
   }
 
-  .day-mins-fill {
-    height: 100%;
-    border-radius: 99px;
+  .switch input:checked + .slider-toggle {
     background: var(--accent);
   }
 
-  .day-mins-fill.over {
-    background: var(--coral);
+  .switch input:checked + .slider-toggle::before {
+    transform: translateX(18px);
   }
 
-  .task-chips {
+  /* Quote Itemized Breakdown */
+  .quote-list {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-  }
-
-  .t-chip {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 7px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .t-chip.new {
-    background: rgba(124, 92, 255, 0.16);
-    color: #C3B5FF;
-    border: 1px solid rgba(124, 92, 255, 0.28);
-  }
-
-  .t-chip.rev {
-    background: rgba(46, 230, 166, 0.12);
-    color: #82F4CB;
-    border: 1px solid rgba(46, 230, 166, 0.24);
-  }
-
-  .t-chip.final {
-    background: rgba(255, 176, 32, 0.14);
-    color: #FFD07A;
-    border: 1px solid rgba(255, 176, 32, 0.28);
-  }
-
-  .t-chip.rest {
-    background: var(--surface-2);
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-  }
-
-  .topic-detail-toggle {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 8px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 0;
-  }
-
-  .topic-list {
-    margin-top: 8px;
-    display: none;
     flex-direction: column;
-    gap: 5px;
-    background: var(--surface-2);
-    border-radius: 10px;
-    padding: 9px 10px;
-    border: 1px solid var(--border);
+    gap: 10px;
   }
 
-  .topic-list.open {
-    display: flex;
-  }
-
-  .topic-line {
-    font-size: 11.5px;
-    color: var(--text-dim);
+  .quote-row {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
+    align-items: center;
+    font-size: 13px;
   }
 
-  .topic-line strong {
-    color: var(--text);
-    font-weight: 600;
-  }
-
-  /* Bottom Sticky Bar */
-  .bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 430px;
-    background: rgba(9, 11, 16, 0.9);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border-top: 1px solid var(--border);
-    padding: 10px 16px calc(10px + var(--safe-bottom));
+  .quote-row-left {
     display: flex;
-    gap: 10px;
-    z-index: 40;
+    flex-direction: column;
   }
 
-  .btn {
-    border: none;
-    border-radius: 12px;
+  .quote-row-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .quote-row-val {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .quote-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  .quote-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .quote-total-val {
+    font-size: 18px;
+    color: var(--emerald);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Text Input for Project Name */
+  .text-input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: var(--text);
     font-family: inherit;
     font-size: 13px;
-    font-weight: 700;
-    padding: 12px 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    transition: transform 0.12s ease, opacity 0.15s ease;
+    font-weight: 500;
+    outline: none;
   }
 
-  .btn:active {
-    transform: scale(0.97);
+  .text-input:focus {
+    border-color: var(--accent);
+  }
+
+  /* Quick Preset Chips */
+  .chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+
+  .chip.active {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* CTA Action Buttons */
+  .btn-primary {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), #0ea5e9);
+    color: #03111c;
+    box-shadow: 0 4px 18px rgba(56, 189, 248, 0.28);
+    transition: transform 0.12s ease, opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
   }
 
   .btn-secondary {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
     background: var(--surface-2);
     color: var(--text);
-    border: 1px solid var(--border);
-    flex: 0 0 auto;
+    transition: transform 0.12s ease;
   }
 
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #5E42E8);
-    color: #fff;
-    flex: 1;
-    box-shadow: 0 4px 18px var(--accent-glow);
+  .btn-secondary:active {
+    transform: scale(0.98);
   }
 
   /* Toast */
   .toast {
     position: fixed;
-    bottom: calc(78px + var(--safe-bottom));
+    bottom: 24px;
     left: 50%;
-    transform: translateX(-50%) translateY(16px);
-    background: var(--surface-3);
-    color: var(--text);
-    border: 1px solid var(--border-bright);
-    padding: 9px 15px;
-    border-radius: 99px;
-    font-size: 12px;
-    font-weight: 600;
+    transform: translateX(-50%) translateY(80px);
+    background: #10b981;
+    color: #041911;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     opacity: 0;
     pointer-events: none;
-    transition: all 0.22s ease;
-    z-index: 60;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 100;
     white-space: nowrap;
   }
 
@@ -827,857 +646,686 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* Warning banner */
+  .warn-note {
+    font-size: 11px;
+    color: var(--amber);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    display: none;
+  }
 </style>
 </head>
 <body>
-
 <div class="app-shell">
-  <header class="header">
-    <div class="header-top">
+  <header class="top-bar">
+    <div class="brand-row">
       <div class="brand">
-        <div class="brand-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-          </svg>
-        </div>
-        <div>
-          <div class="brand-title">SprintSRS Planner</div>
-          <div class="brand-sub" id="headerSub">Spaced Repetition Exam Engine</div>
-        </div>
+        <div class="logo-dot">$</div>
+        <h1>TrueRate</h1>
       </div>
-      <div class="status-pill optimal" id="feasibilityPill">
-        <span class="status-dot"></span>
-        <span id="feasibilityText">Optimal</span>
-      </div>
+      <button class="reset-btn" id="resetBtn" type="button">Reset Defaults</button>
     </div>
-    <div class="progress-strip">
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <div class="progress-label num" id="progressLabel">0 / 0 days</div>
-    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="rate" role="tab" aria-selected="true">
+        True Rate <span class="tab-pill" id="tabRateBadge">$0/hr</span>
+      </button>
+      <button class="tab-btn" data-tab="quote" role="tab" aria-selected="false">
+        Project Quote <span class="tab-pill" id="tabQuoteBadge">$0</span>
+      </button>
+    </nav>
   </header>
 
   <main class="content">
-    <!-- Live Metrics -->
-    <section class="kpi-grid" aria-label="Live Sprint Metrics">
-      <div class="kpi-card">
-        <div class="kpi-label">
-          <span>Days to Exam</span>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <!-- TAB 1: TRUE RATE CALCULATOR -->
+    <section id="panel-rate" class="panel active">
+      <div class="hero-card">
+        <div class="hero-label">
+          <span>Minimum Billable Rate</span>
+          <span class="hero-badge" id="billableHoursBadge">1,344 billable hrs/yr</span>
         </div>
-        <div class="kpi-value num accent" id="kpiDays">14d</div>
-        <div class="kpi-sub" id="kpiDaysSub">12 learn · 2 consolidate</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">
-          <span>Projected Recall</span>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        </div>
-        <div class="kpi-value num mint" id="kpiRetention">91%</div>
-        <div class="kpi-sub" id="kpiRetentionSub">Avg 4.2 touches / topic</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">
-          <span>Peak Daily Load</span>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        </div>
-        <div class="kpi-value num" id="kpiPeak">85m</div>
-        <div class="kpi-sub" id="kpiPeakSub">Budget: 90m / day</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">
-          <span>Total Reviews</span>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
-        </div>
-        <div class="kpi-value num" id="kpiReviews">74</div>
-        <div class="kpi-sub" id="kpiReviewsSub">+20 initial sessions</div>
-      </div>
-    </section>
+        <div class="hero-value" id="trueRateDisplay">$0<span>/hr</span></div>
 
-    <!-- Parameters -->
-    <section class="card" aria-label="Sprint Parameters">
-      <div class="card-header">
-        <div class="card-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C5CFF" stroke-width="2.2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-          Sprint Parameters
-        </div>
-        <span class="card-badge num" id="paceBadge">~1.7 topics/day</span>
-      </div>
-
-      <div class="control-row">
-        <div class="control-head">
-          <label class="control-label" for="examDateInput">Exam Date</label>
-          <div class="quick-days" id="quickDays">
-            <button type="button" class="quick-chip" data-days="7">7d</button>
-            <button type="button" class="quick-chip active" data-days="14">14d</button>
-            <button type="button" class="quick-chip" data-days="21">21d</button>
-            <button type="button" class="quick-chip" data-days="30">30d</button>
+        <div class="mini-kpis">
+          <div class="mini-kpi">
+            <span class="mini-kpi-label">Gross Target</span>
+            <span class="mini-kpi-val" id="grossTargetDisplay">$0</span>
+          </div>
+          <div class="mini-kpi">
+            <span class="mini-kpi-label">Tax Reserve</span>
+            <span class="mini-kpi-val" id="taxReserveDisplay" style="color: var(--amber);">$0</span>
+          </div>
+          <div class="mini-kpi">
+            <span class="mini-kpi-label">All-Hours Eff.</span>
+            <span class="mini-kpi-val" id="effRateDisplay">$0/hr</span>
           </div>
         </div>
-        <div class="date-input-wrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A0B8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <input type="date" id="examDateInput" aria-label="Exam Date">
+
+        <div class="bar-wrap">
+          <div class="stacked-bar">
+            <div class="bar-seg seg-net" id="barNet" style="width: 65%"></div>
+            <div class="bar-seg seg-tax" id="barTax" style="width: 25%"></div>
+            <div class="bar-seg seg-over" id="barOver" style="width: 10%"></div>
+          </div>
+          <div class="bar-legend">
+            <span class="legend-item"><span class="dot seg-net"></span>Net <span id="pctNet">0%</span></span>
+            <span class="legend-item"><span class="dot seg-tax"></span>Tax <span id="pctTax">0%</span></span>
+            <span class="legend-item"><span class="dot seg-over"></span>Overhead <span id="pctOver">0%</span></span>
+          </div>
         </div>
       </div>
 
-      <div class="control-row">
-        <div class="control-head">
-          <label class="control-label" for="topicsRange">Topics / Decks to Master</label>
-          <span class="control-val num" id="topicsVal">20 topics</span>
-        </div>
-        <input type="range" id="topicsRange" min="4" max="60" step="1" value="20">
+      <div class="warn-note" id="rateWarning">
+        High non-billable time or tax rate sharply increases your required hourly rate.
       </div>
 
-      <div class="control-row">
-        <div class="control-head">
-          <label class="control-label" for="budgetRange">Daily Study Budget</label>
-          <span class="control-val num" id="budgetVal">90 min/day</span>
+      <!-- Income & Overhead -->
+      <div class="card">
+        <div class="card-title">
+          <span>Financial Targets</span>
+          <span style="color: var(--emerald); font-variant-numeric: tabular-nums;" id="monthlyNetLabel">$0/mo take-home</span>
         </div>
-        <input type="range" id="budgetRange" min="30" max="240" step="10" value="90">
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Desired Net Income</div>
+              <div class="control-sub">Annual take-home after tax & expenses</div>
+            </div>
+            <div class="num-input-wrap">
+              <span class="num-prefix">$</span>
+              <input type="number" class="num-input" id="netIncomeNum" min="15000" max="500000" step="1000" value="90000">
+            </div>
+          </div>
+          <input type="range" id="netIncomeRange" min="20000" max="300000" step="2500" value="90000">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Annual Business Overhead</div>
+              <div class="control-sub">Software, gear, insurance, coworking</div>
+            </div>
+            <div class="num-input-wrap">
+              <span class="num-prefix">$</span>
+              <input type="number" class="num-input" id="overheadNum" min="0" max="100000" step="250" value="6000">
+            </div>
+          </div>
+          <input type="range" id="overheadRange" min="0" max="40000" step="500" value="6000">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Tax Reserve Rate</div>
+              <div class="control-sub">Federal, state & self-employment tax</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="taxRateNum" min="0" max="60" step="1" value="28">
+              <span class="num-suffix">%</span>
+            </div>
+          </div>
+          <input type="range" id="taxRateRange" min="5" max="55" step="1" value="28">
+        </div>
       </div>
 
-      <div class="control-row">
-        <div class="control-head">
-          <label class="control-label" for="bufferRange">Pre-Exam Review-Only Buffer</label>
-          <span class="control-val num" id="bufferVal">2 days</span>
+      <!-- Time & Utilization -->
+      <div class="card">
+        <div class="card-title">
+          <span>Capacity & Non-Billable Overhead</span>
+          <span style="color: var(--accent); font-variant-numeric: tabular-nums;" id="utilLabel">70% billable</span>
         </div>
-        <input type="range" id="bufferRange" min="0" max="5" step="1" value="2">
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Non-Billable Time</div>
+              <div class="control-sub">Admin, sales, proposals, bookkeeping</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="nonBillableNum" min="0" max="75" step="1" value="30">
+              <span class="num-suffix">%</span>
+            </div>
+          </div>
+          <input type="range" id="nonBillableRange" min="0" max="65" step="1" value="30">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Weekly Working Hours</div>
+              <div class="control-sub">Total hours worked per week</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="weeklyHoursNum" min="5" max="80" step="1" value="40">
+              <span class="num-suffix">h</span>
+            </div>
+          </div>
+          <input type="range" id="weeklyHoursRange" min="10" max="65" step="1" value="40">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Working Weeks / Year</div>
+              <div class="control-sub" id="vacationSub">4 weeks off (holidays & PTO)</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="workWeeksNum" min="10" max="52" step="1" value="48">
+              <span class="num-suffix">w</span>
+            </div>
+          </div>
+          <input type="range" id="workWeeksRange" min="26" max="52" step="1" value="48">
+        </div>
       </div>
 
-      <div class="control-row">
-        <div class="control-head">
-          <span class="control-label">Retention Intensity</span>
-          <span class="control-val" id="intensityDesc">1.85× interval</span>
-        </div>
-        <div class="segmented" role="group" aria-label="Retention Intensity">
-          <button type="button" class="seg-btn" data-mode="balanced">
-            Balanced
-            <span>~86% recall</span>
-          </button>
-          <button type="button" class="seg-btn active" data-mode="high">
-            High
-            <span>~91% recall</span>
-          </button>
-          <button type="button" class="seg-btn" data-mode="sprint">
-            Sprint
-            <span>~95% recall</span>
-          </button>
-        </div>
-      </div>
+      <button class="btn-primary" id="useRateForQuoteBtn" type="button">
+        Build Client Quote at <span id="ctaRateSpan">$0/hr</span> →
+      </button>
     </section>
 
-    <!-- Daily Workload Curve -->
-    <section class="card" aria-label="Daily Workload Curve">
-      <div class="card-header">
+    <!-- TAB 2: PROJECT QUOTE BUILDER -->
+    <section id="panel-quote" class="panel">
+      <div class="hero-card">
+        <div class="hero-label">
+          <span>Client Project Quote</span>
+          <span class="hero-badge" id="quoteRatePill">Using $0/hr</span>
+        </div>
+        <div class="hero-value" id="quoteTotalDisplay">$0</div>
+
+        <div class="mini-kpis">
+          <div class="mini-kpi">
+            <span class="mini-kpi-label">Deposit Due</span>
+            <span class="mini-kpi-val" id="depositDisplay" style="color: var(--accent);">$0</span>
+          </div>
+          <div class="mini-kpi">
+            <span class="mini-kpi-label">Tax Set-Aside</span>
+            <span class="mini-kpi-val" id="quoteTaxDisplay" style="color: var(--amber);">$0</span>
+          </div>
+          <div class="mini-kpi">
+            <span class="mini-kpi-label">Est. Net Profit</span>
+            <span class="mini-kpi-val" id="quoteNetDisplay" style="color: var(--emerald);">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2EE6A6" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="12" y="6" width="3" height="11" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg>
-          Daily Workload Map
+          <span>Project Details</span>
+          <span style="color: var(--text-dim);">Instant Scope</span>
         </div>
-        <div class="chart-legend">
-          <span class="legend-item"><span class="legend-swatch" style="background:#7C5CFF"></span>New</span>
-          <span class="legend-item"><span class="legend-swatch" style="background:#2EE6A6"></span>Review</span>
-        </div>
-      </div>
-      <div class="chart-wrap">
-        <svg class="chart-svg" id="workloadChart" role="img" aria-label="Daily study minutes bar chart"></svg>
-      </div>
-      <div class="chart-hint">
-        <span>Dashed line = daily budget</span>
-        <span id="chartSelectedInfo">Tap a bar to jump to day</span>
-      </div>
-    </section>
 
-    <!-- Schedule Timeline -->
-    <section aria-label="Daily Study Schedule" style="display:flex;flex-direction:column;gap:10px;">
-      <div class="card-header" style="padding: 0 2px;">
+        <input type="text" class="text-input" id="projectNameInput" value="Website Redesign & Webflow Build" placeholder="Project / Client Name">
+
+        <div class="toggle-row">
+          <div>
+            <div class="control-label">Sync with True Rate</div>
+            <div class="control-sub" id="syncSub">Locked to calculated rate</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="syncRateToggle" checked>
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <div class="control-group" id="customRateGroup" style="display: none;">
+          <div class="control-header">
+            <div class="control-label">Custom Hourly Rate</div>
+            <div class="num-input-wrap">
+              <span class="num-prefix">$</span>
+              <input type="number" class="num-input narrow" id="customRateNum" min="10" max="1000" step="5" value="125">
+              <span class="num-suffix">/h</span>
+            </div>
+          </div>
+          <input type="range" id="customRateRange" min="25" max="400" step="5" value="125">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Estimated Billable Hours</div>
+              <div class="control-sub">Design, dev, QA & client calls</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="projHoursNum" min="1" max="1000" step="1" value="35">
+              <span class="num-suffix">h</span>
+            </div>
+          </div>
+          <input type="range" id="projHoursRange" min="2" max="200" step="1" value="35">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Scope / Revision Buffer</div>
+              <div class="control-sub">Protects against scope creep</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="bufferNum" min="0" max="50" step="1" value="15">
+              <span class="num-suffix">%</span>
+            </div>
+          </div>
+          <input type="range" id="bufferRange" min="0" max="40" step="5" value="15">
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Urgency / Rush Fee</div>
+              <div class="control-sub">Expedited turnaround premium</div>
+            </div>
+            <span style="font-size: 12px; font-weight: 700; color: var(--accent);" id="rushValLabel">0%</span>
+          </div>
+          <div class="chips" id="rushChips">
+            <button type="button" class="chip active" data-rush="0">Standard (0%)</button>
+            <button type="button" class="chip" data-rush="15">Fast (+15%)</button>
+            <button type="button" class="chip" data-rush="25">Rush (+25%)</button>
+            <button type="button" class="chip" data-rush="50">Weekend (+50%)</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Pass-Through Costs</div>
+              <div class="control-sub">Fonts, stock assets, plugins, hosting</div>
+            </div>
+            <div class="num-input-wrap">
+              <span class="num-prefix">$</span>
+              <input type="number" class="num-input" id="passThroughNum" min="0" max="50000" step="25" value="250">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <div>
+              <div class="control-label">Upfront Deposit</div>
+              <div class="control-sub">Required to lock start date</div>
+            </div>
+            <div class="num-input-wrap">
+              <input type="number" class="num-input narrow" id="depositPctNum" min="0" max="100" step="5" value="50">
+              <span class="num-suffix">%</span>
+            </div>
+          </div>
+          <input type="range" id="depositPctRange" min="0" max="100" step="5" value="50">
+        </div>
+      </div>
+
+      <!-- Itemized Client Breakdown -->
+      <div class="card">
         <div class="card-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="2.2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-          Sprint Schedule
+          <span>Itemized Client Estimate</span>
+          <span style="color: var(--emerald);">Ready to Send</span>
         </div>
-        <span class="card-badge num" id="avgDailyBadge">Avg 58m/day</span>
+
+        <div class="quote-list">
+          <div class="quote-row">
+            <div class="quote-row-left">
+              <span>Core Production Labor</span>
+              <span class="quote-row-sub" id="itemLaborSub">35 hrs × $0/hr</span>
+            </div>
+            <span class="quote-row-val" id="itemLaborVal">$0</span>
+          </div>
+
+          <div class="quote-row" id="itemBufferRow">
+            <div class="quote-row-left">
+              <span>Contingency & Revisions Buffer</span>
+              <span class="quote-row-sub" id="itemBufferSub">15% scope buffer</span>
+            </div>
+            <span class="quote-row-val" id="itemBufferVal">$0</span>
+          </div>
+
+          <div class="quote-row" id="itemRushRow" style="display: none;">
+            <div class="quote-row-left">
+              <span>Expedited Delivery Premium</span>
+              <span class="quote-row-sub" id="itemRushSub">25% rush fee</span>
+            </div>
+            <span class="quote-row-val" id="itemRushVal">$0</span>
+          </div>
+
+          <div class="quote-row" id="itemPassRow">
+            <div class="quote-row-left">
+              <span>Licenses & Pass-Through Expenses</span>
+              <span class="quote-row-sub">Billed at cost</span>
+            </div>
+            <span class="quote-row-val" id="itemPassVal">$0</span>
+          </div>
+
+          <div class="quote-divider"></div>
+
+          <div class="quote-total-row">
+            <span>Total Project Investment</span>
+            <span class="quote-total-val" id="itemTotalVal">$0</span>
+          </div>
+
+          <div class="quote-row" style="color: var(--text-muted); font-size: 12px;">
+            <span id="itemDepositLabel">50% Deposit to Begin</span>
+            <span style="font-weight: 700; color: var(--text);" id="itemDepositVal">$0</span>
+          </div>
+        </div>
       </div>
 
-      <div class="filter-bar" id="filterBar">
-        <button type="button" class="filter-pill active" data-filter="all">All Days</button>
-        <button type="button" class="filter-pill" data-filter="new">New Material</button>
-        <button type="button" class="filter-pill" data-filter="heavy">Peak / Over Budget</button>
-        <button type="button" class="filter-pill" data-filter="pending">Unchecked</button>
-      </div>
-
-      <div class="timeline" id="timeline"></div>
+      <button class="btn-primary" id="copyQuoteBtn" type="button">
+        Copy Itemized Client Quote
+      </button>
     </section>
   </main>
-
-  <footer class="bottom-bar">
-    <button type="button" class="btn btn-secondary" id="resetBtn" title="Reset defaults">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-      Reset
-    </button>
-    <button type="button" class="btn btn-primary" id="exportBtn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Copy Study Plan
-    </button>
-  </footer>
 </div>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="toast" id="toast">Copied to clipboard!</div>
 
 <script>
 (function () {
-  "use strict";
-
-  const MODES = {
-    balanced: {
-      label: "Balanced",
-      mult: 2.2,
-      baseIntervals: [1, 3, 7, 15, 31],
-      baseRecall: 86,
-      learnMin: 20,
-      revBaseMin: 8
-    },
-    high: {
-      label: "High",
-      mult: 1.85,
-      baseIntervals: [1, 2, 5, 10, 19, 34],
-      baseRecall: 91,
-      learnMin: 22,
-      revBaseMin: 9
-    },
-    sprint: {
-      label: "Sprint",
-      mult: 1.55,
-      baseIntervals: [1, 2, 3, 6, 11, 18, 29],
-      baseRecall: 95,
-      learnMin: 24,
-      revBaseMin: 10
-    }
+  const DEFAULTS = {
+    netIncome: 90000,
+    overhead: 6000,
+    taxRate: 28,
+    nonBillable: 30,
+    weeklyHours: 40,
+    workWeeks: 48,
+    syncRate: true,
+    customRate: 125,
+    projHours: 35,
+    bufferPct: 15,
+    rushPct: 0,
+    passThrough: 250,
+    depositPct: 50,
+    projectName: "Website Redesign & Webflow Build"
   };
 
-  const state = {
-    daysUntilExam: 14,
-    topics: 20,
-    budget: 90,
-    buffer: 2,
-    mode: "high",
-    filter: "all",
-    selectedDay: null,
-    completedDays: new Set(),
-    expandedDays: new Set()
+  let state = { ...DEFAULTS };
+
+  const $ = (id) => document.getElementById(id);
+
+  const fmtMoney = (n) => {
+    const rounded = Math.round(n);
+    return "$" + rounded.toLocaleString("en-US");
   };
 
-  const el = {
-    examDateInput: document.getElementById("examDateInput"),
-    quickDays: document.getElementById("quickDays"),
-    topicsRange: document.getElementById("topicsRange"),
-    topicsVal: document.getElementById("topicsVal"),
-    budgetRange: document.getElementById("budgetRange"),
-    budgetVal: document.getElementById("budgetVal"),
-    bufferRange: document.getElementById("bufferRange"),
-    bufferVal: document.getElementById("bufferVal"),
-    intensityDesc: document.getElementById("intensityDesc"),
-    paceBadge: document.getElementById("paceBadge"),
-    feasibilityPill: document.getElementById("feasibilityPill"),
-    feasibilityText: document.getElementById("feasibilityText"),
-    progressFill: document.getElementById("progressFill"),
-    progressLabel: document.getElementById("progressLabel"),
-    headerSub: document.getElementById("headerSub"),
-    kpiDays: document.getElementById("kpiDays"),
-    kpiDaysSub: document.getElementById("kpiDaysSub"),
-    kpiRetention: document.getElementById("kpiRetention"),
-    kpiRetentionSub: document.getElementById("kpiRetentionSub"),
-    kpiPeak: document.getElementById("kpiPeak"),
-    kpiPeakSub: document.getElementById("kpiPeakSub"),
-    kpiReviews: document.getElementById("kpiReviews"),
-    kpiReviewsSub: document.getElementById("kpiReviewsSub"),
-    workloadChart: document.getElementById("workloadChart"),
-    chartSelectedInfo: document.getElementById("chartSelectedInfo"),
-    timeline: document.getElementById("timeline"),
-    avgDailyBadge: document.getElementById("avgDailyBadge"),
-    filterBar: document.getElementById("filterBar"),
-    resetBtn: document.getElementById("resetBtn"),
-    exportBtn: document.getElementById("exportBtn"),
-    toast: document.getElementById("toast")
+  const fmtRate = (n) => {
+    return "$" + Math.ceil(n).toLocaleString("en-US");
   };
 
-  function startOfToday() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
+  // Sync range & number pairs
+  function bindPair(rangeId, numId, key, min, max) {
+    const rangeEl = $(rangeId);
+    const numEl = $(numId);
 
-  function addDays(base, offset) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + offset);
-    return d;
-  }
+    rangeEl.addEventListener("input", () => {
+      const val = parseFloat(rangeEl.value) || 0;
+      state[key] = val;
+      numEl.value = val;
+      updateAll();
+    });
 
-  function toISODate(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
+    numEl.addEventListener("input", () => {
+      let val = parseFloat(numEl.value);
+      if (isNaN(val)) val = 0;
+      state[key] = Math.max(0, val);
+      rangeEl.value = Math.min(max, Math.max(min, state[key]));
+      updateAll();
+    });
 
-  function formatShortDate(d) {
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", weekday: "short" });
-  }
-
-  function updateSliderTrack(input) {
-    const min = Number(input.min);
-    const max = Number(input.max);
-    const val = Number(input.value);
-    const pct = ((val - min) / (max - min)) * 100;
-    input.style.background = `linear-gradient(90deg, #7C5CFF ${pct}%, #20283D ${pct}%)`;
-  }
-
-  function showToast(msg) {
-    el.toast.textContent = msg;
-    el.toast.classList.add("show");
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => el.toast.classList.remove("show"), 2200);
-  }
-
-  // Core Spaced Repetition Exam Sprint Engine
-  function computePlan() {
-    const today = startOfToday();
-    const N = Math.max(1, state.daysUntilExam); // N = Exam day index (0..N-1 active study days, N is Exam Day)
-    const cfg = MODES[state.mode];
-
-    // Clamp buffer so at least 1 day is available to introduce topics
-    const effectiveBuffer = Math.min(state.buffer, Math.max(0, N - 1));
-    const learnDays = Math.max(1, N - effectiveBuffer);
-
-    const days = [];
-    for (let i = 0; i <= N; i++) {
-      days.push({
-        index: i,
-        date: addDays(today, i),
-        isToday: i === 0,
-        isExam: i === N,
-        isBuffer: i >= learnDays && i < N,
-        newTopics: [],
-        reviews: [], // { topicId, rep, isFinalSweep }
-        newMinutes: 0,
-        reviewMinutes: 0,
-        totalMinutes: 0
-      });
-    }
-
-    // Distribute topics evenly across learnDays
-    const basePerDay = Math.floor(state.topics / learnDays);
-    const rem = state.topics % learnDays;
-    let topicCounter = 1;
-
-    // Interval compression factor for very short sprints (< 12 days)
-    const compression = N < 10 ? 0.72 : 1;
-
-    for (let d = 0; d < learnDays; d++) {
-      const count = basePerDay + (d < rem ? 1 : 0);
-      for (let k = 0; k < count; k++) {
-        const topicId = topicCounter++;
-        days[d].newTopics.push(topicId);
-
-        // Schedule spaced repetitions strictly before Exam Day (index < N)
-        let lastReviewDay = d;
-        const scheduledSet = new Set();
-
-        cfg.baseIntervals.forEach((rawOffset, idx) => {
-          const offset = Math.max(idx + 1, Math.round(rawOffset * compression));
-          const targetDay = d + offset;
-          if (targetDay < N && !scheduledSet.has(targetDay)) {
-            scheduledSet.add(targetDay);
-            days[targetDay].reviews.push({
-              topicId,
-              rep: idx + 1,
-              isFinalSweep: false
-            });
-            lastReviewDay = targetDay;
-          }
-        });
-
-        // Pre-exam consolidation check: ensure no topic goes cold right before exam
-        const gapToExam = (N - 1) - lastReviewDay;
-        const maxColdGap = N <= 5 ? 1 : Math.max(2, Math.floor(N * 0.22));
-        if (N >= 2 && gapToExam >= maxColdGap && !scheduledSet.has(N - 1)) {
-          days[N - 1].reviews.push({
-            topicId,
-            rep: scheduledSet.size + 1,
-            isFinalSweep: true
-          });
-        }
+    numEl.addEventListener("blur", () => {
+      if (numEl.value === "" || isNaN(parseFloat(numEl.value))) {
+        numEl.value = state[key];
       }
-    }
+    });
+  }
 
-    // Compute daily minutes & summary metrics
-    let totalReviewSessions = 0;
-    let totalStudyMinutes = 0;
-    let peakMinutes = 0;
-    let peakDayIndex = 0;
-    let overBudgetDays = 0;
+  bindPair("netIncomeRange", "netIncomeNum", "netIncome", 20000, 300000);
+  bindPair("overheadRange", "overheadNum", "overhead", 0, 40000);
+  bindPair("taxRateRange", "taxRateNum", "taxRate", 5, 55);
+  bindPair("nonBillableRange", "nonBillableNum", "nonBillable", 0, 65);
+  bindPair("weeklyHoursRange", "weeklyHoursNum", "weeklyHours", 10, 65);
+  bindPair("workWeeksRange", "workWeeksNum", "workWeeks", 26, 52);
+  bindPair("customRateRange", "customRateNum", "customRate", 25, 400);
+  bindPair("projHoursRange", "projHoursNum", "projHours", 2, 200);
+  bindPair("bufferRange", "bufferNum", "bufferPct", 0, 40);
+  bindPair("depositPctRange", "depositPctNum", "depositPct", 0, 100);
 
-    for (let i = 0; i < N; i++) {
-      const day = days[i];
-      day.newMinutes = day.newTopics.length * cfg.learnMin;
-      let revMins = 0;
-      for (const r of day.reviews) {
-        // Decay review time per repetition (faster recall each pass)
-        const factor = r.rep === 1 ? 1.0 : r.rep === 2 ? 0.78 : 0.6;
-        revMins += Math.round(cfg.revBaseMin * factor);
-      }
-      day.reviewMinutes = revMins;
-      day.totalMinutes = day.newMinutes + day.reviewMinutes;
+  $("passThroughNum").addEventListener("input", (e) => {
+    state.passThrough = Math.max(0, parseFloat(e.target.value) || 0);
+    updateAll();
+  });
 
-      totalReviewSessions += day.reviews.length;
-      totalStudyMinutes += day.totalMinutes;
-      if (day.totalMinutes > peakMinutes) {
-        peakMinutes = day.totalMinutes;
-        peakDayIndex = i;
-      }
-      if (day.totalMinutes > state.budget) {
-        overBudgetDays++;
-      }
-    }
+  $("projectNameInput").addEventListener("input", (e) => {
+    state.projectName = e.target.value;
+  });
 
-    // Exam morning warm-up (light mental check)
-    days[N].totalMinutes = 15;
+  $("syncRateToggle").addEventListener("change", (e) => {
+    state.syncRate = e.target.checked;
+    $("customRateGroup").style.display = state.syncRate ? "none" : "flex";
+    $("syncSub").textContent = state.syncRate ? "Locked to calculated rate" : "Using custom override rate";
+    updateAll();
+  });
 
-    const avgMinutes = Math.round(totalStudyMinutes / N);
-    const touchesPerTopic = ((state.topics + totalReviewSessions) / state.topics).toFixed(1);
+  // Rush chips
+  $("rushChips").addEventListener("click", (e) => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    document.querySelectorAll("#rushChips .chip").forEach((c) => c.classList.remove("active"));
+    btn.classList.add("active");
+    state.rushPct = parseFloat(btn.dataset.rush) || 0;
+    $("rushValLabel").textContent = state.rushPct + "%";
+    updateAll();
+  });
 
-    // Dynamic retention estimate based on coverage & over-budget strain
-    const coverageBonus = Math.min(3, Math.max(-6, (Number(touchesPerTopic) - 3.2) * 2.1));
-    const strainPenalty = overBudgetDays > Math.ceil(N * 0.35) ? 2.5 : 0;
-    const projectedRecall = Math.min(98, Math.max(68, Math.round(cfg.baseRecall + coverageBonus - strainPenalty)));
+  // Tabs
+  function switchTab(tabName) {
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      const isMatch = btn.dataset.tab === tabName;
+      btn.classList.toggle("active", isMatch);
+      btn.setAttribute("aria-selected", isMatch ? "true" : "false");
+    });
+    document.querySelectorAll(".panel").forEach((p) => {
+      p.classList.toggle("active", p.id === "panel-" + tabName);
+    });
+  }
 
-    let status = "optimal";
-    let statusText = "Optimal";
-    if (peakMinutes > state.budget * 1.35 || overBudgetDays > Math.ceil(N * 0.4)) {
-      status = "overload";
-      statusText = "Overload";
-    } else if (peakMinutes > state.budget || overBudgetDays > 0) {
-      status = "heavy";
-      statusText = "Heavy Peak";
-    }
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+
+  $("useRateForQuoteBtn").addEventListener("click", () => {
+    switchTab("quote");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // Reset
+  $("resetBtn").addEventListener("click", () => {
+    state = { ...DEFAULTS };
+    $("netIncomeRange").value = $("netIncomeNum").value = state.netIncome;
+    $("overheadRange").value = $("overheadNum").value = state.overhead;
+    $("taxRateRange").value = $("taxRateNum").value = state.taxRate;
+    $("nonBillableRange").value = $("nonBillableNum").value = state.nonBillable;
+    $("weeklyHoursRange").value = $("weeklyHoursNum").value = state.weeklyHours;
+    $("workWeeksRange").value = $("workWeeksNum").value = state.workWeeks;
+    $("customRateRange").value = $("customRateNum").value = state.customRate;
+    $("projHoursRange").value = $("projHoursNum").value = state.projHours;
+    $("bufferRange").value = $("bufferNum").value = state.bufferPct;
+    $("depositPctRange").value = $("depositPctNum").value = state.depositPct;
+    $("passThroughNum").value = state.passThrough;
+    $("projectNameInput").value = state.projectName;
+    $("syncRateToggle").checked = true;
+    $("customRateGroup").style.display = "none";
+    $("syncSub").textContent = "Locked to calculated rate";
+    document.querySelectorAll("#rushChips .chip").forEach((c) => {
+      c.classList.toggle("active", parseFloat(c.dataset.rush) === 0);
+    });
+    $("rushValLabel").textContent = "0%";
+    updateAll();
+    showToast("Defaults restored");
+  });
+
+  // Calculation Engine
+  function compute() {
+    const taxDecimal = Math.min(0.85, Math.max(0, state.taxRate / 100));
+    const billableRatio = Math.max(0.05, 1 - state.nonBillable / 100);
+    const totalWorkHours = Math.max(1, state.weeklyHours * state.workWeeks);
+    const billableHours = Math.max(1, totalWorkHours * billableRatio);
+
+    const preTaxProfitNeeded = state.netIncome / (1 - taxDecimal);
+    const taxReserve = preTaxProfitNeeded - state.netIncome;
+    const grossTarget = preTaxProfitNeeded + state.overhead;
+
+    const trueHourlyRate = grossTarget / billableHours;
+    const effectiveAllHoursRate = grossTarget / totalWorkHours;
+
+    // Quote calc
+    const activeHourlyRate = state.syncRate ? Math.ceil(trueHourlyRate) : state.customRate;
+    const baseLabor = state.projHours * activeHourlyRate;
+    const bufferAmt = baseLabor * (state.bufferPct / 100);
+    const rushAmt = (baseLabor + bufferAmt) * (state.rushPct / 100);
+    const totalLabor = baseLabor + bufferAmt + rushAmt;
+    const quoteTotal = totalLabor + state.passThrough;
+    const depositDue = quoteTotal * (state.depositPct / 100);
+    const quoteTaxReserve = totalLabor * taxDecimal;
+    const quoteNetProfit = totalLabor - quoteTaxReserve;
 
     return {
-      days,
-      N,
-      learnDays,
-      effectiveBuffer,
-      totalReviewSessions,
-      totalStudyMinutes,
-      avgMinutes,
-      peakMinutes,
-      peakDayIndex,
-      overBudgetDays,
-      touchesPerTopic,
-      projectedRecall,
-      status,
-      statusText
+      totalWorkHours,
+      billableHours,
+      billableRatio,
+      taxReserve,
+      grossTarget,
+      trueHourlyRate,
+      effectiveAllHoursRate,
+      activeHourlyRate,
+      baseLabor,
+      bufferAmt,
+      rushAmt,
+      totalLabor,
+      quoteTotal,
+      depositDue,
+      quoteTaxReserve,
+      quoteNetProfit
     };
   }
 
-  function renderChart(plan) {
-    const svg = el.workloadChart;
-    const studyDays = plan.days.slice(0, plan.N); // active days before exam
-    const count = studyDays.length;
+  let latestCalc = {};
 
-    const barW = count <= 10 ? 26 : count <= 18 ? 18 : 13;
-    const gap = count <= 10 ? 10 : count <= 18 ? 7 : 5;
-    const padL = 28;
-    const padR = 12;
-    const padT = 14;
-    const padB = 24;
-    const chartH = 148;
-    const plotH = chartH - padT - padB;
-    const minW = el.workloadChart.parentElement.clientWidth || 360;
-    const totalW = Math.max(minW, padL + padR + count * (barW + gap));
+  function updateAll() {
+    const c = compute();
+    latestCalc = c;
 
-    svg.setAttribute("viewBox", `0 0 ${totalW} ${chartH}`);
-    svg.style.width = `${totalW}px`;
+    // Tab 1 UI
+    const roundedRate = Math.ceil(c.trueHourlyRate);
+    $("trueRateDisplay").innerHTML = `${fmtMoney(roundedRate)}<span>/hr</span>`;
+    $("tabRateBadge").textContent = `${fmtMoney(roundedRate)}/hr`;
+    $("ctaRateSpan").textContent = `${fmtMoney(roundedRate)}/hr`;
 
-    const maxVal = Math.max(state.budget * 1.15, plan.peakMinutes * 1.08, 60);
-    const yScale = (val) => padT + plotH - (val / maxVal) * plotH;
+    $("billableHoursBadge").textContent = `${Math.round(c.billableHours).toLocaleString()} billable hrs/yr`;
+    $("grossTargetDisplay").textContent = fmtMoney(c.grossTarget);
+    $("taxReserveDisplay").textContent = fmtMoney(c.taxReserve);
+    $("effRateDisplay").textContent = `${fmtMoney(c.effectiveAllHoursRate)}/hr`;
+    $("monthlyNetLabel").textContent = `${fmtMoney(state.netIncome / 12)}/mo take-home`;
+    $("utilLabel").textContent = `${Math.round(c.billableRatio * 100)}% billable`;
 
-    let html = "";
+    const weeksOff = Math.max(0, 52 - state.workWeeks);
+    $("vacationSub").textContent = weeksOff === 0
+      ? "0 weeks off (52 working weeks)"
+      : `${weeksOff} week${weeksOff > 1 ? "s" : ""} off (holidays & PTO)`;
 
-    // Grid lines (0, 50%, max)
-    const budgetY = yScale(state.budget);
-    html += `<line x1="${padL}" y1="${padT + plotH}" x2="${totalW - padR}" y2="${padT + plotH}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`;
-    html += `<line x1="${padL}" y1="${budgetY}" x2="${totalW - padR}" y2="${budgetY}" stroke="#FFB020" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.85"/>`;
-    html += `<text x="2" y="${budgetY + 3}" fill="#FFB020" font-size="9" font-weight="600">${state.budget}m</text>`;
+    // Stacked bar percentages
+    const pctNet = Math.round((state.netIncome / c.grossTarget) * 100);
+    const pctTax = Math.round((c.taxReserve / c.grossTarget) * 100);
+    const pctOver = Math.max(0, 100 - pctNet - pctTax);
 
-    studyDays.forEach((day, idx) => {
-      const x = padL + idx * (barW + gap);
-      const revH = (day.reviewMinutes / maxVal) * plotH;
-      const newH = (day.newMinutes / maxVal) * plotH;
-      const revY = padT + plotH - revH;
-      const newY = revY - newH;
-      const isSelected = state.selectedDay === day.index;
-      const isOver = day.totalMinutes > state.budget;
+    $("barNet").style.width = pctNet + "%";
+    $("barTax").style.width = pctTax + "%";
+    $("barOver").style.width = pctOver + "%";
+    $("pctNet").textContent = pctNet + "%";
+    $("pctTax").textContent = pctTax + "%";
+    $("pctOver").textContent = pctOver + "%";
 
-      html += `<g class="chart-bar-group" data-day="${day.index}">`;
-      // Hit target
-      html += `<rect x="${x - 2}" y="${padT}" width="${barW + 4}" height="${plotH + padB}" fill="transparent"/>`;
+    // Warning note
+    const showWarn = state.nonBillable >= 45 || state.taxRate >= 42;
+    $("rateWarning").style.display = showWarn ? "block" : "none";
 
-      if (isSelected) {
-        html += `<rect x="${x - 2}" y="${padT - 2}" width="${barW + 4}" height="${plotH + 4}" rx="5" fill="rgba(124,92,255,0.14)" stroke="rgba(124,92,255,0.6)" stroke-width="1"/>`;
-      }
+    // Tab 2 UI
+    $("quoteTotalDisplay").textContent = fmtMoney(c.quoteTotal);
+    $("tabQuoteBadge").textContent = fmtMoney(c.quoteTotal);
+    $("quoteRatePill").textContent = `Using ${fmtMoney(c.activeHourlyRate)}/hr`;
+    $("depositDisplay").textContent = fmtMoney(c.depositDue);
+    $("quoteTaxDisplay").textContent = fmtMoney(c.quoteTaxReserve);
+    $("quoteNetDisplay").textContent = fmtMoney(c.quoteNetProfit);
 
-      // Review bar (bottom)
-      if (revH > 0) {
-        html += `<rect x="${x}" y="${revY}" width="${barW}" height="${Math.max(2, revH)}" rx="3" fill="${isOver ? '#FF5C7A' : '#2EE6A6'}" opacity="${isOver ? 0.85 : 0.92}"/>`;
-      }
-      // New material bar (top)
-      if (newH > 0) {
-        html += `<rect x="${x}" y="${newY}" width="${barW}" height="${Math.max(2, newH)}" rx="3" fill="#7C5CFF"/>`;
-      }
+    // Itemized breakdown
+    $("itemLaborSub").textContent = `${state.projHours} hrs × ${fmtMoney(c.activeHourlyRate)}/hr`;
+    $("itemLaborVal").textContent = fmtMoney(c.baseLabor);
 
-      // X-axis label (show every 1, 2, or 5 days depending on density)
-      const step = count <= 10 ? 1 : count <= 20 ? 2 : 5;
-      if (idx === 0 || idx === count - 1 || (idx + 1) % step === 0) {
-        html += `<text x="${x + barW / 2}" y="${chartH - 6}" text-anchor="middle" fill="${isSelected ? '#F4F6FB' : '#626E88'}" font-size="9.5" font-weight="${isSelected ? '700' : '500'}">D${idx + 1}</text>`;
-      }
-      html += `</g>`;
-    });
+    $("itemBufferRow").style.display = state.bufferPct > 0 ? "flex" : "none";
+    $("itemBufferSub").textContent = `${state.bufferPct}% scope & revisions buffer`;
+    $("itemBufferVal").textContent = fmtMoney(c.bufferAmt);
 
-    svg.innerHTML = html;
+    $("itemRushRow").style.display = state.rushPct > 0 ? "flex" : "none";
+    $("itemRushSub").textContent = `${state.rushPct}% expedited turnaround`;
+    $("itemRushVal").textContent = fmtMoney(c.rushAmt);
 
-    svg.querySelectorAll(".chart-bar-group").forEach((g) => {
-      g.addEventListener("click", () => {
-        const dayIdx = Number(g.getAttribute("data-day"));
-        state.selectedDay = dayIdx;
-        // Switch filter to all if selected day is hidden
-        state.filter = "all";
-        updateFilterButtons();
-        render();
-        const card = el.timeline.querySelector(`[data-day-card="${dayIdx}"]`);
-        if (card) {
-          card.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      });
-    });
+    $("itemPassRow").style.display = state.passThrough > 0 ? "flex" : "none";
+    $("itemPassVal").textContent = fmtMoney(state.passThrough);
+
+    $("itemTotalVal").textContent = fmtMoney(c.quoteTotal);
+    $("itemDepositLabel").textContent = `${state.depositPct}% Deposit to Begin`;
+    $("itemDepositVal").textContent = fmtMoney(c.depositDue);
   }
 
-  function renderTimeline(plan) {
-    const filtered = plan.days.filter((day) => {
-      if (state.filter === "new") return day.newTopics.length > 0;
-      if (state.filter === "heavy") return !day.isExam && (day.totalMinutes > state.budget || day.index === plan.peakDayIndex);
-      if (state.filter === "pending") return !day.isExam && !state.completedDays.has(day.index);
-      return true;
-    });
-
-    if (filtered.length === 0) {
-      el.timeline.innerHTML = `<div class="day-card" style="text-align:center;color:var(--text-dim);padding:24px;">No days match this filter.</div>`;
-      return;
-    }
-
-    const html = filtered.map((day) => {
-      const isChecked = state.completedDays.has(day.index);
-      const isExpanded = state.expandedDays.has(day.index);
-      const isSelected = state.selectedDay === day.index;
-      const isOver = !day.isExam && day.totalMinutes > state.budget;
-      const pct = Math.min(100, Math.round((day.totalMinutes / state.budget) * 100));
-
-      if (day.isExam) {
-        return `
-          <article class="day-card exam-day ${isSelected ? "selected" : ""}" data-day-card="${day.index}">
-            <div class="day-top">
-              <div class="day-left">
-                <div class="day-check" style="background:rgba(124,92,255,0.28);border-color:#7C5CFF;color:#fff;cursor:default;">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                </div>
-                <div>
-                  <div class="day-date">${formatShortDate(day.date)} <span class="today-tag" style="background:#2EE6A6;color:#05140E;">Exam Day</span></div>
-                  <div class="day-sub">Light 15m confidence warm-up · Sleep prioritized</div>
-                </div>
-              </div>
-              <div class="day-mins">
-                <div class="day-mins-val num">15m</div>
-              </div>
-            </div>
-          </article>
-        `;
-      }
-
-      const finalSweeps = day.reviews.filter((r) => r.isFinalSweep).length;
-      const normalRevs = day.reviews.length - finalSweeps;
-
-      const newLabel = day.newTopics.length > 0
-        ? `<span class="t-chip new">+${day.newTopics.length} New (${day.newMinutes}m)</span>`
-        : "";
-      const revLabel = normalRevs > 0
-        ? `<span class="t-chip rev">↻ ${normalRevs} Review${normalRevs > 1 ? "s" : ""}</span>`
-        : "";
-      const sweepLabel = finalSweeps > 0
-        ? `<span class="t-chip final">★ ${finalSweeps} Final Sweep</span>`
-        : "";
-      const restLabel = day.newTopics.length === 0 && day.reviews.length === 0
-        ? `<span class="t-chip rest">Recovery / Catch-up Buffer</span>`
-        : "";
-
-      const topicDetails = [];
-      if (day.newTopics.length > 0) {
-        const first = day.newTopics[0];
-        const last = day.newTopics[day.newTopics.length - 1];
-        const rangeTxt = first === last ? `Topic #${first}` : `Topics #${first}–#${last}`;
-        topicDetails.push(`<div class="topic-line"><span><strong>Learn</strong> ${rangeTxt}</span><span class="num">${day.newMinutes}m</span></div>`);
-      }
-      if (day.reviews.length > 0) {
-        const revIds = day.reviews.map((r) => `#${r.topicId}`).join(", ");
-        topicDetails.push(`<div class="topic-line"><span><strong>Review</strong> ${revIds}</span><span class="num">${day.reviewMinutes}m</span></div>`);
-      }
-
-      return `
-        <article class="day-card ${isChecked ? "completed" : ""} ${isSelected ? "selected" : ""}" data-day-card="${day.index}">
-          <div class="day-top">
-            <div class="day-left">
-              <button type="button" class="day-check ${isChecked ? "checked" : ""}" data-check="${day.index}" aria-label="Mark Day ${day.index + 1} complete">
-                ${isChecked ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : ""}
-              </button>
-              <div>
-                <div class="day-date">
-                  Day ${day.index + 1} · ${formatShortDate(day.date)}
-                  ${day.isToday ? '<span class="today-tag">Today</span>' : ""}
-                  ${day.isBuffer ? '<span class="buffer-tag">Consolidate</span>' : ""}
-                </div>
-                <div class="day-sub num">${day.newTopics.length} new · ${day.reviews.length} spaced reviews</div>
-              </div>
-            </div>
-            <div class="day-mins">
-              <div class="day-mins-val num ${isOver ? "over" : ""}">${day.totalMinutes}m</div>
-              <div class="day-mins-bar">
-                <div class="day-mins-fill ${isOver ? "over" : ""}" style="width:${pct}%"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="task-chips">
-            ${newLabel}${revLabel}${sweepLabel}${restLabel}
-          </div>
-
-          ${topicDetails.length > 0 ? `
-            <button type="button" class="topic-detail-toggle" data-toggle="${day.index}">
-              ${isExpanded ? "▾ Hide topic breakdown" : "▸ Show topic IDs"}
-            </button>
-            <div class="topic-list ${isExpanded ? "open" : ""}">
-              ${topicDetails.join("")}
-            </div>
-          ` : ""}
-        </article>
-      `;
-    }).join("");
-
-    el.timeline.innerHTML = html;
-
-    el.timeline.querySelectorAll("[data-check]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const idx = Number(btn.getAttribute("data-check"));
-        if (state.completedDays.has(idx)) {
-          state.completedDays.delete(idx);
-        } else {
-          state.completedDays.add(idx);
-        }
-        render();
-      });
-    });
-
-    el.timeline.querySelectorAll("[data-toggle]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = Number(btn.getAttribute("data-toggle"));
-        if (state.expandedDays.has(idx)) {
-          state.expandedDays.delete(idx);
-        } else {
-          state.expandedDays.add(idx);
-        }
-        renderTimeline(plan);
-      });
-    });
-  }
-
-  function updateFilterButtons() {
-    el.filterBar.querySelectorAll(".filter-pill").forEach((pill) => {
-      pill.classList.toggle("active", pill.getAttribute("data-filter") === state.filter);
-    });
-  }
-
-  function render() {
-    const plan = computePlan();
-
-    // Clean completed days out of range
-    for (const d of state.completedDays) {
-      if (d >= plan.N) state.completedDays.delete(d);
-    }
-
-    // Header & Progress
-    const completedCount = state.completedDays.size;
-    const progressPct = plan.N > 0 ? Math.round((completedCount / plan.N) * 100) : 0;
-    el.progressFill.style.width = `${progressPct}%`;
-    el.progressLabel.textContent = `${completedCount} / ${plan.N} days`;
-    el.headerSub.textContent = `Exam ${formatShortDate(plan.days[plan.N].date)}`;
-
-    // Status Pill
-    el.feasibilityPill.className = `status-pill ${plan.status}`;
-    el.feasibilityText.textContent = plan.statusText;
-
-    // KPIs
-    el.kpiDays.textContent = `${plan.N}d`;
-    el.kpiDaysSub.textContent = `${plan.learnDays} learn · ${plan.effectiveBuffer} consolidate`;
-
-    el.kpiRetention.textContent = `${plan.projectedRecall}%`;
-    el.kpiRetentionSub.textContent = `Avg ${plan.touchesPerTopic} touches / topic`;
-
-    el.kpiPeak.textContent = `${plan.peakMinutes}m`;
-    el.kpiPeak.className = `kpi-value num ${plan.peakMinutes > state.budget * 1.3 ? "coral" : plan.peakMinutes > state.budget ? "amber" : ""}`;
-    el.kpiPeakSub.textContent = `Day ${plan.peakDayIndex + 1} · Budget ${state.budget}m`;
-
-    el.kpiReviews.textContent = `${plan.totalReviewSessions}`;
-    el.kpiReviewsSub.textContent = `+${state.topics} initial sessions`;
-
-    // Control badges
-    el.topicsVal.textContent = `${state.topics} topics`;
-    el.budgetVal.textContent = `${state.budget} min/day`;
-    el.bufferVal.textContent = `${plan.effectiveBuffer} day${plan.effectiveBuffer === 1 ? "" : "s"}`;
-    el.intensityDesc.textContent = `${MODES[state.mode].mult}× interval`;
-    el.paceBadge.textContent = `~${(state.topics / plan.learnDays).toFixed(1)} topics/day`;
-    el.avgDailyBadge.textContent = `Avg ${plan.avgMinutes}m/day`;
-
-    updateSliderTrack(el.topicsRange);
-    updateSliderTrack(el.budgetRange);
-    updateSliderTrack(el.bufferRange);
-
-    if (state.selectedDay !== null && state.selectedDay < plan.N) {
-      const sel = plan.days[state.selectedDay];
-      el.chartSelectedInfo.textContent = `Day ${sel.index + 1}: ${sel.totalMinutes}m (${sel.newTopics.length}N / ${sel.reviews.length}R)`;
-    } else {
-      el.chartSelectedInfo.textContent = "Tap a bar to jump to day";
-    }
-
-    renderChart(plan);
-    renderTimeline(plan);
-  }
-
-  function syncDateInput() {
-    const today = startOfToday();
-    const minDate = addDays(today, 1);
-    const maxDate = addDays(today, 90);
-    el.examDateInput.min = toISODate(minDate);
-    el.examDateInput.max = toISODate(maxDate);
-    el.examDateInput.value = toISODate(addDays(today, state.daysUntilExam));
-
-    el.quickDays.querySelectorAll(".quick-chip").forEach((chip) => {
-      chip.classList.toggle("active", Number(chip.getAttribute("data-days")) === state.daysUntilExam);
-    });
-  }
-
-  // Event Listeners
-  el.examDateInput.addEventListener("change", () => {
-    if (!el.examDateInput.value) return;
-    const today = startOfToday();
-    const chosen = new Date(el.examDateInput.value + "T00:00:00");
-    const diff = Math.round((chosen - today) / (1000 * 60 * 60 * 24));
-    state.daysUntilExam = Math.min(90, Math.max(1, diff));
-    state.selectedDay = null;
-    syncDateInput();
-    render();
-  });
-
-  el.quickDays.querySelectorAll(".quick-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      state.daysUntilExam = Number(chip.getAttribute("data-days"));
-      state.selectedDay = null;
-      syncDateInput();
-      render();
-    });
-  });
-
-  el.topicsRange.addEventListener("input", (e) => {
-    state.topics = Number(e.target.value);
-    render();
-  });
-
-  el.budgetRange.addEventListener("input", (e) => {
-    state.budget = Number(e.target.value);
-    render();
-  });
-
-  el.bufferRange.addEventListener("input", (e) => {
-    state.buffer = Number(e.target.value);
-    render();
-  });
-
-  document.querySelectorAll(".seg-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.mode = btn.getAttribute("data-mode");
-      document.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      render();
-    });
-  });
-
-  el.filterBar.querySelectorAll(".filter-pill").forEach((pill) => {
-    pill.addEventListener("click", () => {
-      state.filter = pill.getAttribute("data-filter");
-      updateFilterButtons();
-      render();
-    });
-  });
-
-  el.resetBtn.addEventListener("click", () => {
-    state.daysUntilExam = 14;
-    state.topics = 20;
-    state.budget = 90;
-    state.buffer = 2;
-    state.mode = "high";
-    state.filter = "all";
-    state.selectedDay = null;
-    state.completedDays.clear();
-    state.expandedDays.clear();
-
-    el.topicsRange.value = 20;
-    el.budgetRange.value = 90;
-    el.bufferRange.value = 2;
-    document.querySelectorAll(".seg-btn").forEach((b) => {
-      b.classList.toggle("active", b.getAttribute("data-mode") === "high");
-    });
-    updateFilterButtons();
-    syncDateInput();
-    render();
-    showToast("Reset to 14-day sprint defaults");
-  });
-
-  el.exportBtn.addEventListener("click", async () => {
-    const plan = computePlan();
+  // Copy Client Quote
+  $("copyQuoteBtn").addEventListener("click", async () => {
+    const c = latestCalc;
+    const title = state.projectName.trim() || "Project Proposal";
     const lines = [
-      `SPACED REPETITION EXAM SPRINT (${plan.N} Days · ${MODES[state.mode].label} Mode)`,
-      `Topics: ${state.topics} | Budget: ${state.budget}m/day | Projected Recall: ${plan.projectedRecall}%`,
-      `----------------------------------------`
+      `PROJECT ESTIMATE: ${title}`,
+      `----------------------------------------`,
+      `• Core Production (${state.projHours} hrs @ ${fmtMoney(c.activeHourlyRate)}/hr): ${fmtMoney(c.baseLabor)}`
     ];
-    plan.days.forEach((d) => {
-      if (d.isExam) {
-        lines.push(`EXAM (${formatShortDate(d.date)}): 15m confidence warm-up`);
-      } else {
-        const nTxt = d.newTopics.length ? `+${d.newTopics.length} new` : "0 new";
-        const rTxt = `${d.reviews.length} rev`;
-        lines.push(`Day ${d.index + 1} (${formatShortDate(d.date)}): ${d.totalMinutes}m [${nTxt}, ${rTxt}]`);
-      }
-    });
+    if (state.bufferPct > 0) {
+      lines.push(`• Scope & Revisions Buffer (${state.bufferPct}%): ${fmtMoney(c.bufferAmt)}`);
+    }
+    if (state.rushPct > 0) {
+      lines.push(`• Expedited Delivery Fee (+${state.rushPct}%): ${fmtMoney(c.rushAmt)}`);
+    }
+    if (state.passThrough > 0) {
+      lines.push(`• Third-Party Licenses / Expenses: ${fmtMoney(state.passThrough)}`);
+    }
+    lines.push(
+      `----------------------------------------`,
+      `TOTAL INVESTMENT: ${fmtMoney(c.quoteTotal)}`,
+      `Deposit Due to Start (${state.depositPct}%): ${fmtMoney(c.depositDue)}`,
+      `Balance Upon Completion: ${fmtMoney(c.quoteTotal - c.depositDue)}`
+    );
+
     const text = lines.join("\n");
     try {
       await navigator.clipboard.writeText(text);
-      showToast("Sprint schedule copied to clipboard");
+      showToast("Client quote copied to clipboard!");
     } catch {
-      showToast("Schedule ready (clipboard blocked)");
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Client quote copied!");
     }
   });
 
-  window.addEventListener("resize", () => render());
+  let toastTimer;
+  function showToast(msg) {
+    const el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  }
 
   // Initialize
-  syncDateInput();
-  render();
+  updateAll();
 })();
 </script>
 </body>
