@@ -84,9 +84,9 @@ DIST_DIR.mkdir(exist_ok=True)
 # HELPER: CALL GEMINI AGENT
 # =====================================================================
 def ask_agent(role_prompt: str, task_prompt: str) -> str:
-    """Sends a structured role + task prompt to the Gemini API."""
+    """Sends a structured role + task prompt to the Gemini API with auto-retry."""
     url = (
-      f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"https://googleapis.com"
         f"{MODEL}:generateContent?key={GEMINI_KEY}"
     )
     payload = {
@@ -98,14 +98,22 @@ def ask_agent(role_prompt: str, task_prompt: str) -> str:
             }
         ]
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=300) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+    for attempt in range(1, 4):
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data["candidates"]["content"]["parts"]["text"]
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 504) and attempt < 3:
+                print(f"   -> Gemini server busy (HTTP {e.code}), retrying in 15s (attempt {attempt}/3)...")
+                time.sleep(15)
+            else:
+                raise
 
 
 # =====================================================================
