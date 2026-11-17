@@ -1,12 +1,12 @@
 1
-00:00:00,100 --> 00:00:03,000
-Stop guessing your startup numbers.
+00:00:00,100 --> 00:00:05,025
+Watch how fast Smart Focus and Energy Sprint Planner works on your phone.
 
 2
-00:00:02,950 --> 00:00:11,587
-With MRR Pulse, just slide your traffic, conversion rate, and price to watch your monthly revenue and annual run rate update instantly.
+00:00:04,975 --> 00:00:10,500
+Move the sliders to calculate your daily deep work hours and hydration target live.
 
 3
-00:00:11,587 --> 00:00:14,187
-Test winning scenarios today.
+00:00:10,500 --> 00:00:15,637
+Try the interactive web app or grab the pro bundle from the link in the description.
 
