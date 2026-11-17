@@ -1,16 +1,12 @@
 1
-00:00:00,100 --> 00:00:02,925
-Stop cramming before finals.
+00:00:00,100 --> 00:00:03,000
+Stop guessing your startup numbers.
 
 2
-00:00:02,875 --> 00:00:08,900
-Meet ExamSprint, the spaced repetition planner that builds your optimal daily review schedule.
+00:00:02,950 --> 00:00:11,587
+With MRR Pulse, just slide your traffic, conversion rate, and price to watch your monthly revenue and annual run rate update instantly.
 
 3
-00:00:08,900 --> 00:00:14,012
-Just enter your exam date, topic difficulty, and available hours.
-
-4
-00:00:14,012 --> 00:00:17,262
-Study smarter and grab it on Whop today.
+00:00:11,587 --> 00:00:14,187
+Test winning scenarios today.
 

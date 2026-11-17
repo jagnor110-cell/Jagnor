@@ -1,1510 +1,350 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ExamSprint — Spaced Repetition Study Planner</title>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
+<title>MRR Pulse</title>
 <style>
   :root {
-    --bg: #090b10;
-    --surface: #121620;
-    --surface-2: #191f2e;
-    --surface-3: #222a3d;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.15);
-    --text: #f3f6fc;
-    --text-muted: #93a0b8;
-    --text-dim: #64728c;
-    --accent: #6c8cff;
-    --accent-glow: rgba(108, 140, 255, 0.22);
-    --mint: #2ee6a6;
-    --mint-dim: rgba(46, 230, 166, 0.14);
-    --amber: #ffb547;
-    --amber-dim: rgba(255, 181, 71, 0.14);
-    --rose: #ff5c7c;
-    --rose-dim: rgba(255, 92, 124, 0.15);
-    --violet: #a78bfa;
-    --radius-lg: 18px;
-    --radius-md: 13px;
-    --radius-sm: 9px;
+    --bg: #07090f;
+    --surface: #111625;
+    --surface-2: #192136;
+    --border: rgba(255,255,255,0.08);
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #818cf8;
+    --green: #34d399;
   }
-
-  * {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: #05070a;
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+    background: #030408;
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
     display: flex;
     justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
   }
-
-  .app-shell {
+  .phone-frame {
     width: 100%;
-    max-width: 430px;
-    min-height: 100vh;
-    background: radial-gradient(circle at 85% -5%, rgba(108, 140, 255, 0.14), transparent 42%),
-                radial-gradient(circle at 10% 20%, rgba(46, 230, 166, 0.07), transparent 36%),
+    max-width: 420px;
+    min-height: 100dvh;
+    background: radial-gradient(circle at top right, rgba(56,189,248,0.12), transparent 45%),
+                radial-gradient(circle at bottom left, rgba(129,140,248,0.12), transparent 45%),
                 var(--bg);
+    padding: 20px 18px 28px;
     display: flex;
     flex-direction: column;
-    position: relative;
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    padding-bottom: 84px;
+    gap: 16px;
   }
-
-  /* Header */
-  .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    background: rgba(9, 11, 16, 0.82);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 16px 12px;
+  header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
   }
-
   .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-  }
-
-  .brand-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), #4f46e5);
-    display: grid;
-    place-items: center;
-    box-shadow: 0 4px 16px var(--accent-glow);
-  }
-
-  .brand-title {
-    font-size: 16px;
-    font-weight: 700;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 1.1rem;
     letter-spacing: -0.02em;
-    line-height: 1.1;
   }
-
-  .brand-sub {
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.01em;
-  }
-
-  .countdown-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 11px;
-    border-radius: 999px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-strong);
-    font-size: 12px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .pulse-dot {
-    width: 7px;
-    height: 7px;
+  .dot {
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: var(--mint);
-    box-shadow: 0 0 8px var(--mint);
+    background: var(--green);
+    box-shadow: 0 0 12px var(--green);
   }
-
-  .pulse-dot.warn {
-    background: var(--amber);
-    box-shadow: 0 0 8px var(--amber);
-  }
-
-  .pulse-dot.danger {
-    background: var(--rose);
-    box-shadow: 0 0 8px var(--rose);
-  }
-
-  /* Main Container */
-  .content {
-    padding: 14px 15px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .tab-panel {
-    display: none;
-    flex-direction: column;
-    gap: 14px;
-    animation: fadeUp 0.2s ease-out;
-  }
-
-  .tab-panel.active {
-    display: flex;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Metrics Grid */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .metric-card {
-    background: linear-gradient(180deg, var(--surface-2), var(--surface));
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px 13px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .metric-card.hero {
-    grid-column: span 2;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, rgba(108, 140, 255, 0.14), rgba(18, 22, 32, 0.96) 60%);
-    border-color: rgba(108, 140, 255, 0.28);
-  }
-
-  .metric-label {
-    font-size: 11px;
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(56,189,248,0.14);
+    color: var(--accent);
+    border: 1px solid rgba(56,189,248,0.25);
+  }
+  .hero-kpi {
+    background: linear-gradient(145deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .kpi-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
     font-weight: 600;
   }
-
-  .metric-value {
-    font-size: 22px;
-    font-weight: 750;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+  .hero-value {
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 4px 0 2px;
+    background: linear-gradient(90deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-
-  .metric-sub {
-    font-size: 11.5px;
-    color: var(--text-muted);
-  }
-
-  /* Readiness Ring */
-  .ring-wrap {
-    width: 68px;
-    height: 68px;
-    position: relative;
+  .kpi-grid {
     display: grid;
-    place-items: center;
-    flex-shrink: 0;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
-
-  .ring-wrap svg {
-    transform: rotate(-90deg);
-  }
-
-  .ring-text {
-    position: absolute;
-    font-size: 14px;
-    font-weight: 750;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Card */
-  .card {
+  .kpi-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .kpi-subval {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-top: 4px;
+    color: var(--text);
+  }
+  .progress-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
     padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-
-  .card-header {
+  .prog-row { display: flex; flex-direction: column; gap: 6px; }
+  .prog-head {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 8px;
-  }
-
-  .card-title {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .badge {
-    font-size: 11px;
+    font-size: 0.78rem;
     font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background: var(--surface-3);
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
   }
-
-  .badge.mint { background: var(--mint-dim); color: var(--mint); }
-  .badge.amber { background: var(--amber-dim); color: var(--amber); }
-  .badge.rose { background: var(--rose-dim); color: var(--rose); }
-  .badge.accent { background: var(--accent-glow); color: #9db4ff; }
-
-  /* Controls & Sliders */
-  .control-group {
+  .prog-head span:last-child { color: var(--accent); }
+  .track {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fill.green {
+    background: linear-gradient(90deg, #10b981, var(--green));
+  }
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 16px;
   }
-
-  .control-row {
+  .slider-group { display: flex; flex-direction: column; gap: 8px; }
+  .slider-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
+    font-size: 0.85rem;
+    font-weight: 600;
   }
-
-  .control-label {
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  .control-val {
-    font-weight: 700;
-    color: var(--text);
+  .slider-val {
     font-variant-numeric: tabular-nums;
+    background: var(--surface-2);
+    padding: 3px 9px;
+    border-radius: 8px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    font-size: 0.82rem;
   }
-
-  input[type="range"] {
+  input[type='range'] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
     height: 6px;
+    background: rgba(255,255,255,0.1);
     border-radius: 999px;
-    background: var(--surface-3);
     outline: none;
-    cursor: pointer;
   }
-
-  input[type="range"]::-webkit-slider-thumb {
+  input[type='range']::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #fff;
-    border: 3px solid var(--accent);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    transition: transform 0.12s ease;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 12px rgba(56,189,248,0.6);
+    cursor: pointer;
   }
-
-  input[type="range"]::-webkit-slider-thumb:active {
-    transform: scale(1.15);
-  }
-
-  input[type="date"], input[type="text"], select {
-    background: var(--surface-2);
-    border: 1px solid var(--border-strong);
-    color: var(--text);
-    border-radius: var(--radius-sm);
-    padding: 9px 11px;
-    font-size: 13px;
-    font-family: inherit;
-    outline: none;
-    width: 100%;
-  }
-
-  input[type="date"]:focus, input[type="text"]:focus, select:focus {
-    border-color: var(--accent);
-  }
-
-  .segmented {
+  .presets {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 3px;
-    gap: 3px;
-  }
-
-  .seg-btn {
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 7px 6px;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .seg-btn.active {
-    background: var(--surface-3);
-    color: var(--text);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  }
-
-  /* Retention Chart */
-  .chart-box {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px;
-  }
-
-  .chart-legend {
-    display: flex;
-    gap: 14px;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 6px;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  /* Day Scroller */
-  .day-scroller {
-    display: flex;
     gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
+    margin-top: auto;
   }
-
-  .day-scroller::-webkit-scrollbar {
-    display: none;
-  }
-
-  .day-pill {
-    flex: 0 0 auto;
-    min-width: 66px;
-    background: var(--surface-2);
+  .preset-btn {
+    background: var(--surface);
+    color: var(--muted);
     border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 8px 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
+    border-radius: 12px;
+    padding: 11px 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.15s ease;
   }
-
-  .day-pill.active {
-    background: linear-gradient(180deg, rgba(108, 140, 255, 0.24), rgba(108, 140, 255, 0.08));
+  .preset-btn.active, .preset-btn:active {
+    background: rgba(56,189,248,0.15);
+    color: var(--text);
     border-color: var(--accent);
     transform: translateY(-1px);
-  }
-
-  .day-pill-top {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-
-  .day-pill-num {
-    font-size: 15px;
-    font-weight: 750;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .day-pill-load {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--mint);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .day-pill-load.over {
-    color: var(--rose);
-  }
-
-  /* Study Blocks */
-  .block-list {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-  }
-
-  .study-block {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--radius-md);
-    padding: 11px 12px;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    transition: opacity 0.2s ease, transform 0.15s ease;
-  }
-
-  .study-block.type-new { border-left-color: var(--accent); }
-  .study-block.type-review { border-left-color: var(--mint); }
-  .study-block.type-drill { border-left-color: var(--amber); }
-  .study-block.type-mock { border-left-color: var(--violet); }
-
-  .study-block.done {
-    opacity: 0.52;
-  }
-
-  .study-block.done .block-title {
-    text-decoration: line-through;
-  }
-
-  .check-btn {
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
-    border: 2px solid var(--border-strong);
-    background: transparent;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    color: #090b10;
-    transition: all 0.15s ease;
-  }
-
-  .study-block.done .check-btn {
-    background: var(--mint);
-    border-color: var(--mint);
-  }
-
-  .block-body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .block-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 3px;
-  }
-
-  .block-tag {
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 2px 6px;
-    border-radius: 5px;
-    background: rgba(255,255,255,0.06);
-  }
-
-  .tag-new { color: #9db4ff; background: rgba(108, 140, 255, 0.16); }
-  .tag-review { color: var(--mint); background: var(--mint-dim); }
-  .tag-drill { color: var(--amber); background: var(--amber-dim); }
-  .tag-mock { color: var(--violet); background: rgba(167, 139, 250, 0.16); }
-
-  .block-title {
-    font-size: 13.5px;
-    font-weight: 650;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .block-sub {
-    font-size: 11.5px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .block-duration {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text);
-    background: var(--surface-3);
-    padding: 5px 8px;
-    border-radius: 8px;
-    font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
-  }
-
-  /* Topic Cards */
-  .topic-item {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .topic-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  .topic-name {
-    font-size: 13.5px;
-    font-weight: 650;
-    line-height: 1.3;
-  }
-
-  .icon-btn {
-    border: none;
-    background: var(--surface-3);
-    color: var(--text-muted);
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  .icon-btn:hover {
-    color: var(--rose);
-  }
-
-  .topic-sliders {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .add-topic-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
-  }
-
-  .primary-btn {
-    border: none;
-    background: linear-gradient(135deg, var(--accent), #526dff);
-    color: #fff;
-    font-weight: 700;
-    font-size: 13px;
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: 0 4px 14px var(--accent-glow);
-  }
-
-  .primary-btn:active {
-    transform: scale(0.98);
-  }
-
-  .alert-banner {
-    background: var(--rose-dim);
-    border: 1px solid rgba(255, 92, 124, 0.35);
-    color: #ffd3dc;
-    border-radius: var(--radius-md);
-    padding: 10px 12px;
-    font-size: 12px;
-    line-height: 1.4;
-    display: none;
-  }
-
-  .alert-banner.visible {
-    display: block;
-  }
-
-  /* Bottom Navigation */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 430px;
-    background: rgba(12, 15, 22, 0.92);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border-top: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
-    z-index: 40;
-  }
-
-  .nav-btn {
-    border: none;
-    background: transparent;
-    color: var(--text-dim);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 0;
-    cursor: pointer;
-    transition: color 0.15s ease;
-  }
-
-  .nav-btn.active {
-    color: var(--accent);
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 24px 12px;
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-
-  .progress-track {
-    width: 100%;
-    height: 6px;
-    background: var(--surface-3);
-    border-radius: 999px;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--mint));
-    border-radius: 999px;
-    transition: width 0.25s ease;
   }
 </style>
 </head>
 <body>
-<div class="app-shell">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-icon" aria-hidden="true">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
-      </div>
-      <div>
-        <div class="brand-title">ExamSprint</div>
-        <div class="brand-sub">Spaced Repetition Engine</div>
-      </div>
-    </div>
-    <div class="countdown-pill" id="countdownPill">
-      <span class="pulse-dot" id="statusDot"></span>
-      <span id="countdownText">14d left</span>
-    </div>
-  </header>
+  <main class='phone-frame'>
+    <header>
+      <div class='brand'><span class='dot'></span>MRR Pulse</div>
+      <span class='badge'>Live Forecast</span>
+    </header>
 
-  <main class="content">
-    <!-- Persistent Live Telemetry -->
-    <section class="metrics-grid">
-      <div class="metric-card hero">
-        <div>
-          <div class="metric-label">Exam Readiness Forecast</div>
-          <div class="metric-value" id="readinessLabel">89% Mastery</div>
-          <div class="metric-sub" id="readinessSub">Optimal SM-2 compression active</div>
-        </div>
-        <div class="ring-wrap">
-          <svg width="68" height="68" viewBox="0 0 68 68">
-            <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
-            <circle id="readinessRing" cx="34" cy="34" r="28" fill="none" stroke="url(#gradRing)" stroke-width="6" stroke-linecap="round" stroke-dasharray="175.93" stroke-dashoffset="25"/>
-            <defs>
-              <linearGradient id="gradRing" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#6c8cff"/>
-                <stop offset="100%" stop-color="#2ee6a6"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <span class="ring-text" id="readinessPct">89%</span>
-        </div>
-      </div>
+    <section class='hero-kpi'>
+      <div class='kpi-label'>Projected Monthly Revenue</div>
+      <div class='hero-value' id='mrrDisplay'>$0</div>
+      <div class='kpi-label' style='color: var(--green); font-size: 0.72rem;' id='dailyRevDisplay'>+$0 / day</div>
+    </section>
 
-      <div class="metric-card">
-        <div class="metric-label">Avg Daily Load</div>
-        <div class="metric-value" id="avgLoadVal">2.4h</div>
-        <div class="metric-sub" id="avgLoadSub">of 3.0h cap (80%)</div>
+    <section class='kpi-grid'>
+      <div class='kpi-card'>
+        <div class='kpi-label'>Annual Run Rate</div>
+        <div class='kpi-subval' id='arrDisplay'>$0</div>
       </div>
-
-      <div class="metric-card">
-        <div class="metric-label">Scheduled Blocks</div>
-        <div class="metric-value" id="totalBlocksVal">28</div>
-        <div class="metric-sub" id="totalHoursSub">33.5h total study</div>
+      <div class='kpi-card'>
+        <div class='kpi-label'>Paying Users</div>
+        <div class='kpi-subval' id='usersDisplay'>0</div>
       </div>
     </section>
 
-    <div class="alert-banner" id="overloadAlert">
-      <strong>Capacity Alert:</strong> Required spaced reviews exceed your daily hour limit on peak days. Increase daily hours, push the exam date, or lower retention target.
-    </div>
-
-    <!-- TAB 1: DAILY SCHEDULE -->
-    <section class="tab-panel active" id="panel-schedule">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Sprint Timeline</div>
-          <span class="badge accent" id="selectedDateBadge">Day 1</span>
+    <section class='progress-section'>
+      <div class='prog-row'>
+        <div class='prog-head'>
+          <span>$10k MRR Freedom Goal</span>
+          <span id='mrrPct'>0%</span>
         </div>
-        <div class="day-scroller" id="dayScroller"></div>
-        <div>
-          <div class="control-row" style="margin-bottom:6px;">
-            <span class="control-label" style="font-size:12px;">Day Completion</span>
-            <span class="control-val" style="font-size:12px;" id="dayProgressText">0 / 0 done</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" id="dayProgressFill" style="width:0%"></div>
-          </div>
-        </div>
+        <div class='track'><div class='fill green' id='mrrBar'></div></div>
       </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title" id="dayHeading">Today's Review Queue</div>
-          <span class="badge mint" id="dayHoursBadge">0.0h</span>
+      <div class='prog-row'>
+        <div class='prog-head'>
+          <span>$100k ARR Milestone</span>
+          <span id='arrPct'>0%</span>
         </div>
-        <div class="block-list" id="blockList"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Memory Retention Curve</div>
-          <span class="badge" id="curveBadge">Ebbinghaus vs. Sprint</span>
-        </div>
-        <div class="chart-box">
-          <svg id="retentionSvg" viewBox="0 0 340 120" width="100%" height="120" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="areaMint" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#2ee6a6" stop-opacity="0.28"/>
-                <stop offset="100%" stop-color="#2ee6a6" stop-opacity="0.0"/>
-              </linearGradient>
-            </defs>
-            <line x1="0" y1="30" x2="340" y2="30" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
-            <line x1="0" y1="60" x2="340" y2="60" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
-            <line x1="0" y1="90" x2="340" y2="90" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
-            <path id="cramPath" fill="none" stroke="#ff5c7c" stroke-width="2" stroke-dasharray="4 4" opacity="0.75"/>
-            <path id="sprintArea" fill="url(#areaMint)"/>
-            <path id="sprintPath" fill="none" stroke="#2ee6a6" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
-          <div class="chart-legend">
-            <div class="legend-item"><span class="legend-dot" style="background:var(--mint)"></span> Spaced Sprint</div>
-            <div class="legend-item"><span class="legend-dot" style="background:var(--rose)"></span> Single Cram Decay</div>
-          </div>
-        </div>
+        <div class='track'><div class='fill' id='arrBar'></div></div>
       </div>
     </section>
 
-    <!-- TAB 2: PARAMETERS & CONSTRAINTS -->
-    <section class="tab-panel" id="panel-tune">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Exam Window & Budget</div>
-          <span class="badge accent" id="examWindowBadge">14 days</span>
+    <section class='controls'>
+      <div class='slider-group'>
+        <div class='slider-top'>
+          <span>Monthly Visitors</span>
+          <span class='slider-val' id='visitorsVal'>5,000</span>
         </div>
-
-        <div class="control-group">
-          <div class="control-row">
-            <span class="control-label">Target Exam Date</span>
-            <span class="control-val" id="examDateDisplay"></span>
-          </div>
-          <input type="date" id="examDateInput">
-        </div>
-
-        <div class="control-group">
-          <div class="control-row">
-            <span class="control-label">Days Until Exam (Quick Slide)</span>
-            <span class="control-val" id="daysSliderVal">14 days</span>
-          </div>
-          <input type="range" id="daysSlider" min="3" max="45" step="1" value="14">
-        </div>
-
-        <div class="control-group">
-          <div class="control-row">
-            <span class="control-label">Daily Available Hours</span>
-            <span class="control-val" id="hoursSliderVal">3.0 hrs / day</span>
-          </div>
-          <input type="range" id="hoursSlider" min="1" max="8" step="0.5" value="3">
-        </div>
+        <input type='range' id='visitors' min='500' max='50000' step='500' value='5000'>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Algorithm Tuning</div>
+      <div class='slider-group'>
+        <div class='slider-top'>
+          <span>Conversion Rate</span>
+          <span class='slider-val' id='convVal'>2.5%</span>
         </div>
+        <input type='range' id='conv' min='0.5' max='12' step='0.1' value='2.5'>
+      </div>
 
-        <div class="control-group">
-          <div class="control-row">
-            <span class="control-label">Target Recall Threshold</span>
-            <span class="control-val" id="targetVal">90%</span>
-          </div>
-          <div class="segmented" id="intensitySeg">
-            <button type="button" class="seg-btn" data-target="85">Standard 85%</button>
-            <button type="button" class="seg-btn active" data-target="90">Optimal 90%</button>
-            <button type="button" class="seg-btn" data-target="95">Mastery 95%</button>
-          </div>
+      <div class='slider-group'>
+        <div class='slider-top'>
+          <span>Plan Price / mo</span>
+          <span class='slider-val' id='priceVal'>$19</span>
         </div>
-
-        <div class="control-group">
-          <div class="control-row">
-            <span class="control-label">Focus Block Length</span>
-            <span class="control-val" id="blockLenVal">35 min</span>
-          </div>
-          <input type="range" id="blockLenSlider" min="20" max="60" step="5" value="35">
-        </div>
+        <input type='range' id='price' min='5' max='149' step='1' value='19'>
       </div>
     </section>
 
-    <!-- TAB 3: TOPICS & DIFFICULTY -->
-    <section class="tab-panel" id="panel-topics">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Add Exam Topic</div>
-          <span class="badge" id="topicCountBadge">5 topics</span>
-        </div>
-        <div class="add-topic-row">
-          <input type="text" id="newTopicName" placeholder="e.g. Renal Physiology & Loop">
-          <button type="button" class="primary-btn" id="addTopicBtn">+ Add</button>
-        </div>
-        <div class="topic-sliders">
-          <div class="control-group">
-            <div class="control-row">
-              <span class="control-label" style="font-size:11.5px;">Difficulty</span>
-              <span class="control-val" style="font-size:11.5px;" id="newDiffVal">3 / 5</span>
-            </div>
-            <input type="range" id="newTopicDiff" min="1" max="5" step="1" value="3">
-          </div>
-          <div class="control-group">
-            <div class="control-row">
-              <span class="control-label" style="font-size:11.5px;">Current Mastery</span>
-              <span class="control-val" style="font-size:11.5px;" id="newConfVal">40%</span>
-            </div>
-            <input type="range" id="newTopicConf" min="10" max="90" step="10" value="40">
-          </div>
-        </div>
-      </div>
-
-      <div id="topicList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    <section class='presets'>
+      <button class='preset-btn active' onclick='applyPreset(5000, 2.5, 19, this)'>Indie Launch</button>
+      <button class='preset-btn' onclick='applyPreset(30000, 1.8, 15, this)'>Viral Spike</button>
+      <button class='preset-btn' onclick='applyPreset(2500, 4.5, 79, this)'>B2B Pro</button>
     </section>
   </main>
 
-  <nav class="bottom-nav" aria-label="Primary Navigation">
-    <button type="button" class="nav-btn active" data-tab="schedule">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-      <span>Schedule</span>
-    </button>
-    <button type="button" class="nav-btn" data-tab="topics">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      </svg>
-      <span>Topics</span>
-    </button>
-    <button type="button" class="nav-btn" data-tab="tune">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
-      </svg>
-      <span>Sprint Setup</span>
-    </button>
-  </nav>
-</div>
+  <script>
+    const elVisitors = document.getElementById('visitors');
+    const elConv = document.getElementById('conv');
+    const elPrice = document.getElementById('price');
 
-<script>
-(() => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    const fmtNum = new Intl.NumberFormat('en-US');
 
-  const state = {
-    daysUntilExam: 14,
-    dailyHours: 3.0,
-    recallTarget: 90,
-    blockMinutes: 35,
-    selectedDayIdx: 0,
-    completedBlocks: new Set(),
-    topics: [
-      { id: 1, name: "Organic Chem: Stereoisomers & Chirality", difficulty: 5, mastery: 30 },
-      { id: 2, name: "Calculus II: Integration & Series", difficulty: 4, mastery: 45 },
-      { id: 3, name: "Cellular Respiration & Oxidative Phos.", difficulty: 3, mastery: 60 },
-      { id: 4, name: "Neuroanatomy: Cranial Nerve Pathways", difficulty: 5, mastery: 25 },
-      { id: 5, name: "Thermodynamics: Gibbs Free Energy", difficulty: 2, mastery: 70 }
-    ],
-    nextTopicId: 6,
-    schedule: []
-  };
+    function update() {
+      const visitors = Number(elVisitors.value);
+      const conv = Number(elConv.value);
+      const price = Number(elPrice.value);
 
-  // DOM References
-  const el = {
-    countdownText: document.getElementById("countdownText"),
-    statusDot: document.getElementById("statusDot"),
-    readinessLabel: document.getElementById("readinessLabel"),
-    readinessSub: document.getElementById("readinessSub"),
-    readinessPct: document.getElementById("readinessPct"),
-    readinessRing: document.getElementById("readinessRing"),
-    avgLoadVal: document.getElementById("avgLoadVal"),
-    avgLoadSub: document.getElementById("avgLoadSub"),
-    totalBlocksVal: document.getElementById("totalBlocksVal"),
-    totalHoursSub: document.getElementById("totalHoursSub"),
-    overloadAlert: document.getElementById("overloadAlert"),
-    dayScroller: document.getElementById("dayScroller"),
-    selectedDateBadge: document.getElementById("selectedDateBadge"),
-    dayProgressText: document.getElementById("dayProgressText"),
-    dayProgressFill: document.getElementById("dayProgressFill"),
-    dayHeading: document.getElementById("dayHeading"),
-    dayHoursBadge: document.getElementById("dayHoursBadge"),
-    blockList: document.getElementById("blockList"),
-    examDateInput: document.getElementById("examDateInput"),
-    examDateDisplay: document.getElementById("examDateDisplay"),
-    examWindowBadge: document.getElementById("examWindowBadge"),
-    daysSlider: document.getElementById("daysSlider"),
-    daysSliderVal: document.getElementById("daysSliderVal"),
-    hoursSlider: document.getElementById("hoursSlider"),
-    hoursSliderVal: document.getElementById("hoursSliderVal"),
-    targetVal: document.getElementById("targetVal"),
-    blockLenSlider: document.getElementById("blockLenSlider"),
-    blockLenVal: document.getElementById("blockLenVal"),
-    topicList: document.getElementById("topicList"),
-    topicCountBadge: document.getElementById("topicCountBadge"),
-    newTopicName: document.getElementById("newTopicName"),
-    newTopicDiff: document.getElementById("newTopicDiff"),
-    newTopicConf: document.getElementById("newTopicConf"),
-    newDiffVal: document.getElementById("newDiffVal"),
-    newConfVal: document.getElementById("newConfVal"),
-    addTopicBtn: document.getElementById("addTopicBtn"),
-    cramPath: document.getElementById("cramPath"),
-    sprintPath: document.getElementById("sprintPath"),
-    sprintArea: document.getElementById("sprintArea")
-  };
+      const users = Math.round(visitors * (conv / 100));
+      const mrr = users * price;
+      const arr = mrr * 12;
+      const daily = Math.round(mrr / 30);
 
-  function addDays(base, offset) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + offset);
-    return d;
-  }
+      document.getElementById('visitorsVal').textContent = fmtNum.format(visitors);
+      document.getElementById('convVal').textContent = conv.toFixed(1) + '%';
+      document.getElementById('priceVal').textContent = '$' + price;
 
-  function formatISO(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
+      document.getElementById('mrrDisplay').textContent = fmt.format(mrr);
+      document.getElementById('dailyRevDisplay').textContent = '+' + fmt.format(daily) + ' / day';
+      document.getElementById('arrDisplay').textContent = fmt.format(arr);
+      document.getElementById('usersDisplay').textContent = fmtNum.format(users);
 
-  function formatShortDate(date) {
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }
+      const mrrGoalPct = Math.min(100, Math.round((mrr / 10000) * 100));
+      const arrGoalPct = Math.min(100, Math.round((arr / 100000) * 100));
 
-  function formatDayName(date, idx) {
-    if (idx === 0) return "Today";
-    if (idx === 1) return "Tmrw";
-    return date.toLocaleDateString("en-US", { weekday: "short" });
-  }
+      document.getElementById('mrrPct').textContent = mrrGoalPct + '%';
+      document.getElementById('mrrBar').style.width = mrrGoalPct + '%';
+      document.getElementById('arrPct').textContent = arrGoalPct + '%';
+      document.getElementById('arrBar').style.width = arrGoalPct + '%';
+    }
 
-  // Spaced Repetition Schedule Generator
-  // Compresses SM-2 expanding intervals into [0 .. daysUntilExam - 1]
-  function generateSchedule() {
-    const totalDays = Math.max(2, state.daysUntilExam);
-    const days = Array.from({ length: totalDays }, (_, idx) => ({
-      dayIdx: idx,
-      date: addDays(today, idx),
-      blocks: [],
-      totalMinutes: 0
-    }));
+    function clearActivePreset() {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    }
 
-    const intensityFactor = state.recallTarget === 95 ? 1.32 : state.recallTarget === 90 ? 1.08 : 0.88;
-    const maxDailyMins = state.dailyHours * 60;
+    function applyPreset(v, c, p, btn) {
+      elVisitors.value = v;
+      elConv.value = c;
+      elPrice.value = p;
+      clearActivePreset();
+      if (btn) btn.classList.add('active');
+      update();
+    }
 
-    // Sort hardest / lowest-mastery topics first so they get prime slots
-    const sortedTopics = [...state.topics].sort((a, b) => {
-      const scoreA = a.difficulty * 22 + (100 - a.mastery);
-      const scoreB = b.difficulty * 22 + (100 - b.mastery);
-      return scoreB - scoreA;
-    });
-
-    sortedTopics.forEach((topic, tIdx) => {
-      // Determine how many spaced touches this topic needs
-      const weakness = (100 - topic.mastery) / 100; // 0.1 to 0.9
-      const baseTouches = Math.round((2 + topic.difficulty * 0.65 + weakness * 2.1) * intensityFactor);
-      const touches = Math.max(2, Math.min(totalDays, baseTouches));
-
-      // Stagger initial exposure across early days so Day 1 isn't overwhelmed
-      const maxStartDay = Math.max(0, Math.min(Math.floor(totalDays * 0.35), Math.floor(tIdx * 0.7)));
-      const startDay = Math.min(totalDays - 2, maxStartDay);
-      const span = Math.max(1, totalDays - 1 - startDay);
-
-      // Generate expanding-then-tapered day indices
-      const chosenDays = new Set();
-      chosenDays.add(startDay);
-
-      if (touches > 1) {
-        // Use geometric progression compressed to [startDay, totalDays - 1]
-        let prev = startDay;
-        for (let k = 1; k < touches; k++) {
-          const progress = k / (touches - 1);
-          // Slightly front-loaded curve (power < 1 puts early reviews closer, power > 1 expands)
-          const rawDay = startDay + Math.round(span * Math.pow(progress, 0.88));
-          let candidate = Math.min(totalDays - 1, Math.max(prev + 1, rawDay));
-          while (chosenDays.has(candidate) && candidate < totalDays - 1) candidate++;
-          while (chosenDays.has(candidate) && candidate > 0) candidate--;
-          chosenDays.add(candidate);
-          prev = candidate;
-        }
-      }
-
-      const dayList = Array.from(chosenDays).sort((a, b) => a - b);
-
-      dayList.forEach((dIdx, repNum) => {
-        const isFinalDay = dIdx === totalDays - 1;
-        let type = "review";
-        let typeLabel = "Active Recall";
-        let mins = state.blockMinutes;
-
-        if (repNum === 0 && topic.mastery < 65) {
-          type = "new";
-          typeLabel = "Deep Encoding";
-          mins = Math.round(state.blockMinutes * (1 + (topic.difficulty - 3) * 0.1));
-        } else if (isFinalDay) {
-          type = "mock";
-          typeLabel = "Exam Synthesis";
-          mins = Math.max(20, Math.round(state.blockMinutes * 0.85));
-        } else if (repNum >= 2 && topic.difficulty >= 4) {
-          type = "drill";
-          typeLabel = "Rapid Drill";
-          mins = Math.max(20, Math.round(state.blockMinutes * 0.75));
-        } else {
-          mins = Math.max(20, Math.round(state.blockMinutes * (0.85 + topic.difficulty * 0.05)));
-        }
-
-        // Round duration to nearest 5m
-        mins = Math.max(15, Math.round(mins / 5) * 5);
-
-        const blockId = `d${dIdx}-t${topic.id}-r${repNum}`;
-        days[dIdx].blocks.push({
-          id: blockId,
-          topicId: topic.id,
-          topicName: topic.name,
-          difficulty: topic.difficulty,
-          mastery: topic.mastery,
-          repNum: repNum + 1,
-          totalReps: dayList.length,
-          type,
-          typeLabel,
-          minutes: mins
-        });
-        days[dIdx].totalMinutes += mins;
+    [elVisitors, elConv, elPrice].forEach(input => {
+      input.addEventListener('input', () => {
+        clearActivePreset();
+        update();
       });
     });
 
-    // Smooth overload if possible by shifting movable middle reviews to lighter neighbor days
-    for (let pass = 0; pass < 2; pass++) {
-      for (let d = 0; d < totalDays - 1; d++) {
-        if (days[d].totalMinutes > maxDailyMins && days[d].blocks.length > 1) {
-          // Find a lighter neighbor (d+1 or d-1) without this same topic
-          const blockIdx = days[d].blocks.findIndex(b => b.type !== "new");
-          if (blockIdx === -1) continue;
-          const blk = days[d].blocks[blockIdx];
-          const targetDay = [d + 1, d - 1].find(nd =>
-            nd >= 0 && nd < totalDays &&
-            days[nd].totalMinutes + blk.minutes <= maxDailyMins &&
-            !days[nd].blocks.some(x => x.topicId === blk.topicId)
-          );
-          if (targetDay !== undefined) {
-            days[d].blocks.splice(blockIdx, 1);
-            days[d].totalMinutes -= blk.minutes;
-            days[targetDay].blocks.push(blk);
-            days[targetDay].totalMinutes += blk.minutes;
-          }
-        }
-      }
-    }
-
-    // Order blocks inside each day: Deep Encoding -> Rapid Drill -> Active Recall -> Synthesis
-    const orderRank = { new: 0, drill: 1, review: 2, mock: 3 };
-    days.forEach(day => {
-      day.blocks.sort((a, b) => orderRank[a.type] - orderRank[b.type] || b.difficulty - a.difficulty);
-    });
-
-    state.schedule = days;
-    if (state.selectedDayIdx >= totalDays) {
-      state.selectedDayIdx = totalDays - 1;
-    }
-  }
-
-  function computeMetrics() {
-    const totalDays = state.schedule.length;
-    const totalMins = state.schedule.reduce((acc, d) => acc + d.totalMinutes, 0);
-    const totalBlocks = state.schedule.reduce((acc, d) => acc + d.blocks.length, 0);
-    const maxDailyMins = state.dailyHours * 60;
-    const peakMins = state.schedule.reduce((m, d) => Math.max(m, d.totalMinutes), 0);
-    const avgDailyHrs = totalMins / 60 / Math.max(1, totalDays);
-    const utilPct = Math.round((avgDailyHrs / state.dailyHours) * 100);
-    const overloadedDays = state.schedule.filter(d => d.totalMinutes > maxDailyMins).length;
-
-    // Calculate predicted readiness based on baseline mastery, spacing density, completion, and overload penalty
-    const avgMastery = state.topics.length
-      ? state.topics.reduce((s, t) => s + t.mastery, 0) / state.topics.length
-      : 50;
-    const avgDiff = state.topics.length
-      ? state.topics.reduce((s, t) => s + t.difficulty, 0) / state.topics.length
-      : 3;
-
-    const doneCount = state.schedule.reduce((acc, d) =>
-      acc + d.blocks.filter(b => state.completedBlocks.has(b.id)).length, 0);
-    const completionBoost = totalBlocks ? (doneCount / totalBlocks) * 6 : 0;
-
-    const targetBase = state.recallTarget;
-    const spacingCoverage = Math.min(1, (totalBlocks / Math.max(1, state.topics.length * 3.2)));
-    const overloadPenalty = overloadedDays * 2.5;
-    const difficultyDrag = Math.max(0, (avgDiff - 3) * 1.5);
-
-    let readiness = Math.round(
-      Math.min(98, Math.max(42,
-        avgMastery * 0.25 + targetBase * 0.72 * (0.75 + 0.25 * spacingCoverage) + completionBoost - overloadPenalty - difficultyDrag
-      ))
-    );
-
-    if (state.topics.length === 0) readiness = 0;
-
-    return {
-      totalDays,
-      totalHours: totalMins / 60,
-      totalBlocks,
-      avgDailyHrs,
-      utilPct,
-      overloadedDays,
-      peakHours: peakMins / 60,
-      readiness
-    };
-  }
-
-  function renderRetentionCurve(readiness) {
-    const W = 340, H = 120;
-    const days = Math.max(3, state.daysUntilExam);
-    const cramPts = [];
-    const sprintPts = [];
-
-    for (let i = 0; i <= days; i++) {
-      const x = (i / days) * W;
-      const t = i / days;
-      // Single cram session decays exponentially
-      const cramRetention = 92 * Math.exp(-2.1 * t) + 8;
-      // Spaced repetition boosts retention at intervals toward readiness
-      const wave = Math.sin(t * Math.PI * Math.min(6, Math.max(2, Math.floor(days / 2.5)))) * 4.5;
-      const baseRise = 54 + (readiness - 54) * Math.pow(t, 0.55);
-      const sprintRetention = Math.min(97, Math.max(40, baseRise + wave));
-
-      const yCram = H - (cramRetention / 100) * (H - 16) - 8;
-      const ySprint = H - (sprintRetention / 100) * (H - 16) - 8;
-
-      cramPts.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)},${yCram.toFixed(1)}`);
-      sprintPts.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)},${ySprint.toFixed(1)}`);
-    }
-
-    const sprintD = sprintPts.join(" ");
-    el.cramPath.setAttribute("d", cramPts.join(" "));
-    el.sprintPath.setAttribute("d", sprintD);
-    el.sprintArea.setAttribute("d", `${sprintD} L${W},${H} L0,${H} Z`);
-  }
-
-  function renderAll() {
-    generateSchedule();
-    const m = computeMetrics();
-
-    // Topbar & Readiness
-    el.countdownText.textContent = `${state.daysUntilExam}d left`;
-    el.statusDot.className = "pulse-dot" + (m.overloadedDays > 0 ? " danger" : state.daysUntilExam <= 5 ? " warn" : "");
-
-    el.readinessPct.textContent = `${m.readiness}%`;
-    el.readinessLabel.textContent = m.readiness >= 90 ? `${m.readiness}% Exam Ready` :
-                                    m.readiness >= 78 ? `${m.readiness}% Solid Track` : `${m.readiness}% Tight Sprint`;
-    el.readinessSub.textContent = m.overloadedDays > 0
-      ? `${m.overloadedDays} peak day(s) exceed ${state.dailyHours.toFixed(1)}h cap`
-      : `Optimized for ${state.recallTarget}% recall across ${state.topics.length} topics`;
-
-    const circumference = 175.93;
-    el.readinessRing.style.strokeDashoffset = (circumference * (1 - m.readiness / 100)).toFixed(2);
-
-    el.avgLoadVal.textContent = `${m.avgDailyHrs.toFixed(1)}h`;
-    el.avgLoadSub.textContent = `of ${state.dailyHours.toFixed(1)}h cap (${m.utilPct}%)`;
-    el.totalBlocksVal.textContent = `${m.totalBlocks}`;
-    el.totalHoursSub.textContent = `${m.totalHours.toFixed(1)}h total study`;
-
-    el.overloadAlert.classList.toggle("visible", m.overloadedDays > 0);
-
-    // Date & Slider sync
-    const examDate = addDays(today, state.daysUntilExam);
-    el.examDateInput.value = formatISO(examDate);
-    el.examDateInput.min = formatISO(addDays(today, 2));
-    el.examDateDisplay.textContent = examDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-    el.examWindowBadge.textContent = `${state.daysUntilExam} days`;
-    el.daysSlider.value = Math.min(45, state.daysUntilExam);
-    el.daysSliderVal.textContent = `${state.daysUntilExam} days`;
-    el.hoursSliderVal.textContent = `${state.dailyHours.toFixed(1)} hrs / day`;
-    el.targetVal.textContent = `${state.recallTarget}%`;
-    el.blockLenVal.textContent = `${state.blockMinutes} min`;
-
-    renderDayScroller();
-    renderSelectedDay();
-    renderTopics();
-    renderRetentionCurve(m.readiness);
-  }
-
-  function renderDayScroller() {
-    const maxMins = state.dailyHours * 60;
-    el.dayScroller.innerHTML = "";
-
-    state.schedule.forEach((day, idx) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "day-pill" + (idx === state.selectedDayIdx ? " active" : "");
-      const hrs = (day.totalMinutes / 60).toFixed(1);
-      const isOver = day.totalMinutes > maxMins;
-
-      btn.innerHTML = `
-        <span class="day-pill-top">${formatDayName(day.date, idx)}</span>
-        <span class="day-pill-num">${day.date.getDate()}</span>
-        <span class="day-pill-load ${isOver ? "over" : ""}">${hrs}h</span>
-      `;
-      btn.addEventListener("click", () => {
-        state.selectedDayIdx = idx;
-        renderDayScroller();
-        renderSelectedDay();
-      });
-      el.dayScroller.appendChild(btn);
-    });
-  }
-
-  function renderSelectedDay() {
-    const day = state.schedule[state.selectedDayIdx];
-    if (!day) {
-      el.blockList.innerHTML = `<div class="empty-state">Add at least one exam topic to generate review blocks.</div>`;
-      return;
-    }
-
-    const hrs = (day.totalMinutes / 60).toFixed(1);
-    const isOver = day.totalMinutes > state.dailyHours * 60;
-    el.selectedDateBadge.textContent = `Day ${day.dayIdx + 1} · ${formatShortDate(day.date)}`;
-    el.dayHeading.textContent = day.dayIdx === 0 ? "Today's Review Queue" :
-                                day.dayIdx === state.schedule.length - 1 ? "Final Exam Taper" :
-                                `${formatShortDate(day.date)} Plan`;
-    el.dayHoursBadge.textContent = `${hrs}h / ${state.dailyHours.toFixed(1)}h`;
-    el.dayHoursBadge.className = "badge " + (isOver ? "rose" : "mint");
-
-    const doneCount = day.blocks.filter(b => state.completedBlocks.has(b.id)).length;
-    const totalCount = day.blocks.length;
-    el.dayProgressText.textContent = `${doneCount} / ${totalCount} done`;
-    el.dayProgressFill.style.width = totalCount ? `${Math.round((doneCount / totalCount) * 100)}%` : "0%";
-
-    if (day.blocks.length === 0) {
-      el.blockList.innerHTML = `<div class="empty-state">Rest & Consolidation Day — No review blocks due.</div>`;
-      return;
-    }
-
-    el.blockList.innerHTML = "";
-    day.blocks.forEach(blk => {
-      const isDone = state.completedBlocks.has(blk.id);
-      const item = document.createElement("div");
-      item.className = `study-block type-${blk.type} ${isDone ? "done" : ""}`;
-
-      item.innerHTML = `
-        <button type="button" class="check-btn" aria-label="Toggle block complete">
-          ${isDone ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ""}
-        </button>
-        <div class="block-body">
-          <div class="block-meta">
-            <span class="block-tag tag-${blk.type}">${blk.typeLabel}</span>
-            <span>Rep ${blk.repNum}/${blk.totalReps}</span>
-            <span>· Diff ${blk.difficulty}/5</span>
-          </div>
-          <div class="block-title">${escapeHtml(blk.topicName)}</div>
-          <div class="block-sub">Current mastery ${blk.mastery}% · Target ${state.recallTarget}%</div>
-        </div>
-        <div class="block-duration">${blk.minutes}m</div>
-      `;
-
-      item.querySelector(".check-btn").addEventListener("click", () => {
-        if (state.completedBlocks.has(blk.id)) {
-          state.completedBlocks.delete(blk.id);
-        } else {
-          state.completedBlocks.add(blk.id);
-        }
-        renderAll();
-      });
-
-      el.blockList.appendChild(item);
-    });
-  }
-
-  function renderTopics() {
-    el.topicCountBadge.textContent = `${state.topics.length} topic${state.topics.length === 1 ? "" : "s"}`;
-    el.topicList.innerHTML = "";
-
-    if (state.topics.length === 0) {
-      el.topicList.innerHTML = `<div class="card"><div class="empty-state">No topics yet. Add a subject above to build your sprint.</div></div>`;
-      return;
-    }
-
-    state.topics.forEach(topic => {
-      const card = document.createElement("div");
-      card.className = "topic-item";
-      card.innerHTML = `
-        <div class="topic-top">
-          <div class="topic-name">${escapeHtml(topic.name)}</div>
-          <button type="button" class="icon-btn" title="Remove topic" aria-label="Remove topic">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
-            </svg>
-          </button>
-        </div>
-        <div class="topic-sliders">
-          <div class="control-group">
-            <div class="control-row">
-              <span class="control-label" style="font-size:11.5px;">Difficulty</span>
-              <span class="control-val diff-val" style="font-size:11.5px;">${topic.difficulty} / 5</span>
-            </div>
-            <input type="range" class="diff-range" min="1" max="5" step="1" value="${topic.difficulty}">
-          </div>
-          <div class="control-group">
-            <div class="control-row">
-              <span class="control-label" style="font-size:11.5px;">Mastery</span>
-              <span class="control-val conf-val" style="font-size:11.5px;">${topic.mastery}%</span>
-            </div>
-            <input type="range" class="conf-range" min="10" max="95" step="5" value="${topic.mastery}">
-          </div>
-        </div>
-      `;
-
-      card.querySelector(".icon-btn").addEventListener("click", () => {
-        state.topics = state.topics.filter(t => t.id !== topic.id);
-        renderAll();
-      });
-
-      card.querySelector(".diff-range").addEventListener("input", (e) => {
-        topic.difficulty = Number(e.target.value);
-        card.querySelector(".diff-val").textContent = `${topic.difficulty} / 5`;
-        renderAll();
-      });
-
-      card.querySelector(".conf-range").addEventListener("input", (e) => {
-        topic.mastery = Number(e.target.value);
-        card.querySelector(".conf-val").textContent = `${topic.mastery}%`;
-        renderAll();
-      });
-
-      el.topicList.appendChild(card);
-    });
-  }
-
-  function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, m => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[m]));
-  }
-
-  // Tab Navigation
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
-    });
-  });
-
-  // Tuning Event Listeners
-  el.daysSlider.addEventListener("input", (e) => {
-    state.daysUntilExam = Number(e.target.value);
-    renderAll();
-  });
-
-  el.examDateInput.addEventListener("change", (e) => {
-    if (!e.target.value) return;
-    const picked = new Date(e.target.value + "T00:00:00");
-    const diffDays = Math.round((picked - today) / (1000 * 60 * 60 * 24));
-    state.daysUntilExam = Math.max(2, Math.min(60, diffDays));
-    renderAll();
-  });
-
-  el.hoursSlider.addEventListener("input", (e) => {
-    state.dailyHours = Number(e.target.value);
-    renderAll();
-  });
-
-  el.blockLenSlider.addEventListener("input", (e) => {
-    state.blockMinutes = Number(e.target.value);
-    renderAll();
-  });
-
-  document.querySelectorAll("#intensitySeg .seg-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#intensitySeg .seg-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      state.recallTarget = Number(btn.dataset.target);
-      renderAll();
-    });
-  });
-
-  // Add Topic Listeners
-  el.newTopicDiff.addEventListener("input", (e) => {
-    el.newDiffVal.textContent = `${e.target.value} / 5`;
-  });
-
-  el.newTopicConf.addEventListener("input", (e) => {
-    el.newConfVal.textContent = `${e.target.value}%`;
-  });
-
-  function handleAddTopic() {
-    const name = el.newTopicName.value.trim();
-    if (!name) {
-      el.newTopicName.focus();
-      return;
-    }
-    state.topics.unshift({
-      id: state.nextTopicId++,
-      name,
-      difficulty: Number(el.newTopicDiff.value),
-      mastery: Number(el.newTopicConf.value)
-    });
-    el.newTopicName.value = "";
-    renderAll();
-  }
-
-  el.addTopicBtn.addEventListener("click", handleAddTopic);
-  el.newTopicName.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleAddTopic();
-  });
-
-  // Initial Boot
-  renderAll();
-})();
-</script>
+    update();
+  </script>
 </body>
 </html>
