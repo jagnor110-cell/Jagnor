@@ -3,83 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Focus & Daily Macro Sprint Planner</title>
+<title>Jagnor Digital Product Store — Playbooks, Kids' Kits &amp; AI Apps</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-  body { background: #0f172a; color: #f8fafc; padding: 20px; max-width: 520px; margin: 0 auto; }
-  .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 20px; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.35); }
-  h1 { font-size: 22px; color: #38bdf8; margin-bottom: 6px; }
-  p.sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
-  .presets { display: flex; gap: 8px; margin-bottom: 16px; }
-  button { flex: 1; background: #0284c7; color: #fff; border: none; padding: 11px 10px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; }
-  button:hover, button.active { background: #38bdf8; color: #0f172a; transform: translateY(-1px); }
-  .control { margin-bottom: 16px; }
-  .control-header { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; color: #cbd5e1; }
-  input[type=range] { width: 100%; accent-color: #38bdf8; height: 8px; border-radius: 6px; cursor: pointer; }
-  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-  .kpi { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 14px; text-align: center; }
-  .kpi-val { font-size: 26px; font-weight: 800; color: #38bdf8; }
-  .kpi-lbl { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-  .bar-wrap { background: #0f172a; border-radius: 10px; height: 14px; overflow: hidden; margin-top: 10px; }
-  .bar-fill { background: linear-gradient(90deg, #38bdf8, #818cf8); height: 100%; width: 65%; transition: width 0.35s ease; }
+  body { background: #090d16; color: #f8fafc; padding: 20px; max-width: 780px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #0f172a, #1e3a8a); border: 1px solid #38bdf8; border-radius: 24px; padding: 28px; text-align: center; margin-bottom: 24px; box-shadow: 0 12px 35px rgba(2,132,199,0.25); }
+  .hero h1 { font-size: 28px; margin-bottom: 8px; color: #fff; }
+  .hero p { font-size: 15px; color: #cbd5e1; margin-bottom: 16px; }
+  .hero-store-btn { display: inline-block; background: #38bdf8; color: #0f172a; font-weight: 800; padding: 12px 22px; border-radius: 999px; text-decoration: none; font-size: 14px; }
+  .prod-card { background: #1e293b; border: 1px solid #334155; border-radius: 22px; padding: 24px; margin-bottom: 18px; }
+  .prod-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cat-pill { background: rgba(56,189,248,0.15); color: #38bdf8; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; }
+  .price-pill { background: #22c55e; color: #052e16; font-size: 14px; font-weight: 800; padding: 5px 12px; border-radius: 999px; }
+  .prod-card h2 { font-size: 22px; margin-bottom: 6px; color: #fff; }
+  .desc { font-size: 14px; color: #94a3b8; margin-bottom: 14px; }
+  .included { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .included span { background: #0f172a; border: 1px solid #334155; padding: 6px 12px; border-radius: 10px; font-size: 12px; color: #cbd5e1; }
+  .buy-btn { display: block; text-align: center; background: linear-gradient(90deg, #22c55e, #16a34a); color: #fff; text-decoration: none; padding: 15px; border-radius: 14px; font-weight: 800; font-size: 16px; margin-bottom: 10px; box-shadow: 0 6px 20px rgba(34,197,94,0.3); }
+  .sub-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .preview-btn { display: block; text-align: center; background: #0f172a; border: 1px solid #38bdf8; color: #38bdf8; text-decoration: none; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 13px; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Smart Focus &amp; Energy Planner</h1>
-    <p class="sub">Interactive Daily Study, Deep-Work &amp; Hydration Calculator</p>
-    <div class="presets">
-      <button onclick="applyPreset(4, 45, 80)">Exam Prep</button>
-      <button onclick="applyPreset(6, 50, 90)">Deep Coding</button>
-      <button onclick="applyPreset(3, 30, 70)">Light Review</button>
-    </div>
-    <div class="control">
-      <div class="control-header"><span>Daily Study Sprints</span><strong id="v1">5 blocks</strong></div>
-      <input type="range" id="s1" min="1" max="10" value="5" oninput="recalc()">
-    </div>
-    <div class="control">
-      <div class="control-header"><span>Minutes per Sprint</span><strong id="v2">45 min</strong></div>
-      <input type="range" id="s2" min="20" max="90" value="45" oninput="recalc()">
-    </div>
-    <div class="control">
-      <div class="control-header"><span>Focus Intensity Target</span><strong id="v3">85%</strong></div>
-      <input type="range" id="s3" min="50" max="100" value="85" oninput="recalc()">
-    </div>
+  <div class="hero">
+    <h1>⚡ Jagnor Digital Store</h1>
+    <p>Instant-Download Illustrated PDF Playbooks, Kids' Learning Kits &amp; Interactive Apps</p>
+    <a class="hero-store-btn" href="https://whop.com/cash-flow-reset-30-day-money-sprint" target="_blank">🛒 Visit Official Whop Store &amp; Checkout</a>
   </div>
-  <div class="card">
-    <div class="control-header"><span>Daily Productivity Score</span><strong id="scoreTxt">88 / 100</strong></div>
-    <div class="bar-wrap"><div class="bar-fill" id="scoreBar"></div></div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-val" id="kHours">3.8h</div><div class="kpi-lbl">Net Deep Work</div></div>
-      <div class="kpi"><div class="kpi-val" id="kWater">2.4L</div><div class="kpi-lbl">Hydration Target</div></div>
-      <div class="kpi"><div class="kpi-val" id="kBreak">50m</div><div class="kpi-lbl">Recovery Breaks</div></div>
-      <div class="kpi"><div class="kpi-val" id="kXP">+450</div><div class="kpi-lbl">Daily Streak XP</div></div>
-    </div>
-  </div>
-<script>
-function recalc() {
-  const b = parseFloat(document.getElementById('s1').value);
-  const m = parseFloat(document.getElementById('s2').value);
-  const f = parseFloat(document.getElementById('s3').value);
-  document.getElementById('v1').textContent = b + ' blocks';
-  document.getElementById('v2').textContent = m + ' min';
-  document.getElementById('v3').textContent = f + '%';
-  const totalMin = b * m;
-  const score = Math.min(100, Math.round((totalMin / 300) * 55 + (f * 0.45)));
-  document.getElementById('scoreTxt').textContent = score + ' / 100';
-  document.getElementById('scoreBar').style.width = score + '%';
-  document.getElementById('kHours').textContent = (totalMin / 60).toFixed(1) + 'h';
-  document.getElementById('kWater').textContent = (1.5 + totalMin * 0.004).toFixed(1) + 'L';
-  document.getElementById('kBreak').textContent = (b * 10) + 'm';
-  document.getElementById('kXP').textContent = '+' + Math.round(totalMin * (f / 50));
-}
-function applyPreset(b, m, f) {
-  document.getElementById('s1').value = b;
-  document.getElementById('s2').value = m;
-  document.getElementById('s3').value = f;
-  recalc();
-}
-recalc();
-</script>
+  
+        <div class="prod-card">
+          <div class="prod-top">
+            <span class="cat-pill">MONEY</span>
+            <span class="price-pill">$9 USD</span>
+          </div>
+          <h2>Cash Flow Reset: 30-Day Money Sprint</h2>
+          <p class="desc">Illustrated PDF Playbook + Interactive Companion App</p>
+          <div class="included">
+            <span>📘 Illustrated PDF Playbook</span>
+            <span>⚡ Interactive Web App</span>
+            <span>📦 Offline ZIP Pack</span>
+          </div>
+          <div class="actions">
+            <a class="buy-btn" href="https://whop.com/cash-flow-reset-30-day-money-sprint" target="_blank">
+              💳 Buy &amp; Instant Download ($9)
+            </a>
+            <div class="sub-actions">
+              <a class="preview-btn" href="playbook_prod_1795027377.pdf" target="_blank">📄 Preview PDF Playbook</a>
+              <a class="preview-btn" href="app_prod_1795027377.html" target="_blank">🎮 Try Interactive App</a>
+            </div>
+          </div>
+        </div>
+        
 </body>
 </html>

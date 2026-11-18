@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #070b14; color: #fff; position: relative; }
+  .bg-glow { position: absolute; width: 900px; height: 900px; border-radius: 50%; background: radial-gradient(circle, rgba(56,189,248,0.28), transparent 70%); top: -150px; left: 90px; animation: pulse 4s infinite alternate; }
+  @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.1); } }
+
+  .top-pill { position: absolute; top: 70px; left: 60px; right: 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(30,41,59,0.9); border: 2px solid #38bdf8; border-radius: 999px; padding: 18px 36px; z-index: 10; }
+  .top-pill .cat { color: #38bdf8; font-size: 26px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+  .top-pill .price { background: #22c55e; color: #052e16; font-size: 28px; font-weight: 900; padding: 8px 24px; border-radius: 999px; }
+
+  .scene { position: absolute; top: 210px; left: 60px; right: 60px; bottom: 260px; opacity: 0; transform: translateY(60px) scale(0.96); transition: all 0.65s cubic-bezier(0.22, 1, 0.36, 1); display: flex; flex-direction: column; justify-content: center; }
+  .scene.active { opacity: 1; transform: translateY(0) scale(1); }
+
+  .card-big { background: linear-gradient(160deg, #1e293b, #0f172a); border: 3px solid #334155; border-radius: 44px; padding: 56px; box-shadow: 0 30px 80px rgba(0,0,0,0.65); }
+  .hook-tag { display: inline-block; background: #f59e0b; color: #0f172a; font-size: 28px; font-weight: 900; padding: 10px 28px; border-radius: 16px; margin-bottom: 28px; }
+  h1.giant { font-size: 68px; line-height: 1.12; font-weight: 900; margin-bottom: 24px; color: #fff; }
+  p.lead { font-size: 36px; line-height: 1.4; color: #cbd5e1; margin-bottom: 40px; }
+  .bundle-items { display: flex; flex-direction: column; gap: 22px; }
+  .b-item { background: rgba(2,132,199,0.2); border: 2px solid #38bdf8; border-radius: 26px; padding: 26px 32px; font-size: 34px; font-weight: 700; display: flex; align-items: center; gap: 20px; }
+
+  .pdf-sheet { background: #ffffff; color: #0f172a; border-radius: 36px; padding: 48px; box-shadow: 0 25px 70px rgba(0,0,0,0.7); border: 6px solid #38bdf8; margin-bottom: 28px; transition: transform 0.5s ease; }
+  .pdf-sheet h2 { font-size: 44px; color: #0284c7; margin-bottom: 22px; }
+  .pdf-sheet ul { list-style: none; padding: 0; }
+  .pdf-sheet li { font-size: 31px; line-height: 1.45; margin-bottom: 18px; color: #1e293b; font-weight: 600; }
+  .pdf-tip { background: #fef08a; color: #854d0e; padding: 22px; border-radius: 20px; font-size: 28px; font-weight: 700; margin-top: 16px; }
+
+  .app-box { background: #1e293b; border: 4px solid #38bdf8; border-radius: 40px; padding: 48px; }
+  .mode-row { display: flex; gap: 18px; margin-bottom: 32px; }
+  .mode-btn { flex: 1; background: #334155; color: #fff; font-size: 28px; font-weight: 800; padding: 24px 12px; border-radius: 20px; text-align: center; transition: 0.3s; }
+  .mode-btn.lit { background: #38bdf8; color: #0f172a; transform: scale(1.06); }
+  .slider-row { margin-bottom: 28px; }
+  .slider-lbl { display: flex; justify-content: space-between; font-size: 32px; font-weight: 700; margin-bottom: 12px; }
+  .bar-track { background: #0f172a; height: 28px; border-radius: 999px; overflow: hidden; border: 2px solid #475569; }
+  .bar-prog { background: linear-gradient(90deg, #38bdf8, #22c55e); height: 100%; width: 45%; transition: width 0.5s ease; }
+  .kpi-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 32px; }
+  .kpi-tile { background: #0f172a; border: 2px solid #38bdf8; border-radius: 26px; padding: 28px; text-align: center; }
+  .kpi-num { font-size: 58px; font-weight: 900; color: #22c55e; }
+  .kpi-name { font-size: 26px; color: #94a3b8; margin-top: 8px; }
+
+  .cta-Btn { background: linear-gradient(90deg, #22c55e, #16a34a); color: #fff; font-size: 46px; font-weight: 900; padding: 38px; border-radius: 30px; text-align: center; margin-top: 34px; box-shadow: 0 15px 45px rgba(34,197,94,0.5); animation: pulse 1.2s infinite alternate; }
+
+  .footer-bar { position: absolute; bottom: 55px; left: 60px; right: 60px; background: rgba(15,23,42,0.95); border: 2px solid #475569; border-radius: 28px; padding: 24px 36px; text-align: center; font-size: 30px; font-weight: 700; color: #38bdf8; }
+  #cursor-ring { position: absolute; width: 72px; height: 72px; border-radius: 50%; background: rgba(56,189,248,0.45); border: 5px solid #fff; box-shadow: 0 0 35px #38bdf8; z-index: 9999; pointer-events: none; transition: all 0.55s ease; left: 540px; top: 960px; transform: translate(-50%, -50%); }
+</style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div id="cursor-ring"></div>
+
+  <div class="top-pill">
+    <span class="cat">MONEY</span>
+    <span class="price">FULL KIT • $9</span>
+  </div>
+
+  <div class="scene active" id="sc1">
+    <div class="card-big">
+      <span class="hook-tag">🔥 Beginners who want simple budgeting, savings habits, and a quick money reset</span>
+      <h1 class="giant">Stop Overspending Before Payday — 30-Day Cash Flow Reset</h1>
+      <p class="lead">Cash Flow Reset: 30-Day Money Sprint: Illustrated PDF Playbook + Interactive Companion App</p>
+      <div class="bundle-items">
+        <div class="b-item">📘 1. Illustrated Multi-Page PDF Playbook</div>
+        <div class="b-item">🎮 2. Live Interactive Web App &amp; Game</div>
+        <div class="b-item">🖨️ 3. Printable Worksheets &amp; Cheat Sheets</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="sc2">
+    <div class="pdf-sheet" id="sheet1">
+      <h2>📘 Inside the PDF Playbook — Page 1: Map Your Money In One Page</h2>
+      <ul><li>✅ List take-home income, fixed bills, and flexible spending</li><li>✅ Circle the three largest drains on your paycheck</li><li>✅ Set one non-negotiable weekly savings transfer</li></ul>
+      <div class="pdf-tip">💡 Use yesterday&#x27;s numbers instead of guessing.</div>
+    </div>
+    <div class="pdf-sheet" id="sheet2">
+      <h2>📄 Page 2: Run The Thirty Day Savings Challenge</h2>
+      <ul><li>🔥 Start with a five dollar no-spend day</li><li>🔥 Increase the challenge amount every three days</li><li>🔥 Log every win on the printable tracker</li></ul>
+    </div>
+  </div>
+
+  <div class="scene" id="sc3">
+    <div class="app-box">
+      <h1 style="font-size:48px;margin-bottom:24px;">⚡ Companion Interactive App</h1>
+      <div class="mode-row">
+        <div class="mode-btn" id="m1">Beginner Boost – Auto‑set $75 daily cap, 20% savings, gentle 3‑day ramp</div>
+        <div class="mode-btn lit" id="m2">Savings Accelerator – $150 daily cap, 40% savings, aggressive 7‑day sprint</div>
+        <div class="mode-btn" id="m3">Reset &amp; Relaunch – $0 cap first 3 days, 50% savings thereafter, full 30‑day reset</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl"><span>Daily Spending Cap ($)</span><span id="sv1">Level 5</span></div>
+        <div class="bar-track"><div class="bar-prog" id="sb1" style="width:50%;"></div></div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl"><span>Savings Percentage (%)</span><span id="sv2">45 mins</span></div>
+        <div class="bar-track"><div class="bar-prog" id="sb2" style="width:65%;"></div></div>
+      </div>
+      <div class="kpi-2x2">
+        <div class="kpi-tile"><div class="kpi-num" id="kv1">+450</div><div class="kpi-name">Total Savings Deposited</div></div>
+        <div class="kpi-tile"><div class="kpi-num" id="kv2">92%</div><div class="kpi-name">Average Daily Spend</div></div>
+        <div class="kpi-tile"><div class="kpi-num" id="kv3">5.2h</div><div class="kpi-name">Streak Days Completed</div></div>
+        <div class="kpi-tile"><div class="kpi-num" id="kv4">RANK S</div><div class="kpi-name">Net Cash Flow Gain</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="sc4">
+    <div class="card-big" style="text-align:center;">
+      <span class="hook-tag">🚀 INSTANT DIGITAL DOWNLOAD</span>
+      <h1 class="giant">Cash Flow Reset: 30-Day Money Sprint</h1>
+      <p class="lead">Get the Complete Illustrated PDF Playbook + Interactive App + Printable Kit!</p>
+      <div class="cta-Btn">🛒 TAP STORE LINK IN PROFILE / BIO</div>
+    </div>
+  </div>
+
+  <div class="footer-bar" id="footerTxt">
+    🔗 Store &amp; Instant Download Link in Channel Profile / Bio!
+  </div>
+
+<script>
+  function showScene(num, cursorX, cursorY) {
+    document.querySelectorAll('.scene').forEach((el, i) => {
+      el.classList.toggle('active', (i + 1) === num);
+    });
+    const c = document.getElementById('cursor-ring');
+    c.style.left = cursorX + 'px';
+    c.style.top = cursorY + 'px';
+  }
+  function animateAppValues(lvl, mins, xp, pct, modeIdx) {
+    document.getElementById('sv1').textContent = 'Level ' + lvl;
+    document.getElementById('sb1').style.width = (lvl * 10) + '%';
+    document.getElementById('sv2').textContent = mins + ' mins';
+    document.getElementById('sb2').style.width = mins + '%';
+    document.getElementById('kv1').textContent = '+' + xp;
+    document.getElementById('kv2').textContent = pct + '%';
+    ['m1','m2','m3'].forEach((id, idx) => {
+      document.getElementById(id).classList.toggle('lit', (idx + 1) === modeIdx);
+    });
+  }
+</script>
+</body>
+</html>
