@@ -84,7 +84,7 @@ GROQ_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
-SPARK_KEY = os.environ.get("SPARK_API_KEY", "").strip()
+NVIDIA_KEY = os.environ.get("NVIDIA_API_KEY", "").strip()
 
 WHOP_API_KEY = os.environ.get("WHOP_API_KEY", "").strip()
 WHOP_COMPANY_ID = os.environ.get("WHOP_COMPANY_ID", "").strip()
@@ -309,7 +309,7 @@ def _call_single_provider(provider: str, prompt: str, json_mode: bool = False) -
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"].strip()
+            msg = data["choices"][0].get("message", {}); return (msg.get("content") or msg.get("reasoning_content") or "").strip()
 
     if provider == "openrouter" and OPENROUTER_KEY:
         req = urllib.request.Request(
@@ -323,11 +323,13 @@ def _call_single_provider(provider: str, prompt: str, json_mode: bool = False) -
             headers={
                 "Authorization": f"Bearer {OPENROUTER_KEY}",
                 "Content-Type": "application/json",
+                "HTTP-Referer": PUBLIC_VIDEO_BASE_URL,
+                "X-Title": "Jagnor AI Company",
             },
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"].strip()
+            msg = data["choices"][0].get("message", {}); return (msg.get("content") or msg.get("reasoning_content") or "").strip()
 
     if provider == "chatgpt":
         if OPENAI_KEY:
@@ -356,7 +358,7 @@ def _call_single_provider(provider: str, prompt: str, json_mode: bool = False) -
             )
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                return data["choices"][0]["message"]["content"].strip()
+                msg = data["choices"][0].get("message", {}); return (msg.get("content") or msg.get("reasoning_content") or "").strip()
 
     if provider == "claude" and not ANTHROPIC_KEY and OPENROUTER_KEY:
         # 100% Free 550B reasoning/editorial model when no paid Anthropic key is present
@@ -371,11 +373,13 @@ def _call_single_provider(provider: str, prompt: str, json_mode: bool = False) -
             headers={
                 "Authorization": f"Bearer {OPENROUTER_KEY}",
                 "Content-Type": "application/json",
+                "HTTP-Referer": PUBLIC_VIDEO_BASE_URL,
+                "X-Title": "Jagnor AI Company",
             },
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"].strip()
+            msg = data["choices"][0].get("message", {}); return (msg.get("content") or msg.get("reasoning_content") or "").strip()
 
     if provider == "claude" and ANTHROPIC_KEY:
         req = urllib.request.Request(
@@ -401,23 +405,23 @@ def _call_single_provider(provider: str, prompt: str, json_mode: bool = False) -
                 if blk.get("type") == "text"
             ).strip()
 
-    if provider == "spark" and SPARK_KEY:
+    if provider == "nvidia" and NVIDIA_KEY:
         req = urllib.request.Request(
-            "https://spark-api-open.xf-yun.com/v1/chat/completions",
+            "https://integrate.api.nvidia.com/v1/chat/completions",
             data=json.dumps(
                 {
-                    "model": "lite",
+                    "model": "nvidia/nemotron-3-ultra-550b-a55b",
                     "messages": [{"role": "user", "content": prompt}],
                 }
             ).encode("utf-8"),
             headers={
-                "Authorization": f"Bearer {SPARK_KEY}",
+                "Authorization": f"Bearer {NVIDIA_KEY}",
                 "Content-Type": "application/json",
             },
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"].strip()
+            msg = data["choices"][0].get("message", {}); return (msg.get("content") or msg.get("reasoning_content") or "").strip()
 
     return None
 
@@ -436,7 +440,7 @@ def call_specialist_ai(
     """
     order = [preferred_provider] + [
         p
-        for p in ("gemini", "groq", "openrouter", "chatgpt", "claude", "spark")
+        for p in ("gemini", "groq", "openrouter", "chatgpt", "claude", "nvidia")
         if p != preferred_provider
     ]
     for provider in order:
@@ -460,6 +464,34 @@ def call_specialist_ai(
         except Exception as e:
             print(f"   -> [{provider.upper()}] notice: {e}")
     return None
+
+
+def sanitize_product_spec(raw_spec: dict[str, Any]) -> dict[str, Any]:
+    """Guarantees all required keys and playbook_pages entries are valid types so HTML/PDF builders never crash."""
+    clean = dict(DEFAULT_PRODUCT_SPEC)
+    if isinstance(raw_spec, dict):
+        for k, v in raw_spec.items():
+            if v is not None and v != "":
+                clean[k] = v
+    raw_pages = clean.get("playbook_pages")
+    valid_pages: list[dict[str, Any]] = []
+    if isinstance(raw_pages, list):
+        for idx, item in enumerate(raw_pages[:3], start=1):
+            if isinstance(item, dict):
+                bullets = item.get("bullets")
+                if not isinstance(bullets, list) or not bullets:
+                    bullets = DEFAULT_PRODUCT_SPEC["playbook_pages"][min(idx - 1, 2)]["bullets"]
+                valid_pages.append({
+                    "page_title": str(item.get("page_title") or f"Page {idx}: Action Module"),
+                    "badge": str(item.get("badge") or f"MODULE {idx}"),
+                    "bullets": [str(b) for b in bullets[:4] if str(b).strip()],
+                    "pro_tip": str(item.get("pro_tip") or "Apply this step daily for best results."),
+                })
+    while len(valid_pages) < 3:
+        valid_pages.append(DEFAULT_PRODUCT_SPEC["playbook_pages"][len(valid_pages)])
+    clean["playbook_pages"] = valid_pages
+    clean["price_usd"] = safe_price(clean.get("price_usd", 9.0))
+    return clean
 
 
 def scout_and_design_product(processed_titles: set[str] | None = None) -> dict[str, Any]:
@@ -562,8 +594,7 @@ def scout_and_design_product(processed_titles: set[str] | None = None) -> dict[s
             ):
                 if parsed3.get(k):
                     spec[k] = parsed3[k]
-
-    # STAGE 4: Claude (Chief Editorial & Video Director) performs final QA polish if ANTHROPIC_KEY is present
+ # STAGE 4: Claude (Chief Editorial & Video Director) performs final QA polish if ANTHROPIC_KEY is present
     if ANTHROPIC_KEY or OPENROUTER_KEY:
         stage4_prompt = (
             f"You are Specialist 5 (Claude Chief Editor & Video Director).\n"
@@ -578,21 +609,21 @@ def scout_and_design_product(processed_titles: set[str] | None = None) -> dict[s
                 if parsed4.get(k):
                     spec[k] = parsed4[k]
 
-    # STAGE 5: iFLYTEK Spark AI (Global Reach & Final Engagement Check)
-    if SPARK_KEY:
+    # STAGE 5: NVIDIA NIM (Global Reach & Final Engagement Check; falls back to OpenRouter/Groq if blank)
+    if NVIDIA_KEY or OPENROUTER_KEY or GROQ_KEY:
         stage5_prompt = (
-            f"You are Specialist 6 (iFLYTEK Spark AI Global Reach & Engagement Reviewer).\n"
+            f"You are Specialist 6 (NVIDIA NIM Global Reach & Engagement Reviewer).\n"
             f"Product Bundle: '{spec['title']}' ({spec['subtitle']}) for {spec['audience']}.\n"
             f"Current Social Caption: '{spec['caption']}'\n"
             "Make the social caption punchy, clear, and globally appealing for YouTube Shorts and Instagram Reels.\n"
             'Return ONLY valid JSON with key: {"caption": "Upgraded high-reach social caption"}'
         )
-        raw_stage5 = call_specialist_ai("spark", "Global Reach & Engagement Reviewer", stage5_prompt, json_mode=True)
+        raw_stage5 = call_specialist_ai("nvidia", "Global Reach & Engagement Reviewer", stage5_prompt, json_mode=True)
         parsed5 = extract_json_dict(raw_stage5 or "")
         if parsed5 and parsed5.get("caption"):
             spec["caption"] = parsed5["caption"]
 
-    return spec
+    return sanitize_product_spec(spec)
 
 
 # =====================================================================
@@ -1166,7 +1197,7 @@ def create_whop_product_and_checkout(
             "https://api.whop.com/api/v1/products",
             data=json.dumps(
                 {
-                    "account_id": WHOP_COMPANY_ID,
+                    "company_id": WHOP_COMPANY_ID,
                     "title": app_title[:50],
                     "description": app_desc[:250],
                     "visibility": "visible",
@@ -1178,6 +1209,7 @@ def create_whop_product_and_checkout(
             headers={
                 "Authorization": f"Bearer {WHOP_API_KEY}",
                 "Content-Type": "application/json",
+                "Api-Version-Date": "2025-01-01",
             },
             method="POST",
         )
@@ -1301,6 +1333,8 @@ def upload_to_youtube_shorts(mp4_path: Path, title: str, description: str) -> st
         )
         with urllib.request.urlopen(init_req, timeout=30) as init_resp:
             upload_location = init_resp.headers.get("Location")
+        if not upload_location:
+            return "YouTube Error: Missing resumable Location header"
 
         upload_req = urllib.request.Request(
             upload_location,
@@ -1331,7 +1365,7 @@ def upload_to_instagram_reels(public_mp4_url: str, caption: str) -> str:
         return "Skipped (Instagram secrets missing)"
 
     print(f"   -> Creating Instagram Reels media container from {public_mp4_url}...")
-    create_url = f"https://graph.facebook.com/v21.0/{IG_USER_ID}/media"
+    create_url = f"{IG_GRAPH_BASE}/{IG_USER_ID}/media"
     create_params = urllib.parse.urlencode(
         {
             "media_type": "REELS",
@@ -1348,20 +1382,23 @@ def upload_to_instagram_reels(public_mp4_url: str, caption: str) -> str:
             creation_id = json.loads(resp.read().decode("utf-8"))["id"]
 
         status_url = (
-            f"https://graph.facebook.com/v21.0/{creation_id}"
+            f"{IG_GRAPH_BASE}/{creation_id}"
             f"?fields=status_code&access_token={IG_ACCESS_TOKEN}"
         )
+        final_status = ""
         for attempt in range(1, 13):
             time.sleep(10)
             with urllib.request.urlopen(status_url, timeout=20) as s_resp:
-                status_code = json.loads(s_resp.read().decode("utf-8")).get("status_code", "")
-                print(f"   -> Instagram container status ({attempt}/12): {status_code}")
-                if status_code == "FINISHED":
+                final_status = json.loads(s_resp.read().decode("utf-8")).get("status_code", "")
+                print(f"   -> Instagram container status ({attempt}/12): {final_status}")
+                if final_status == "FINISHED":
                     break
-                if status_code == "ERROR":
-                    return "Instagram container ERROR"
+                if final_status in ("ERROR", "EXPIRED"):
+                    return f"Instagram container {final_status}"
+        if final_status != "FINISHED":
+            return f"Instagram container timed out (last status: {final_status or 'UNKNOWN'})"
 
-        publish_url = f"https://graph.facebook.com/v21.0/{IG_USER_ID}/media_publish"
+        publish_url = f"{IG_GRAPH_BASE}/{IG_USER_ID}/media_publish"
         pub_params = urllib.parse.urlencode(
             {"creation_id": creation_id, "access_token": IG_ACCESS_TOKEN}
         ).encode("utf-8")
@@ -1383,7 +1420,7 @@ def upload_to_instagram_reels(public_mp4_url: str, caption: str) -> str:
 # =====================================================================
 # 6. UNIFIED COMPANY BRAIN, ATOMIC LEDGER & PAPERCLIP MASTER ENGINES
 # =====================================================================
-def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
+def atomic_write_json(path: Path, data: Any) -> None:
     """Writes JSON atomically with file locking so concurrent runs never corrupt ledger or manifest files."""
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
@@ -1677,6 +1714,7 @@ def run_full_circle_autonomous_factory() -> int:
     subprocess.run(["git", "config", "user.email", "bot@users.noreply.github.com"], check=False)
     subprocess.run(["git", "add", "public/", "dist/", "brain/"], check=False)
     subprocess.run(["git", "commit", "-m", f"Release Bundle: {app_title}"], check=False)
+    subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", "main"], check=False)
     subprocess.run(["git", "push"], check=False)
     time.sleep(3)
 
