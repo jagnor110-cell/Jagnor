@@ -1,0 +1,15 @@
+{
+  "engine": "full_circle_5ai_council",
+  "status": "PUBLISHED",
+  "product_title": "Cash Flow Reset: 30-Day Money Sprint",
+  "category": "MONEY",
+  "price_usd": 9.0,
+  "whop_checkout_url": "https://whop.com/cash-flow-reset-30-day-money-sprint",
+  "whop_status": "Product live at whop.com/cash-flow-reset-30-day-money-sprint (Checkout HTTP 400: {\"error\":{\"type\":\"bad_request\",\"message\":\"variant.currency is required\"}})",
+  "storefront_url": "https://jagnor110-cell.github.io/Jagnor/",
+  "pdf_url": "https://jagnor110-cell.github.io/Jagnor/playbook_prod_1795027377.pdf",
+  "app_url": "https://jagnor110-cell.github.io/Jagnor/app_prod_1795027377.html",
+  "qa_report": "PASS (1080x1920 h264/aac, 18.4s, +faststart verified)",
+  "youtube_result": "https://youtube.com/shorts/grHU1vtzVoA",
+  "instagram_result": "HTTP 400: {\"error\":{\"message\":\"API access blocked.\",\"code\":200,\"type\":\"OAuthException\",\"error_subcode\":5258005,\"fbtrace_id\":\"Ax6eQdPCOGtActN7gH1jt8Y\"}}"
+}
