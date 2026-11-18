@@ -1,5 +1,14 @@
 [
   {
+    "title": "CurioLab: Kids Visual Science Quest",
+    "subtitle": "Illustrated PDF Playbook + Interactive Companion App",
+    "category": "Kids Visual Science",
+    "price_usd": 9.0,
+    "checkout_url": "https://whop.com/curiolab-kids-visual-science-quest",
+    "pdf_url": "playbook_prod_1795029411.pdf",
+    "app_url": "app_prod_1795029411.html"
+  },
+  {
     "title": "AstroMath: Kids Visual Brain Quest",
     "subtitle": "Illustrated PDF Playbook + Interactive Companion App",
     "category": "KIDS STEM & LOGIC",
