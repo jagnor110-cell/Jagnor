@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cash Flow Reset: 30-Day Money Sprint — Interactive App</title>
+<title>Recall Rush: Visual Memory Playbook — Interactive App</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
   body { background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: 0 auto; }
@@ -32,27 +32,27 @@
 <body>
   <div class="top-nav">
     <a href="index.html">← Back to Jagnor Digital Store</a>
-    <a href="playbook_prod_1795027377.pdf" target="_blank">📄 Open PDF Playbook</a>
+    <a href="playbook_prod_1795028219.pdf" target="_blank">📄 Open PDF Playbook</a>
   </div>
   <div class="card">
-    <span class="badge">MONEY</span>
-    <h1>Cash Flow Reset: 30-Day Money Sprint</h1>
+    <span class="badge">Student / Exam Memory</span>
+    <h1>Recall Rush: Visual Memory Playbook</h1>
     <p class="sub">Illustrated PDF Playbook + Interactive Companion App</p>
     <div class="presets">
-      <button class="preset" onclick="setMode(3, 25, 70)">Beginner Boost – Auto‑set $75 daily cap, 20% savings, gentle 3‑day ramp</button>
-      <button class="preset" onclick="setMode(6, 45, 85)">Savings Accelerator – $150 daily cap, 40% savings, aggressive 7‑day sprint</button>
-      <button class="preset" onclick="setMode(9, 60, 98)">Reset &amp; Relaunch – $0 cap first 3 days, 50% savings thereafter, full 30‑day reset</button>
+      <button class="preset" onclick="setMode(3, 25, 70)">Medical Board Blitz — 1.8s exposure, high distractor density, 40-trial arc</button>
+      <button class="preset" onclick="setMode(6, 45, 85)">Law/CPA Sprint — 2.4s exposure, medium distractors, 25-trial arc</button>
+      <button class="preset" onclick="setMode(9, 60, 98)">Lifelong Recall Lab — 3.2s exposure, low distractors, 15-trial arc</button>
     </div>
     <div class="control">
-      <div class="control-header"><span>Daily Spending Cap ($)</span><strong id="v1">6</strong></div>
+      <div class="control-header"><span>Exposure Window (sec): how long each visual cluster stays on screen</span><strong id="v1">6</strong></div>
       <input type="range" id="s1" min="1" max="10" value="6" oninput="updateApp()">
     </div>
     <div class="control">
-      <div class="control-header"><span>Savings Percentage (%)</span><strong id="v2">45</strong></div>
+      <div class="control-header"><span>Distractor Density: number of decoy shapes per flash frame</span><strong id="v2">45</strong></div>
       <input type="range" id="s2" min="10" max="100" value="45" oninput="updateApp()">
     </div>
     <div class="control">
-      <div class="control-header"><span>Sprint Intensity (1‑10)</span><strong id="v3">85%</strong></div>
+      <div class="control-header"><span>Retention Arc (trials): how many rapid-fire recall rounds before review</span><strong id="v3">85%</strong></div>
       <input type="range" id="s3" min="50" max="100" value="85" oninput="updateApp()">
     </div>
   </div>
@@ -60,14 +60,14 @@
     <div class="control-header"><span>Live Mastery &amp; Progress Score</span><strong id="scoreTxt">89 / 100</strong></div>
     <div class="bar-wrap"><div class="bar-fill" id="scoreBar"></div></div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-val" id="k1">+680</div><div class="kpi-lbl">Total Savings Deposited</div></div>
-      <div class="kpi"><div class="kpi-val" id="k2">94%</div><div class="kpi-lbl">Average Daily Spend</div></div>
-      <div class="kpi"><div class="kpi-val" id="k3">4.5h</div><div class="kpi-lbl">Streak Days Completed</div></div>
-      <div class="kpi"><div class="kpi-val" id="k4">Tier S</div><div class="kpi-lbl">Net Cash Flow Gain</div></div>
+      <div class="kpi"><div class="kpi-val" id="k1">+680</div><div class="kpi-lbl">Visual Capture Rate: % of target details spotted in first pass</div></div>
+      <div class="kpi"><div class="kpi-val" id="k2">94%</div><div class="kpi-lbl">Recall Precision: % of recalled items correctly placed</div></div>
+      <div class="kpi"><div class="kpi-val" id="k3">4.5h</div><div class="kpi-lbl">Interference Resistance: drop in accuracy under distractor load</div></div>
+      <div class="kpi"><div class="kpi-val" id="k4">Tier S</div><div class="kpi-lbl">High-Stakes Readiness Index: composite score vs. exam-day target</div></div>
     </div>
     <div class="cta-row">
-      <a class="btn-buy" href="https://whop.com/cash-flow-reset-30-day-money-sprint" target="_blank">💳 Get Full Bundle ($9)</a>
-      <a class="btn-pdf" href="playbook_prod_1795027377.pdf" target="_blank">📖 PDF Guide</a>
+      <a class="btn-buy" href="https://whop.com/recall-rush-visual-memory-playbook" target="_blank">💳 Get Full Bundle ($9)</a>
+      <a class="btn-pdf" href="playbook_prod_1795028219.pdf" target="_blank">📖 PDF Guide</a>
     </div>
   </div>
 <script>
