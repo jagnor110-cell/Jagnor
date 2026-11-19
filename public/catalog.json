@@ -1,5 +1,14 @@
 [
   {
+    "title": "CodeSprout: Kids Visual Logic Quest",
+    "subtitle": "Illustrated PDF Playbook + Interactive Companion App",
+    "category": "Kids Visual Logic",
+    "price_usd": 9.0,
+    "checkout_url": "https://whop.com/codesprout-kids-visual-logic-quest",
+    "pdf_url": "playbook_prod_1795058211.pdf",
+    "app_url": "app_prod_1795058211.html"
+  },
+  {
     "title": "CurioLab: Kids Visual Science Quest",
     "subtitle": "Illustrated PDF Playbook + Interactive Companion App",
     "category": "Kids Visual Science",

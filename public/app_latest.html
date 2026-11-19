@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CurioLab: Kids Visual Science Quest — Interactive App</title>
+<title>CodeSprout: Kids Visual Logic Quest — Interactive App</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
   body { background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: 0 auto; }
@@ -32,27 +32,27 @@
 <body>
   <div class="top-nav">
     <a href="index.html">← Back to Jagnor Digital Store</a>
-    <a href="playbook_prod_1795029411.pdf" target="_blank">📄 Open PDF Playbook</a>
+    <a href="playbook_prod_1795058211.pdf" target="_blank">📄 Open PDF Playbook</a>
   </div>
   <div class="card">
-    <span class="badge">Kids Visual Science</span>
-    <h1>CurioLab: Kids Visual Science Quest</h1>
+    <span class="badge">Kids Visual Logic</span>
+    <h1>CodeSprout: Kids Visual Logic Quest</h1>
     <p class="sub">Illustrated PDF Playbook + Interactive Companion App</p>
     <div class="presets">
-      <button class="preset" onclick="setMode(3, 25, 70)">Adventure Quest</button>
-      <button class="preset" onclick="setMode(6, 45, 85)">Lab Explorer</button>
-      <button class="preset" onclick="setMode(9, 60, 98)">Science Sprint</button>
+      <button class="preset" onclick="setMode(3, 25, 70)">🚀 &quot;First Flight&quot; (Age 6-7): Low Complexity, Co-Pilot Hints, Pixel Pet Shop, Auto-Save every 2 mins, No Timer</button>
+      <button class="preset" onclick="setMode(6, 45, 85)">🧠 &quot;Logic Lab&quot; (Age 8-9): Medium Complexity, &quot;Ask Sprout&quot; Button (3 uses/level), Mars Base Builder, &quot;Explain Block&quot; toggle ON, Star Rating visible</button>
+      <button class="preset" onclick="setMode(9, 60, 98)">🏆 &quot;Speedrun Architect&quot; (Age 10-11): High Complexity, Ghost Mode, Cyber Jungle, Efficiency Meter (Blocks Used vs Optimal), Global Leaderboard Opt-In</button>
     </div>
     <div class="control">
-      <div class="control-header"><span>Mystery Level</span><strong id="v1">6</strong></div>
+      <div class="control-header"><span>Puzzle Complexity: &quot;Snail Steps&quot; (1 block) ➡️ &quot;Rocket Logic&quot; (12+ nested loops/conditionals)</span><strong id="v1">6</strong></div>
       <input type="range" id="s1" min="1" max="10" value="6" oninput="updateApp()">
     </div>
     <div class="control">
-      <div class="control-header"><span>Exploration Depth</span><strong id="v2">45</strong></div>
+      <div class="control-header"><span>Hint Frequency: &quot;Ghost Mode&quot; (Zero help) ➡️ &quot;Co-Pilot&quot; (Contextual video nudge every 3 failed attempts)</span><strong id="v2">45</strong></div>
       <input type="range" id="s2" min="10" max="100" value="45" oninput="updateApp()">
     </div>
     <div class="control">
-      <div class="control-header"><span>Experiment Pace</span><strong id="v3">85%</strong></div>
+      <div class="control-header"><span>World Theme Skin: &quot;Pixel Pet Shop&quot; (Sequencing) ➡️ &quot;Mars Base Builder&quot; (Debugging) ➡️ &quot;Cyber Jungle&quot; (Variables/Functions)</span><strong id="v3">85%</strong></div>
       <input type="range" id="s3" min="50" max="100" value="85" oninput="updateApp()">
     </div>
   </div>
@@ -60,14 +60,14 @@
     <div class="control-header"><span>Live Mastery &amp; Progress Score</span><strong id="scoreTxt">89 / 100</strong></div>
     <div class="bar-wrap"><div class="bar-fill" id="scoreBar"></div></div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-val" id="k1">+680</div><div class="kpi-lbl">Knowledge Boost</div></div>
-      <div class="kpi"><div class="kpi-val" id="k2">94%</div><div class="kpi-lbl">Skill Mastery</div></div>
-      <div class="kpi"><div class="kpi-val" id="k3">4.5h</div><div class="kpi-lbl">Experiment Count</div></div>
-      <div class="kpi"><div class="kpi-val" id="k4">Tier S</div><div class="kpi-lbl">Curiosity Index</div></div>
+      <div class="kpi"><div class="kpi-val" id="k1">+680</div><div class="kpi-lbl">&quot;Aha!&quot; Moment Rate: % of sessions where user solves a new concept level without using a hint</div></div>
+      <div class="kpi"><div class="kpi-val" id="k2">94%</div><div class="kpi-lbl">Debugging Persistence Index: Avg. retry count on &#x27;Broken Code&#x27; levels before success (Target: 2.5 - 4.0 retries)</div></div>
+      <div class="kpi"><div class="kpi-val" id="k3">4.5h</div><div class="kpi-lbl">Concept Transfer Score: % of kids who successfully build a custom project in &#x27;Sandbox&#x27; using blocks learned in &#x27;Quest&#x27; mode within 7 days</div></div>
+      <div class="kpi"><div class="kpi-val" id="k4">Tier S</div><div class="kpi-lbl">Parent Co-Play Duration: Avg. minutes per week a linked parent account views progress dashboard or plays &#x27;Vs. Mode&#x27; with child</div></div>
     </div>
     <div class="cta-row">
-      <a class="btn-buy" href="https://whop.com/curiolab-kids-visual-science-quest" target="_blank">💳 Get Full Bundle ($9)</a>
-      <a class="btn-pdf" href="playbook_prod_1795029411.pdf" target="_blank">📖 PDF Guide</a>
+      <a class="btn-buy" href="https://whop.com/codesprout-kids-visual-logic-quest" target="_blank">💳 Get Full Bundle ($9)</a>
+      <a class="btn-pdf" href="playbook_prod_1795058211.pdf" target="_blank">📖 PDF Guide</a>
     </div>
   </div>
 <script>

@@ -1,12 +1,16 @@
 1
-00:00:00,100 --> 00:00:02,925
-Frustrated with endless screen time?
+00:00:00,100 --> 00:00:03,400
+Tablet scrolling stealing your kid's focus?
 
 2
-00:00:02,875 --> 00:00:08,462
-Swap it for CurioLab's 3-page visual science playbook and an experiment app.
+00:00:03,350 --> 00:00:05,925
+CodeSprout flips the script.
 
 3
-00:00:08,462 --> 00:00:14,712
-Hands-on STEM magic awaits at home — tap the store link in our profile to start free today.
+00:00:05,925 --> 00:00:12,287
+Start with the 3-page PDF Playbook, then tackle puzzle missions in the live interactive app.
+
+4
+00:00:12,287 --> 00:00:15,662
+Tap the store link in our profile to begin.
 
