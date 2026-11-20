@@ -7,10 +7,11 @@
     "bundle:compound lab: visual wealth playbook",
     "bundle:curiolab: kids visual science quest",
     "bundle:macro quest: daily fit & fuel system",
-    "bundle:recall rush: visual memory playbook"
+    "bundle:recall rush: visual memory playbook",
+    "motion_story:how far voyager 1 has traveled into deep space:20261120"
   ],
   "allowlisted_channels": [],
-  "daily_spend_usd": 0.0,
+  "daily_spend_usd": 0.1,
   "daily_budget_cap_usd": 5.0,
   "publish_log": [],
   "history": [
@@ -159,6 +160,17 @@
         "qa_report": "PASS (1080x1920 h264/aac, 18.5s, +faststart verified)",
         "youtube_result": "https://youtube.com/shorts/YZXj-lB609w",
         "instagram_result": "HTTP 400: {\"error\":{\"message\":\"API access blocked.\",\"code\":200,\"type\":\"OAuthException\",\"error_subcode\":5258005,\"fbtrace_id\":\"AE8KiHfoyWyabE9Rr3qlPZU\"}}"
+      }
+    },
+    {
+      "timestamp": 1795173165,
+      "engine": "motion_story",
+      "item_key": "motion_story:how far voyager 1 has traveled into deep space:20261120",
+      "cost_usd": 0.1,
+      "summary": {
+        "topic": "How Far Voyager 1 Has Traveled Into Deep Space",
+        "character": "Voyager 1",
+        "mp4_path": "jobs/latest/out/story_how_far_voyager_1_has_tr.mp4"
       }
     }
   ]
