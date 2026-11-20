@@ -1,5 +1,14 @@
 [
   {
+    "title": "Compound Lab: Visual Wealth Playbook",
+    "subtitle": "Illustrated PDF Playbook + Interactive Companion App",
+    "category": "Wealth & Investing",
+    "price_usd": 9.0,
+    "checkout_url": "https://whop.com/compound-lab-visual-wealth-playbook",
+    "pdf_url": "playbook_prod_1795144810.pdf",
+    "app_url": "app_prod_1795144810.html"
+  },
+  {
     "title": "CodeSprout: Kids Visual Logic Quest",
     "subtitle": "Illustrated PDF Playbook + Interactive Companion App",
     "category": "Kids Visual Logic",
