@@ -1,10 +1,11 @@
 {
   "spend_date_utc": "2026-11-21",
   "processed_items": [
+    "ai_faceless:how deep is space actually is:20261121",
     "motion_story:how far voyager 1 has traveled into deep space:20261121"
   ],
   "allowlisted_channels": [],
-  "daily_spend_usd": 0.1,
+  "daily_spend_usd": 0.22,
   "daily_budget_cap_usd": 5.0,
   "publish_log": [
     {
@@ -24,6 +25,16 @@
         "topic": "How Far Voyager 1 Has Traveled Into Deep Space",
         "character": "Voyager 1",
         "mp4_path": "jobs/latest/out/story_how_far_voyager_1_has_tr_202611211949.mp4"
+      }
+    },
+    {
+      "timestamp": 1795291778,
+      "engine": "ai_faceless",
+      "item_key": "ai_faceless:how deep is space actually is:20261121",
+      "cost_usd": 0.12,
+      "summary": {
+        "topic": "How deep is space actually is ",
+        "mp4_path": "jobs/latest/out/faceless_how_deep_is_space_actual_202611212009.mp4"
       }
     }
   ]

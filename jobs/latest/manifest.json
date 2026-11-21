@@ -1,24 +1,15 @@
 {
   "engine": "clipping",
-  "source_mode": "motion_story",
-  "status": "PUBLISHED",
-  "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space",
+  "source_mode": "ai_faceless",
+  "status": "APPROVAL_PENDING",
+  "source_url": "ai_faceless:How deep is space actually is ",
   "language": "English",
   "settings_applied": {
-    "topic": "How Far Voyager 1 Has Traveled Into Deep Space",
-    "theme": "Universal Storytelling",
-    "art_style": "anime",
-    "voice": "indian_storyteller_male",
+    "topic": "How deep is space actually is ",
+    "theme": "Explanation ",
+    "art_style": "dark_cinematic",
+    "voice": "serious_female",
     "character_desc": ""
-  },
-  "character": {
-    "name": "Voyager 1",
-    "archetype": "the eternal messenger",
-    "primary_hex": "#FFD700",
-    "accent_hex": "#00BFFF",
-    "skin_hex": "#C0C0C0",
-    "aura_hex": "#8A2BE2",
-    "visual_world": "space"
   },
   "council_models_used": [
     "openrouter:openrouter/free",
@@ -28,19 +19,19 @@
   ],
   "clips": [
     {
-      "clip_id": "story_01",
+      "clip_id": "faceless_01",
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 44.76,
-      "duration_sec": 44.76,
-      "mp4_path": "jobs/latest/out/story_how_far_voyager_1_has_tr_202611211949.mp4",
-      "layout_mode": "motion_story_2d_9x16",
+      "end_sec": 27.14,
+      "duration_sec": 27.14,
+      "mp4_path": "jobs/latest/out/faceless_how_deep_is_space_actual_202611212009.mp4",
+      "layout_mode": "ai_faceless_9x16",
       "qa_verified": true,
-      "yt_title": "Voyager 1: Journey to Interstellar Space #Shorts",
-      "ig_caption": "Voyager 1 has traveled 170 AU (25.4 billion km) and counting. It crossed the heliopause in 2012 — the first human object in interstellar space. Its signal takes 23 hours to reach us. The Golden Record carries 55 languages, 90 minutes of music, and the sound of a kiss. 🌌 #Interstellar #AnimeAstronomy #VoyagerMission",
-      "hook_overlay": "🚀 47 YEARS AGO TODAY — IT NEVER...",
-      "council_score": 9.7,
+      "yt_title": "Falling Into Dark Cosmic Silence #Shorts",
+      "ig_caption": "🌌 *Dive into the dark abyss.* #DarkCinematic #RimLighting #VoidAesthetic",
+      "hook_overlay": "FALLING INTO COSMIC SILENCE",
+      "council_score": 9.6,
       "council_models_used": [
         "openrouter:openrouter/free",
         "openrouter:openrouter/free",
@@ -48,23 +39,7 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space",
-      "published_platforms": {
-        "youtube": "0KsFXWfN5iQ"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "0KsFXWfN5iQ"
-      }
-    }
-  ],
-  "approved_at": 1795290683,
-  "published_at": 1795290685,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "0KsFXWfN5iQ"
+      "source_url": "ai_faceless:How deep is space actually is "
     }
   ]
 }
