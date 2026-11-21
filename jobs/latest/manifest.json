@@ -1,0 +1,54 @@
+{
+  "engine": "clipping",
+  "source_mode": "motion_story",
+  "status": "APPROVAL_PENDING",
+  "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space",
+  "language": "English",
+  "settings_applied": {
+    "topic": "How Far Voyager 1 Has Traveled Into Deep Space",
+    "theme": "Universal Storytelling",
+    "art_style": "anime",
+    "voice": "indian_storyteller_male",
+    "character_desc": ""
+  },
+  "character": {
+    "name": "Voyager 1",
+    "archetype": "the eternal messenger",
+    "primary_hex": "#FFD700",
+    "accent_hex": "#00BFFF",
+    "skin_hex": "#C0C0C0",
+    "aura_hex": "#8A2BE2",
+    "visual_world": "space"
+  },
+  "council_models_used": [
+    "openrouter:openrouter/free",
+    "openrouter:openrouter/free",
+    "nvidia-nim-native",
+    "openrouter:openrouter/free"
+  ],
+  "clips": [
+    {
+      "clip_id": "story_01",
+      "start_segment_id": 0,
+      "end_segment_id": 4,
+      "start_sec": 0.0,
+      "end_sec": 44.76,
+      "duration_sec": 44.76,
+      "mp4_path": "jobs/latest/out/story_how_far_voyager_1_has_tr_202611211949.mp4",
+      "layout_mode": "motion_story_2d_9x16",
+      "qa_verified": true,
+      "yt_title": "Voyager 1: Journey to Interstellar Space #Shorts",
+      "ig_caption": "Voyager 1 has traveled 170 AU (25.4 billion km) and counting. It crossed the heliopause in 2012 — the first human object in interstellar space. Its signal takes 23 hours to reach us. The Golden Record carries 55 languages, 90 minutes of music, and the sound of a kiss. 🌌 #Interstellar #AnimeAstronomy #VoyagerMission",
+      "hook_overlay": "🚀 47 YEARS AGO TODAY — IT NEVER...",
+      "council_score": 9.7,
+      "council_models_used": [
+        "openrouter:openrouter/free",
+        "openrouter:openrouter/free",
+        "nvidia-nim-native",
+        "openrouter:openrouter/free"
+      ],
+      "contains_synthetic_media": true,
+      "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space"
+    }
+  ]
+}
