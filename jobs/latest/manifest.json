@@ -2,28 +2,28 @@
   "engine": "clipping",
   "source_mode": "motion_story",
   "status": "APPROVAL_PENDING",
-  "source_url": "motion_story:The 1,000-year secret hidden inside tree rings",
+  "source_url": "motion_story:The universal story code beneath all myths",
   "language": "English",
   "settings_applied": {
-    "topic": "The 1,000-year secret hidden inside tree rings",
+    "topic": "The universal story code beneath all myths",
     "theme": "Universal Storytelling",
     "art_style": "dark_cinematic",
     "voice": "deep_male",
     "character_desc": ""
   },
   "character": {
-    "name": "Elara Voss",
-    "archetype": "cosmic archivist",
-    "primary_hex": "#0B0E14",
-    "accent_hex": "#00FF88",
-    "skin_hex": "#E8DCC8",
-    "aura_hex": "#4B0082",
-    "visual_world": "nature"
+    "name": "The Archetypal Seeker",
+    "archetype": "seeker",
+    "primary_hex": "#D94A38",
+    "accent_hex": "#F5C451",
+    "skin_hex": "#C68642",
+    "aura_hex": "#38BDF8",
+    "visual_world": "history_myth"
   },
   "council_models_used": [
     "openrouter:openrouter/free",
     "openrouter:openrouter/free",
-    "nvidia-nim-native",
+    "openrouter:openrouter/free",
     "openrouter:openrouter/free"
   ],
   "clips": [
@@ -32,23 +32,23 @@
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 27.91,
-      "duration_sec": 27.91,
-      "mp4_path": "jobs/latest/out/story_the_1_000_year_secret_hi.mp4",
+      "end_sec": 29.5,
+      "duration_sec": 29.5,
+      "mp4_path": "jobs/latest/out/story_the_universal_story_code.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "Tree Rings: 1,000-Year Cosmic Secrets #Shorts",
-      "ig_caption": "That tree in your yard? It's not just wood. It's a **cosmic flight recorder** 🌲☢️\n\nScientists found 14 radioactive spikes buried in tree rings—each one a solar storm 1000x stronger than every nuke on Earth combined. The last one hit in 993 AD. We're statistically overdue.\n\nThe 774 AD Miyake Event? 10 BILLION megatons of TNT. Our entire nuclear arsenal is a firecracker by comparison.\n\nTree rings survive. Power grids don't. 12% chance per decade.\n\n**What would you grab first if the lights went out for years?**\n\n#Dendrochronology #MiyakeEvent #SolarStorm #TreeRings #CosmicHistory #Prepper #ScienceFacts #NatureArchives #SpaceWeather #SolarCycle #EarthScience",
-      "hook_overlay": "TREE RINGS = COSMIC BLACK BOXES",
+      "yt_title": "Every Myth Is The Same Story #Shorts",
+      "ig_caption": "Every myth you've ever loved is the same story.\n\nGreek, Egyptian, Maya, Norse, Japanese, Mesopotamian — twelve cultures, no contact, and the exact same twelve-beat skeleton. Separation. Initiation. Return.\n\nJoseph Campbell called it the monomyth. Christopher Vogler called it hardwired. 30,000 years of cave paintings, scripture, and cinema all running the same code.\n\nWhich means the oldest story on Earth isn't finished. It's waiting on its next chapter — yours.\n\n🎯 Which stage of the journey are you in right now — and who's your threshold guardian? Drop it below. 👇\n\n#monomyth #herosjourney #josephcampbell #storytelling #mythology #worldcultures #storystructure #narrativedesign #archetypes #myth #universalstory #mythiccode #thresholdguardian",
+      "hook_overlay": "EVERY MYTH = SAME STORY",
       "council_score": 9.7,
       "council_models_used": [
         "openrouter:openrouter/free",
         "openrouter:openrouter/free",
-        "nvidia-nim-native",
+        "openrouter:openrouter/free",
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:The 1,000-year secret hidden inside tree rings"
+      "source_url": "motion_story:The universal story code beneath all myths"
     }
   ]
 }
