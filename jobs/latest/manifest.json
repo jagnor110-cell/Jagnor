@@ -1,7 +1,7 @@
 {
   "engine": "clipping",
   "source_mode": "motion_story",
-  "status": "APPROVAL_PENDING",
+  "status": "PUBLISHED",
   "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space",
   "language": "English",
   "settings_applied": {
@@ -48,7 +48,23 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space"
+      "source_url": "motion_story:How Far Voyager 1 Has Traveled Into Deep Space",
+      "published_platforms": {
+        "youtube": "0KsFXWfN5iQ"
+      },
+      "published": true,
+      "receipt": {
+        "clip_id": "story_01",
+        "youtube": "0KsFXWfN5iQ"
+      }
+    }
+  ],
+  "approved_at": 1795290683,
+  "published_at": 1795290685,
+  "published_receipts": [
+    {
+      "clip_id": "story_01",
+      "youtube": "0KsFXWfN5iQ"
     }
   ]
 }

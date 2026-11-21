@@ -6,7 +6,14 @@
   "allowlisted_channels": [],
   "daily_spend_usd": 0.1,
   "daily_budget_cap_usd": 5.0,
-  "publish_log": [],
+  "publish_log": [
+    {
+      "timestamp": 1795290685,
+      "platform": "youtube",
+      "post_id": "0KsFXWfN5iQ",
+      "title": "Voyager 1: Journey to Interstellar Space #Shorts"
+    }
+  ],
   "history": [
     {
       "timestamp": 1795290635,
