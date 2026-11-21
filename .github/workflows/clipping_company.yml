@@ -26,9 +26,17 @@ on:
           - digital_product
           - b2b_agency
       title_or_topic:
-        description: "[motion_story / ai_faceless / carousel] Story topic or title"
+        description: "[motion_story / ai_faceless / carousel / digital_product / b2b_agency] Topic, product title, or client name"
         required: false
         default: "How Far Voyager 1 Has Traveled Into Deep Space"
+      notes_or_points:
+        description: "[carousel / digital_product / b2b_agency] Slide points (separated by ;) or product/client notes"
+        required: false
+        default: ""
+      price_usd:
+        description: "[digital_product / b2b_agency] Price in USD (e.g. 17 or 1500)"
+        required: false
+        default: "17"
       theme:
         description: "[motion_story / ai_faceless] Any theme (History, Mythology, Space, AI, Psychology, Finance)"
         required: false
@@ -38,11 +46,12 @@ on:
         required: false
         default: ""
       art_style:
-        description: "[motion_story / ai_faceless] Visual art style"
+        description: "[all video engines] Visual art style (use 'original' to match clipped video exactly)"
         required: true
-        default: "dark_cinematic"
+        default: "original"
         type: choice
         options:
+          - original
           - dark_cinematic
           - anime
           - cyberpunk
@@ -50,6 +59,16 @@ on:
           - comic_book
           - minimalist_sketch
           - oil_painting
+      aspect_ratio:
+        description: "[clipping / raw_video_drop] Output video aspect ratio"
+        required: true
+        default: "9:16"
+        type: choice
+        options:
+          - "9:16"
+          - "16:9"
+          - "1:1"
+          - "4:5"
       voice:
         description: "[motion_story / ai_faceless] Narrator Voice & Mood (serious, happy, mysterious, deep male/female)"
         required: true
@@ -102,8 +121,8 @@ on:
         type: boolean
 
   schedule:
-    # Runs 3x daily spaced 6 hours apart (03:30, 09:30, 15:30 UTC = 9:00 AM, 3:00 PM, 9:00 PM IST)
-    - cron: "30 3,9,15 * * *"
+    # Runs 2x daily spaced 12 hours apart (03:30, 15:30 UTC = 9:00 AM, 9:00 PM IST)
+    - cron: "30 3,15 * * *"
 
 permissions:
   contents: write
@@ -127,7 +146,7 @@ jobs:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       # 2 Free Visual APIs for Motion-Animated Faceless Shorts
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
       # Gmail SMTP Reporting Secrets
       COMPANY_GMAIL: ${{ secrets.COMPANY_GMAIL }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
@@ -160,10 +179,13 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y ffmpeg libmagic1 fonts-dejavu-core fonts-noto-core fonts-indic
 
-      - name: Install Python Dependencies (yt-dlp + faster-whisper CPU + edge-tts + MediaPipe + Pillow)
+      - name: Install Python Dependencies (yt-dlp + faster-whisper CPU + edge-tts + OpenCV + Pillow)
         run: |
           python3 -m pip install --upgrade pip
-          pip install "yt-dlp[default]" faster-whisper edge-tts opencv-python-headless pillow numpy mediapipe
+          # NOTE: mediapipe is intentionally NOT installed. Current releases dropped `mp.solutions` and pull in
+          # opencv-contrib-python, which clashes with opencv-python-headless and breaks cv2 face data files.
+          # The worker uses OpenCV Haar face tracking (auto-downloads its model) and falls back to a centered crop.
+          pip install "yt-dlp[default]" faster-whisper edge-tts opencv-python-headless pillow numpy
 
       - name: Step 1 — Run 4-Brain Free AI Council & Render 9:16 Short to public/
         if: ${{ github.event.inputs.stage == 'build' || github.event.inputs.stage == 'full' || github.event_name == 'schedule' }}
@@ -173,7 +195,10 @@ jobs:
           INPUT_NICHE: ${{ github.event.inputs.niche_query || 'AI agents automation tech podcast' }}
           INPUT_TREND_PLAT: ${{ github.event.inputs.trend_platform || 'auto' }}
           INPUT_TITLE: ${{ github.event.inputs.title_or_topic || 'How Far Voyager 1 Has Traveled Into Deep Space' }}
-          INPUT_ART_STYLE: ${{ github.event.inputs.art_style || 'dark_cinematic' }}
+          INPUT_NOTES: ${{ github.event.inputs.notes_or_points }}
+          INPUT_PRICE: ${{ github.event.inputs.price_usd || '17' }}
+          INPUT_ART_STYLE: ${{ github.event.inputs.art_style || 'original' }}
+          INPUT_ASPECT_RATIO: ${{ github.event.inputs.aspect_ratio || '9:16' }}
           INPUT_THEME: ${{ github.event.inputs.theme || 'Universal Storytelling' }}
           INPUT_CHARACTER: ${{ github.event.inputs.character_desc }}
           INPUT_VOICE: ${{ github.event.inputs.voice || 'deep_male' }}
@@ -189,6 +214,9 @@ jobs:
             AUTO_TOPIC_FLAG="--auto-topic"
           fi
 
+          CLEAN_PRICE=$(echo "${INPUT_PRICE:-17}" | tr -cd '0-9.')
+          CLEAN_PRICE="${CLEAN_PRICE:-17}"
+
           python3 jagnor_master_worker.py \
             --stage build \
             --engine "$INPUT_ENGINE" \
@@ -196,7 +224,11 @@ jobs:
             --niche "$INPUT_NICHE" \
             --trend-platform "$INPUT_TREND_PLAT" \
             --title "$INPUT_TITLE" \
+            --client "$INPUT_TITLE" \
+            --notes "$INPUT_NOTES" \
+            --price "$CLEAN_PRICE" \
             --art-style "$INPUT_ART_STYLE" \
+            --aspect-ratio "$INPUT_ASPECT_RATIO" \
             --theme "$INPUT_THEME" \
             --character "$INPUT_CHARACTER" \
             --voice "$INPUT_VOICE" \
@@ -218,7 +250,8 @@ jobs:
             echo "<html><body><h1>Jagnor Clipping AI Media Host</h1></body></html>" > public/index.html
           fi
           ls -t public/*.mp4 2>/dev/null | tail -n +16 | xargs -r rm -f
-          rm -f jobs/latest/source.* jobs/latest/audio_16k.wav jobs/latest/.yt_cookies.txt
+          ls -t public/*.png public/*.jpg public/*.zip 2>/dev/null | tail -n +61 | xargs -r rm -f
+          rm -f jobs/latest/source.* jobs/latest/dropped_source.mp4 jobs/latest/audio_16k.wav jobs/latest/.yt_cookies.txt
           git config user.name "Jagnor Clipping Bot"
           git config user.email "actions@github.com"
           rm -f brain/*.lock jobs/latest/*.lock
@@ -229,7 +262,7 @@ jobs:
           if ! git diff --staged --quiet; then
             git commit -m "chore(pipeline): export animated story short to public/ & update ledger [skip ci]"
             git pull --rebase -X theirs origin main || (git rebase --abort || true)
-            git push origin HEAD:main
+            git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)
           fi
 
       - name: Step 3 — Wait 45s for GitHub Pages CDN Propagation
@@ -260,8 +293,8 @@ jobs:
             PLATFORMS="${PLATFORMS:+$PLATFORMS,}instagram"
           fi
 
-          if [ -z "$DRY_FLAG" ] && [ -z "$PLATFORMS" ]; then
-            echo "No YouTube or Instagram secrets configured yet — skipping live upload cleanly (MP4 is saved in public/)."
+          if [ -z "$DRY_FLAG" ] && [ -z "$PLATFORMS" ] && [ "${{ github.event.inputs.engine }}" != "b2b_agency" ]; then
+            echo "No YouTube or Instagram secrets configured yet — skipping live upload cleanly (files are saved in public/)."
             exit 0
           fi
 
@@ -293,6 +326,6 @@ jobs:
           if ! git diff --staged --quiet; then
             git commit -m "chore(publish): log YouTube Shorts & Instagram Reels receipts [skip ci]"
             git pull --rebase -X theirs origin main || (git rebase --abort || true)
-            git push origin HEAD:main
+            git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)
           fi
           
