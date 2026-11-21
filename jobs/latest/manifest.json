@@ -2,23 +2,23 @@
   "engine": "clipping",
   "source_mode": "motion_story",
   "status": "APPROVAL_PENDING",
-  "source_url": "motion_story:How Deep The Mariana Trench Really Goes",
+  "source_url": "motion_story:The 1,000-year secret hidden inside tree rings",
   "language": "English",
   "settings_applied": {
-    "topic": "How Deep The Mariana Trench Really Goes",
+    "topic": "The 1,000-year secret hidden inside tree rings",
     "theme": "Universal Storytelling",
     "art_style": "dark_cinematic",
     "voice": "deep_male",
     "character_desc": ""
   },
   "character": {
-    "name": "Deep-Sea Submersible",
-    "archetype": "explorer vessel",
-    "primary_hex": "#0B3D5C",
-    "accent_hex": "#00FFFF",
-    "skin_hex": "#C0C0C0",
-    "aura_hex": "#1B2A41",
-    "visual_world": "ocean"
+    "name": "Elara Voss",
+    "archetype": "cosmic archivist",
+    "primary_hex": "#0B0E14",
+    "accent_hex": "#00FF88",
+    "skin_hex": "#E8DCC8",
+    "aura_hex": "#4B0082",
+    "visual_world": "nature"
   },
   "council_models_used": [
     "openrouter:openrouter/free",
@@ -32,14 +32,14 @@
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 45.07,
-      "duration_sec": 45.07,
-      "mp4_path": "jobs/latest/out/story_how_deep_the_mariana_tre.mp4",
+      "end_sec": 27.91,
+      "duration_sec": 27.91,
+      "mp4_path": "jobs/latest/out/story_the_1_000_year_secret_hi.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "How Deep The Mariana Trench Really Goes #Shorts",
-      "ig_caption": "The Mariana Trench doesn’t just go deep—it rewrites what deep means. 🌊⬇️\n\nAt 10.994 km, you could sink Mount Everest and still have over a mile of water above its peak. No sunlight. No rescue. Just 1,000+ atmospheres of pressure waiting to crush anything that isn’t built for the abyss.\n\nWe sent a submersible down to see what’s really hiding in the dark. What it found will change how you see our planet.\n\n#Abyss #Depth #Explore\n\n👇 Would you dive to the bottom of the Mariana Trench if you knew you’d return safely?\n\nComment question: Would you dive to the bottom of the Mariana Trench if you knew you’d return safely?",
-      "hook_overlay": "11 KM DOWN. NO LIGHT. NO RETURN.",
+      "yt_title": "Tree Rings: 1,000-Year Cosmic Secrets #Shorts",
+      "ig_caption": "That tree in your yard? It's not just wood. It's a **cosmic flight recorder** 🌲☢️\n\nScientists found 14 radioactive spikes buried in tree rings—each one a solar storm 1000x stronger than every nuke on Earth combined. The last one hit in 993 AD. We're statistically overdue.\n\nThe 774 AD Miyake Event? 10 BILLION megatons of TNT. Our entire nuclear arsenal is a firecracker by comparison.\n\nTree rings survive. Power grids don't. 12% chance per decade.\n\n**What would you grab first if the lights went out for years?**\n\n#Dendrochronology #MiyakeEvent #SolarStorm #TreeRings #CosmicHistory #Prepper #ScienceFacts #NatureArchives #SpaceWeather #SolarCycle #EarthScience",
+      "hook_overlay": "TREE RINGS = COSMIC BLACK BOXES",
       "council_score": 9.7,
       "council_models_used": [
         "openrouter:openrouter/free",
@@ -48,7 +48,7 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:How Deep The Mariana Trench Really Goes"
+      "source_url": "motion_story:The 1,000-year secret hidden inside tree rings"
     }
   ]
 }
