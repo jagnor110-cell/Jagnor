@@ -930,6 +930,7 @@ class CompanyBrain:
 # ============================================================================
 
 ART_STYLE_PROMPTS: dict[str, str] = {
+    "original": "preserve exact original source visual look and color grading, no artificial stylization",
     "dark_cinematic": "dark moody cinematic photography, dramatic rim lighting, ultra detailed 8k, shallow depth of field, no text",
     "anime": "high-budget Japanese anime art style, vibrant cel shading, dynamic cinematic lighting, Makoto Shinkai aesthetic, no text",
     "cyberpunk": "futuristic cyberpunk neon noir aesthetic, glowing cyan and magenta reflections, rain-slicked sci-fi lighting, ultra detailed, no text",
@@ -938,6 +939,73 @@ ART_STYLE_PROMPTS: dict[str, str] = {
     "minimalist_sketch": "clean editorial minimalist ink and charcoal sketch illustration on dark slate paper, gold accent highlights, modern aesthetic, no text",
     "oil_painting": "dramatic classical oil painting, rich visible brushstrokes, chiaroscuro lighting, museum masterpiece aesthetic, no text",
 }
+
+FFMPEG_ART_STYLE_FILTERS: dict[str, str] = {
+    "original": "",
+    "dark_cinematic": "eq=contrast=1.10:brightness=-0.04:saturation=0.95,colorbalance=rs=-0.04:gs=0.01:bs=0.06",
+    "anime": "hqdn3d=4:3:6:4.5,eq=contrast=1.12:saturation=1.35,unsharp=5:5:1.1:5:5:0.0",
+    "cyberpunk": "eq=contrast=1.15:saturation=1.40,colorbalance=rs=0.06:gs=-0.05:bs=0.14:rh=0.10:bh=0.12",
+    "3d_pixar": "hqdn3d=3:2:5:3,eq=contrast=1.08:brightness=0.03:saturation=1.28",
+    "comic_book": "hqdn3d=5:4:6:5,eq=contrast=1.22:saturation=1.35,unsharp=7:7:1.4:7:7:0.0",
+    "minimalist_sketch": "hue=s=0.15,eq=contrast=1.35:brightness=0.02,unsharp=5:5:1.2:5:5:0.0",
+    "oil_painting": "hqdn3d=6:5:8:6,eq=contrast=1.10:saturation=1.25",
+}
+
+STYLE_THEMES: dict[str, dict[str, Any]] = {
+    "original": {
+        "bg_top": (12, 18, 36), "bg_mid": (24, 38, 68), "bg_bot": (10, 14, 28),
+        "accent": (245, 196, 81), "secondary": (56, 189, 248), "card_bg": (18, 26, 44),
+        "card_text": (245, 248, 255), "border_w": 4, "frame_style": "clean",
+    },
+    "dark_cinematic": {
+        "bg_top": (8, 12, 22), "bg_mid": (20, 32, 52), "bg_bot": (6, 8, 16),
+        "accent": (245, 196, 81), "secondary": (96, 165, 250), "card_bg": (14, 18, 28),
+        "card_text": (242, 244, 248), "border_w": 3, "frame_style": "letterbox",
+    },
+    "anime": {
+        "bg_top": (24, 52, 118), "bg_mid": (148, 86, 146), "bg_bot": (242, 154, 124),
+        "accent": (255, 232, 102), "secondary": (255, 116, 178), "card_bg": (24, 20, 48),
+        "card_text": (255, 250, 255), "border_w": 6, "frame_style": "speedlines",
+    },
+    "cyberpunk": {
+        "bg_top": (10, 4, 28), "bg_mid": (38, 10, 66), "bg_bot": (8, 26, 46),
+        "accent": (0, 245, 255), "secondary": (255, 42, 157), "card_bg": (12, 8, 28),
+        "card_text": (215, 252, 255), "border_w": 5, "frame_style": "scanlines",
+    },
+    "3d_pixar": {
+        "bg_top": (28, 44, 96), "bg_mid": (74, 112, 178), "bg_bot": (36, 56, 102),
+        "accent": (255, 214, 102), "secondary": (126, 224, 255), "card_bg": (26, 38, 72),
+        "card_text": (255, 252, 245), "border_w": 6, "frame_style": "soft_glow",
+    },
+    "comic_book": {
+        "bg_top": (184, 34, 44), "bg_mid": (236, 148, 36), "bg_bot": (28, 36, 64),
+        "accent": (255, 230, 0), "secondary": (0, 208, 255), "card_bg": (252, 246, 222),
+        "card_text": (18, 18, 22), "border_w": 10, "frame_style": "comic_panel",
+    },
+    "minimalist_sketch": {
+        "bg_top": (28, 30, 34), "bg_mid": (42, 45, 52), "bg_bot": (22, 24, 28),
+        "accent": (235, 204, 128), "secondary": (210, 214, 222), "card_bg": (244, 240, 232),
+        "card_text": (26, 26, 30), "border_w": 3, "frame_style": "editorial_grid",
+    },
+    "oil_painting": {
+        "bg_top": (48, 18, 22), "bg_mid": (108, 56, 36), "bg_bot": (24, 16, 18),
+        "accent": (238, 192, 106), "secondary": (186, 118, 72), "card_bg": (240, 226, 196),
+        "card_text": (38, 26, 18), "border_w": 7, "frame_style": "ornate_frame",
+    },
+}
+
+STORY_ACTIONS: tuple[str, ...] = (
+    "cinematic_zoom_in",
+    "dramatic_pull_back",
+    "pan_left_to_right",
+    "pan_right_to_left",
+    "kinetic_stat_slam",
+    "timeline_reveal",
+    "quote_card_styled",
+    "spotlight_drift",
+    "pulse_beat_zoom",
+    "focus_callout",
+)
 
 
 class AICouncil:
@@ -1418,32 +1486,37 @@ class AICouncil:
     ) -> dict[str, Any]:
         """
         4-Brain Free AI Council for `--engine motion_story`:
-        Generates topic-accurate visual_world (space/ocean/tech_ai/finance/history_myth/nature),
-        per-scene visual prompts & stock keywords, plus 5 animated 2D motion-graphic scenes
-        with clean short stats and auto-sized source quotes.
+        Dynamically picks DIFFERENT, topic-relevant camera & motion actions per scene
+        from STORY_ACTIONS (never repeating the same 5 fixed templates!) and aligns
+        every visual_prompt strictly to the topic, theme, character, and art_style.
         """
         style_desc = ART_STYLE_PROMPTS.get(art_style, ART_STYLE_PROMPTS["dark_cinematic"])
-        char_hint = character_desc.strip() or f"Topic-accurate central subject or protagonist for {topic}"
+        char_hint = character_desc.strip() or f"Topic-accurate central subject for {topic}"
+        actions_csv = ", ".join(STORY_ACTIONS)
+
         s1 = self.invoke_stage(
             "gemini",
-            "You are Stage 1 (Gemini Story Architect). Write a gripping 5-scene 45-second animated explainer/story script that is 100% visually accurate to the topic.",
+            "You are Stage 1 (Gemini Story & Motion Director). Write a gripping 5-scene 40-second story script where EVERY scene has a DIFFERENT, topic-relevant visual action.",
             f"Topic: {topic}\nTheme: {theme}\nArt Style: {art_style} ({style_desc})\nLanguage: {language_hint}\n"
-            f"Subject/Character Hint: {char_hint}\nICP:\n{brain.identity_icp}\n"
-            "Pick visual_world from [space, ocean, tech_ai, finance, history_myth, nature]. "
-            "Design 5 scenes using scene_type in [hero_intro, scale_comparison, action_flight, source_quote, zoom_callout]. "
-            "For EVERY scene include: narration (14-20 words), top_label (<=4 words), visual_prompt (accurate to the topic & art style, no text), "
-            "stock_keywords (2-4 concrete real-world nouns spoken in THIS scene narration for exact Wikimedia/Pexels photo matching, unique per scene), metric_value (number), metric_unit (SHORT 1-2 words like KM, AU, YEARS, USD, %, X), "
-            "quote_title, quote_text (1-2 crisp sentences), and callout_label (<=3 words).",
+            f"Subject/Character: {char_hint}\nICP:\n{brain.identity_icp}\n"
+            f"For each of the 5 scenes, pick a UNIQUE, context-appropriate `action` from [{actions_csv}]:\n"
+            "- Only use `kinetic_stat_slam` if the scene mentions a real number/stat.\n"
+            "- Only use `quote_card_styled` if the scene quotes a real person/book/record.\n"
+            "- Only use `timeline_reveal` if the scene spans years/steps.\n"
+            "- Otherwise use cinematic motion (`cinematic_zoom_in`, `dramatic_pull_back`, `pan_left_to_right`, `pan_right_to_left`, `spotlight_drift`, `pulse_beat_zoom`, `focus_callout`).\n"
+            "For EVERY scene include: action, narration (12-18 words), top_label (<=4 words), visual_prompt (strictly matching topic & art_style, NO text in image), "
+            "stock_keywords (2-4 concrete real-world nouns spoken in THIS scene), stat_text (short e.g. '162 AU' or ''), "
+            "quote_title, quote_text, timeline_steps (list of 3 short labels e.g. ['1977', '2012', 'NOW']), and callout_label.",
         )
         s2 = self.invoke_stage(
             "groq",
-            "You are Stage 2 (Groq Viral Storyteller). Sharpen the 3-second hook, keep every visual_prompt strictly accurate to the exact topic, end with a comment question, and add `hook_overlay` + `ig_caption`.",
-            f"Topic: {topic} | Theme: {theme} | Language: {language_hint}\nGemini Draft:\n{s1 or topic}",
+            "You are Stage 2 (Groq Viral Director). Ensure all 5 scenes use varied, topic-accurate actions (no repeated actions), tighten the 3-second hook, end with a comment question, and add `hook_overlay` + `ig_caption`.",
+            f"Topic: {topic} | Theme: {theme} | Art Style: {art_style} | Language: {language_hint}\nGemini Draft:\n{s1 or topic}",
         )
         s3 = self.invoke_stage(
             "nvidia",
-            "You are Stage 3 (NVIDIA Nemotron Polish & SEO). Add a <=60-char `yt_title` with #Shorts, keep metric_unit <= 8 chars (e.g. AU, KM, YEARS, B KM), and add 3 hashtags to `ig_caption`.",
-            f"Groq Draft:\n{s2 or topic}",
+            "You are Stage 3 (NVIDIA Nemotron Polish & SEO). Add a <=60-char `yt_title` with #Shorts, verify every visual_prompt matches the Art Style & Topic, and add 3 niche hashtags to `ig_caption`.",
+            f"Art Style: {art_style}\nGroq Draft:\n{s2 or topic}",
         )
         s4 = self.invoke_stage(
             "openrouter",
@@ -1452,9 +1525,9 @@ class AICouncil:
             'Output ONLY valid JSON: {"hook_overlay": str, "yt_title": str, "ig_caption": str, '
             '"visual_world": str, '
             '"character": {"name": str, "archetype": str, "primary_hex": str, "accent_hex": str, "skin_hex": str, "aura_hex": str}, '
-            '"scenes": [{"scene_type": str, "narration": str, "top_label": str, "visual_prompt": str, "stock_keywords": str, '
-            '"metric_value": float, "metric_unit": str, "quote_title": str, "quote_text": str, "callout_label": str}]} '
-            "(exactly 5 scenes).",
+            '"scenes": [{"action": str, "narration": str, "top_label": str, "visual_prompt": str, "stock_keywords": str, '
+            '"stat_text": str, "quote_title": str, "quote_text": str, "timeline_steps": [str, str, str], "callout_label": str}]} '
+            "(exactly 5 scenes with 5 distinct actions).",
         )
         parsed = (
             self._extract_json_dict(s4)
@@ -1468,13 +1541,6 @@ class AICouncil:
             s = str(val or "").strip()
             return s if re.fullmatch(r"#[0-9a-fA-F]{6}", s) else default
 
-        def _clean_unit(val: Any) -> str:
-            raw = re.sub(r"\(.*?\)", "", str(val or "")).strip()
-            parts = raw.split()[:2]
-            out = " ".join(parts).upper()
-            return out if len(out) <= 10 else parts[0][:10].upper()
-
-        # Infer visual_world accurately from topic/theme if LLM omits or returns unknown value
         low_ctx = f"{topic} {theme} {character_desc}".lower()
         valid_worlds = {"space", "ocean", "tech_ai", "finance", "history_myth", "nature"}
         v_world = str(parsed.get("visual_world") or "").strip().lower()
@@ -1492,6 +1558,19 @@ class AICouncil:
             else:
                 v_world = "nature"
 
+        # Deterministic topic+style hash so different topics/styles pick genuinely different action orders even in fallback!
+        seed_rng = random.Random(f"{topic.lower()}|{art_style.lower()}|{theme.lower()}")
+        style_preferred = {
+            "anime": ["pulse_beat_zoom", "pan_left_to_right", "cinematic_zoom_in", "dramatic_pull_back", "focus_callout"],
+            "cyberpunk": ["spotlight_drift", "kinetic_stat_slam", "pan_right_to_left", "pulse_beat_zoom", "focus_callout"],
+            "comic_book": ["pulse_beat_zoom", "kinetic_stat_slam", "pan_left_to_right", "quote_card_styled", "dramatic_pull_back"],
+            "oil_painting": ["dramatic_pull_back", "pan_left_to_right", "quote_card_styled", "cinematic_zoom_in", "spotlight_drift"],
+            "minimalist_sketch": ["timeline_reveal", "kinetic_stat_slam", "quote_card_styled", "pan_right_to_left", "focus_callout"],
+            "3d_pixar": ["cinematic_zoom_in", "pan_left_to_right", "dramatic_pull_back", "pulse_beat_zoom", "focus_callout"],
+        }
+        fallback_actions = list(style_preferred.get(art_style, STORY_ACTIONS[:5]))
+        seed_rng.shuffle(fallback_actions)
+
         raw_char = parsed.get("character") if isinstance(parsed.get("character"), dict) else {}
         character = {
             "name": str(raw_char.get("name") or topic[:24])[:32],
@@ -1503,101 +1582,100 @@ class AICouncil:
             "visual_world": v_world,
         }
 
-        default_types = ["hero_intro", "scale_comparison", "action_flight", "source_quote", "zoom_callout"]
         raw_scenes = parsed.get("scenes")
         scenes: list[dict[str, Any]] = []
+        used_actions: set[str] = set()
         if isinstance(raw_scenes, list):
             for idx, sc in enumerate(raw_scenes[:5]):
                 if isinstance(sc, dict) and sc.get("narration"):
-                    st = str(sc.get("scene_type") or default_types[idx % 5]).lower()
-                    if st not in set(default_types):
-                        st = default_types[idx % 5]
-                    try:
-                        m_val = float(sc.get("metric_value") or 100)
-                    except Exception:
-                        m_val = 100.0
-                    unit = _clean_unit(sc.get("metric_unit") or "X")
+                    act = str(sc.get("action") or sc.get("scene_type") or "").strip().lower()
+                    if act not in set(STORY_ACTIONS) or act in used_actions:
+                        act = next((a for a in fallback_actions if a not in used_actions), STORY_ACTIONS[idx % len(STORY_ACTIONS)])
+                    used_actions.add(act)
+                    t_steps = sc.get("timeline_steps")
+                    if not isinstance(t_steps, list) or len(t_steps) < 3:
+                        t_steps = ["START", "SHIFT", "NOW"]
                     scenes.append({
-                        "scene_type": st,
+                        "action": act,
                         "narration": str(sc["narration"]).strip(),
-                        "top_label": _trim_words(str(sc.get("top_label") or topic), 30).upper(),
+                        "top_label": _trim_words(str(sc.get("top_label") or topic), 28).upper(),
                         "visual_prompt": str(sc.get("visual_prompt") or f"{topic}, {theme}, {art_style}").strip(),
                         "stock_keywords": str(sc.get("stock_keywords") or f"{v_world.replace('_', ' ')} {topic}")[:42].strip(),
-                        "metric_value": m_val,
-                        "metric_unit": unit,
-                        "quote_title": _trim_words(str(sc.get("quote_title") or theme), 34),
-                        "quote_text": str(sc.get("quote_text") or sc["narration"]).strip()[:200],
-                        "callout_label": _trim_words(str(sc.get("callout_label") or f"{int(m_val)} {unit}"), 22).upper(),
+                        "stat_text": _trim_words(str(sc.get("stat_text") or ""), 16).upper(),
+                        "quote_title": _trim_words(str(sc.get("quote_title") or theme), 32),
+                        "quote_text": str(sc.get("quote_text") or sc["narration"]).strip()[:180],
+                        "timeline_steps": [str(x)[:14].upper() for x in t_steps[:3]],
+                        "callout_label": _trim_words(str(sc.get("callout_label") or ""), 20).upper(),
                     })
 
         if len(scenes) < 3:
             scenes = [
                 {
-                    "scene_type": "hero_intro",
-                    "narration": f"Most people never realize the true scale behind {topic} until you see it visualized.",
-                    "top_label": _trim_words(topic, 28).upper(),
-                    "visual_prompt": f"cinematic establishing shot of {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} dramatic",
-                    "metric_value": 3.0,
-                    "metric_unit": "X SCALE",
+                    "action": fallback_actions[0],
+                    "narration": f"Most people completely miss the real story behind {topic} until they see it up close.",
+                    "top_label": _trim_words(topic, 26).upper(),
+                    "visual_prompt": f"dramatic opening visual of {topic}, {theme}",
+                    "stock_keywords": f"{v_world.replace('_', ' ')} {topic}",
+                    "stat_text": "100% REAL",
                     "quote_title": theme.upper(),
                     "quote_text": "",
-                    "callout_label": "ORIGIN POINT",
+                    "timeline_steps": ["BEGIN", "PEAK", "LEGACY"],
+                    "callout_label": "KEY DETAIL",
                 },
                 {
-                    "scene_type": "scale_comparison",
-                    "narration": "Step by step, the numbers climb far beyond what our brains can picture at a glance.",
+                    "action": fallback_actions[1],
+                    "narration": f"Every detail of {topic} pushes far beyond ordinary limits in ways few expect.",
                     "top_label": "THE REAL SCALE",
-                    "visual_prompt": f"epic scale comparison visual for {topic}, {theme}",
+                    "visual_prompt": f"epic wide visual illustrating {topic}, {theme}",
                     "stock_keywords": f"{v_world.replace('_', ' ')} vast",
-                    "metric_value": 1000.0,
-                    "metric_unit": "KM",
+                    "stat_text": "10X IMPACT",
                     "quote_title": theme.upper(),
                     "quote_text": "",
-                    "callout_label": "1000 KM",
+                    "timeline_steps": ["STEP 1", "STEP 2", "STEP 3"],
+                    "callout_label": "BREAKTHROUGH",
                 },
                 {
-                    "scene_type": "action_flight",
-                    "narration": "At the defining moment of this journey, momentum carries it past every known boundary.",
-                    "top_label": "BEYOND THE LIMIT",
-                    "visual_prompt": f"dynamic motion scene of {topic} crossing a boundary, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} motion",
-                    "metric_value": 90.0,
-                    "metric_unit": "SPEED",
+                    "action": fallback_actions[2],
+                    "narration": "At the turning point, everything shifts in seconds and changes what comes next.",
+                    "top_label": "TURNING POINT",
+                    "visual_prompt": f"dynamic intense action moment of {topic}, {theme}",
+                    "stock_keywords": f"{v_world.replace('_', ' ')} dramatic",
+                    "stat_text": "CRITICAL",
                     "quote_title": theme.upper(),
-                    "quote_text": "",
-                    "callout_label": "BOUNDARY CROSSED",
+                    "quote_text": f"The turning point of {topic} reshaped how we understand {theme}.",
+                    "timeline_steps": ["BEFORE", "SHIFT", "AFTER"],
+                    "callout_label": "TURNING POINT",
                 },
                 {
-                    "scene_type": "source_quote",
-                    "narration": f"The documented record of {topic} captures just how extraordinary this milestone really is.",
-                    "top_label": "THE RECORD",
-                    "visual_prompt": f"atmospheric dramatic backdrop for {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} dark",
-                    "metric_value": 1.0,
-                    "metric_unit": "FACT",
-                    "quote_title": f"{theme.upper()} RECORD",
-                    "quote_text": f"The documented story of {topic} shows how far beyond ordinary limits reality can reach.",
-                    "callout_label": "VERIFIED FACT",
+                    "action": fallback_actions[3],
+                    "narration": f"Look closer at the evidence behind {topic}—the pattern repeats across time.",
+                    "top_label": "THE EVIDENCE",
+                    "visual_prompt": f"detailed atmospheric close-up of {topic}, {theme}",
+                    "stock_keywords": f"{v_world.replace('_', ' ')} closeup",
+                    "stat_text": "VERIFIED",
+                    "quote_title": f"{theme.upper()} ARCHIVE",
+                    "quote_text": f"Every record of {topic} points to one unforgettable lesson.",
+                    "timeline_steps": ["PAST", "PRESENT", "FUTURE"],
+                    "callout_label": "HIDDEN CLUE",
                 },
                 {
-                    "scene_type": "zoom_callout",
-                    "narration": f"Did you know this detail about {topic}? Drop your answer in the comments below.",
-                    "top_label": "WHAT DO YOU THINK?",
+                    "action": fallback_actions[4],
+                    "narration": f"Did you know this side of {topic}? Tell me your take in the comments.",
+                    "top_label": "YOUR TAKE",
                     "visual_prompt": f"awe-inspiring finale shot of {topic}, {theme}",
                     "stock_keywords": f"{v_world.replace('_', ' ')} horizon",
-                    "metric_value": 100.0,
-                    "metric_unit": "% REAL",
+                    "stat_text": "COMMENT",
                     "quote_title": theme.upper(),
                     "quote_text": "",
-                    "callout_label": "COMMENT BELOW",
+                    "timeline_steps": ["WATCH", "THINK", "SHARE"],
+                    "callout_label": "DROP A COMMENT",
                 },
             ]
 
         return {
             "hook_overlay": _trim_words(str(parsed.get("hook_overlay") or topic), 36).upper(),
             "yt_title": str(parsed.get("yt_title") or f"{topic[:48]} #Shorts")[:100],
-            "ig_caption": str(parsed.get("ig_caption") or f"{topic} — animated breakdown. Tell us your take in the comments! #Story #Shorts #Facts"),
+            "ig_caption": str(parsed.get("ig_caption") or f"{topic} — animated story breakdown. Tell us your thoughts! #Story #Shorts"),
             "visual_world": v_world,
             "character": character,
             "scenes": scenes,
@@ -2527,16 +2605,19 @@ def render_vertical_short(
     out_mp4: Path,
     norm_cx: float,
     layout_mode: str,
+    art_style: str = "original",
 ) -> None:
     src_w, src_h = meta["width"], meta["height"]
     duration_sec = min(58.5, max(1.0, end_sec - start_sec))
     is_already_vertical = abs((src_w / src_h) - (9 / 16)) < 0.05
     ass_escaped = escape_ffmpeg_filter_path(ass_path)
+    style_vf = FFMPEG_ART_STYLE_FILTERS.get((art_style or "original").lower(), "")
+    style_chain = f"{style_vf}," if style_vf else ""
 
     if is_already_vertical:
         vf = (
             f"scale=1080:1920:force_original_aspect_ratio=decrease,"
-            f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2,ass='{ass_escaped}'"
+            f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2,{style_chain}ass='{ass_escaped}'"
         )
         filter_args = ["-vf", vf]
     elif layout_mode == "split":
@@ -2546,7 +2627,7 @@ def render_vertical_short(
             f"scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
             f"[right]crop=trunc(iw/4)*2:trunc(ih/2)*2:trunc(iw/4)*2:0,"
             f"scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
-            f"[top][bot]vstack=inputs=2,ass='{ass_escaped}'[vout]"
+            f"[top][bot]vstack=inputs=2,{style_chain}ass='{ass_escaped}'[vout]"
         )
         filter_args = ["-filter_complex", fc, "-map", "[vout]", "-map", "0:a:0"]
     else:
@@ -2554,7 +2635,7 @@ def render_vertical_short(
         crop_w = min(crop_w, (src_w // 2) * 2)
         x_offset = int(np.clip(norm_cx * src_w - crop_w / 2, 0, src_w - crop_w))
         x_offset = (x_offset // 2) * 2
-        vf = f"crop={crop_w}:{(src_h // 2) * 2}:{x_offset}:0,scale=1080:1920,ass='{ass_escaped}'"
+        vf = f"crop={crop_w}:{(src_h // 2) * 2}:{x_offset}:0,scale=1080:1920,{style_chain}ass='{ass_escaped}'"
         filter_args = ["-vf", vf]
 
     cmd = [
@@ -2581,6 +2662,7 @@ def run_clipping_engine(
     model_name: str = "large-v3-turbo",
     allow_all_licenses: bool = False,
     public_dir: Path | None = None,
+    art_style: str = "original",
 ) -> dict[str, Any]:
     item_key = f"clip_url:{url.strip()}"
     brain.check_pre_flight(item_key, estimated_cost_usd=0.25)
@@ -2878,6 +2960,7 @@ def run_raw_video_drop_engine(
     device: str = "auto",
     model_name: str = "base",
     public_dir: Path | None = None,
+    art_style: str = "original",
 ) -> dict[str, Any]:
     """
     Scans `inbox_dir` (e.g. `inbox_videos/`) for the next unprocessed MP4/MOV exported from
@@ -2972,7 +3055,7 @@ def run_raw_video_drop_engine(
     safe_slug = re.sub(r"[^a-zA-Z0-9]+", "_", target_file.stem)[:24].strip("_") or "01"
     mp4_path = out_dir / f"drop_{safe_slug}.mp4"
     write_ass_captions(segments, s_id, e_id, start_sec, ass_path, hook_overlay=hook_overlay)
-    render_vertical_short(working_src, meta, start_sec, end_sec, ass_path, mp4_path, norm_cx, layout_mode)
+    render_vertical_short(working_src, meta, start_sec, end_sec, ass_path, mp4_path, norm_cx, layout_mode, art_style=art_style)
     qa_ok = verify_rendered_mp4(mp4_path, min_duration=5.0)
 
     export_to_public_dir([mp4_path], public_dir)
@@ -3070,6 +3153,8 @@ def _apply_art_style_filter(im: Image.Image, art_style: str) -> Image.Image:
     try:
         bgr = cv2.cvtColor(np.asarray(im.convert("RGB")), cv2.COLOR_RGB2BGR)
         style = (art_style or "dark_cinematic").lower()
+        if style == "original":
+            return im.convert("RGB")
 
         if style in {"anime", "comic_book"}:
             # Bilateral color smoothing + crisp ink edge overlay (cel-shaded illustration look)
@@ -3249,7 +3334,7 @@ def _fetch_wikimedia_topic_image(query: str, out_img: Path, scene_num: int, used
         candidates: list[tuple[int, str]] = []
         for p in pages:
             title_low = str(p.get("title") or "").lower()
-            if any(bad in title_low for bad in (".svg", ".pdf", ".tif", "logo", "icon", "flag_of", "diagram_blank", "map_blank")):
+            if any(bad in title_low for bad in (".svg", ".pdf", ".tif", "logo", "icon", "flag_of", "diagram_blank", "map_blank", "page_", "_page", "book_", "text_", "scan", "manuscript", "title_page", "frontispiece", "letter_", "document", "signature")):
                 continue
             infos = p.get("imageinfo") or []
             if not infos:
@@ -3963,7 +4048,7 @@ def _fetch_story_backdrop_if_available(
 
     if poll_key:
         encoded = urllib.parse.quote(full_prompt)
-        url = f"https://gen.pollinations.ai/image/{encoded}?width=1080&height=1920&model=flux&nologo=true&seed={scene_num * 211}"
+        url = f"https://gen.pollinations.ai/image/{encoded}?width=1080&height=1920&model=flux&nologo=true&seed={abs(hash((topic, art_style, scene_num))) % 999999}"
         try:
             req = urllib.request.Request(url, headers={"Authorization": f"Bearer {poll_key}", "User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=40) as resp:
@@ -4000,6 +4085,84 @@ def _fetch_story_backdrop_if_available(
     return None
 
 
+def _draw_style_frame_decor(
+    draw: ImageDraw.ImageDraw,
+    W: int,
+    H: int,
+    theme_cfg: dict[str, Any],
+    t: float,
+) -> None:
+    """Applies unmistakable art-style framing (comic panels, cyber scanlines, anime speedlines, letterbox, ornate border)."""
+    fstyle = theme_cfg["frame_style"]
+    accent = theme_cfg["accent"]
+    sec = theme_cfg["secondary"]
+
+    if fstyle == "comic_panel":
+        draw.rectangle((22, 22, W - 22, H - 22), outline=(12, 12, 16), width=16)
+        draw.rectangle((34, 34, W - 34, H - 34), outline=accent, width=5)
+    elif fstyle == "scanlines":
+        for sy in range(0, H, 18):
+            draw.line((0, sy, W, sy), fill=(18, 28, 48), width=1)
+        # Neon corner brackets
+        for x0, y0, dx, dy in [(36, 36, 90, 90), (W - 36, 36, -90, 90), (36, H - 36, 90, -90), (W - 36, H - 36, -90, -90)]:
+            draw.line((x0, y0, x0 + dx, y0), fill=accent, width=6)
+            draw.line((x0, y0, x0, y0 + dy), fill=sec, width=6)
+    elif fstyle == "speedlines":
+        # Dynamic anime radial accent lines near outer edges
+        for ai in range(16):
+            ang = (ai / 16.0) * 2.0 * math.pi + t * 0.4
+            x1 = int(W / 2 + math.cos(ang) * 520)
+            y1 = int(H / 2 + math.sin(ang) * 900)
+            x2 = int(W / 2 + math.cos(ang) * 760)
+            y2 = int(H / 2 + math.sin(ang) * 1200)
+            draw.line((x1, y1, x2, y2), fill=accent if ai % 2 == 0 else sec, width=3)
+    elif fstyle == "letterbox":
+        draw.rectangle((0, 0, W, 72), fill=(6, 8, 12))
+        draw.rectangle((0, H - 72, W, H), fill=(6, 8, 12))
+    elif fstyle == "ornate_frame":
+        draw.rectangle((28, 28, W - 28, H - 28), outline=accent, width=6)
+        draw.rectangle((44, 44, W - 44, H - 44), outline=sec, width=2)
+    elif fstyle == "editorial_grid":
+        for gx in (90, W - 90):
+            draw.line((gx, 60, gx, H - 60), fill=(72, 76, 86), width=2)
+
+
+def _build_style_themed_backdrop(W: int, H: int, theme_cfg: dict[str, Any], scene_idx: int) -> Image.Image:
+    """Renders a distinct art-style palette gradient backdrop (different per art_style & scene)."""
+    c1, c2, c3 = theme_cfg["bg_top"], theme_cfg["bg_mid"], theme_cfg["bg_bot"]
+    if scene_idx % 2 == 1:
+        c1, c2 = c2, c1
+    arr = np.zeros((H, W, 3), dtype=np.uint8)
+    split = int(H * 0.58)
+    for y in range(H):
+        if y < split:
+            u = y / float(max(split, 1))
+            arr[y, :] = [int(c1[i] + (c2[i] - c1[i]) * u) for i in range(3)]
+        else:
+            u = (y - split) / float(max(H - split, 1))
+            arr[y, :] = [int(c2[i] + (c3[i] - c2[i]) * u) for i in range(3)]
+    img = Image.fromarray(arr, mode="RGB")
+    draw = ImageDraw.Draw(img)
+    # Subtle geometric atmosphere matching art style
+    rng = random.Random(3000 + scene_idx * 91 + sum(c1))
+    fstyle = theme_cfg["frame_style"]
+    if fstyle == "comic_panel":
+        # Halftone pop-art dots
+        for gy in range(80, H - 80, 96):
+            for gx in range(80, W - 80, 96):
+                draw.ellipse((gx - 8, gy - 8, gx + 8, gy + 8), fill=tuple(min(255, c + 24) for c in c2))
+    elif fstyle == "scanlines":
+        # Perspective cyber grid in bottom third
+        for gx in range(0, W + 120, 120):
+            draw.line((W // 2, int(H * 0.65), gx, H), fill=theme_cfg["secondary"], width=2)
+    else:
+        for _ in range(42):
+            sx, sy = rng.randint(40, W - 40), rng.randint(80, int(H * 0.65))
+            sr = rng.choice([2, 3, 4])
+            draw.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=theme_cfg["accent"])
+    return img
+
+
 def _render_motion_story_scene(
     scene: dict[str, Any],
     character: dict[str, str],
@@ -4016,32 +4179,43 @@ def _render_motion_story_scene(
     used_urls: set[str] | None = None,
 ) -> None:
     """
-    Streams 1080x1920 24fps topic-accurate animation frames directly into FFmpeg:
-    - Uses real AI/Pexels topic backdrops with smooth Ken Burns zoom when keys are set,
-      OR topic-matched procedural 2D vector worlds (`space`, `ocean`, `tech_ai`, `finance`, `history_myth`, `nature`).
-    - Overlays crisp animated HUD graphics: scale rulers, ticking counters, auto-sized
-      parchment quote cards, and rim-anchored circular magnifier callouts.
+    Dynamic 10-Action Motion Director:
+    Executes the exact `action` chosen by the AI Council for THIS scene (`cinematic_zoom_in`,
+    `dramatic_pull_back`, `pan_left_to_right`, `pan_right_to_left`, `kinetic_stat_slam`,
+    `timeline_reveal`, `quote_card_styled`, `spotlight_drift`, `pulse_beat_zoom`, `focus_callout`),
+    styled with the chosen `art_style` theme and real AI/stylized topic artwork.
     """
     W, H = 1080, 1920
     n_frames = max(48, int(round(dur * fps)))
-    scene_type = scene.get("scene_type", "hero_intro")
-    visual_world = character.get("visual_world", "space")
+    action = str(scene.get("action") or "cinematic_zoom_in").lower()
+    visual_world = character.get("visual_world", "nature")
     top_label = str(scene.get("top_label") or "").upper()
-    metric_val = float(scene.get("metric_value") or 100.0)
-    metric_unit = str(scene.get("metric_unit") or "").upper()
+    stat_text = str(scene.get("stat_text") or "").upper()
     quote_title = str(scene.get("quote_title") or "RECORD")
     quote_text = str(scene.get("quote_text") or scene.get("narration") or "")
-    callout_label = str(scene.get("callout_label") or "")
+    timeline_steps = scene.get("timeline_steps") or ["START", "SHIFT", "NOW"]
+    callout_label = str(scene.get("callout_label") or "").upper()
 
-    photo_bg = _fetch_story_backdrop_if_available(scene, art_style, scene_idx + 1, tmp_dir or out_mp4.parent, topic=topic, theme=theme, character_desc=character_desc, used_urls=used_urls)
-    bg_base = photo_bg if photo_bg is not None else _apply_art_style_filter(_build_gradient_backdrop(W, H, visual_world, scene_idx), art_style)
+    theme_cfg = STYLE_THEMES.get((art_style or "dark_cinematic").lower(), STYLE_THEMES["dark_cinematic"])
+    accent_rgb = theme_cfg["accent"]
+    sec_rgb = theme_cfg["secondary"]
+
+    photo_bg = _fetch_story_backdrop_if_available(
+        scene,
+        art_style,
+        scene_idx + 1,
+        tmp_dir or out_mp4.parent,
+        topic=topic,
+        theme=theme,
+        character_desc=character_desc,
+        used_urls=used_urls,
+    )
     has_photo_bg = photo_bg is not None
+    bg_base = photo_bg if has_photo_bg else _build_style_themed_backdrop(W, H, theme_cfg, scene_idx)
 
-    sample_all = f"{top_label} {quote_title} {quote_text} {callout_label}"
-    font_med = _load_font(38, bold=True, text_sample=sample_all)
+    sample_all = f"{top_label} {stat_text} {quote_title} {quote_text} {callout_label}"
+    font_med = _load_font(36, bold=True, text_sample=sample_all)
     font_body = _load_font(34, bold=False, text_sample=sample_all)
-    accent_rgb = _hex_to_rgb(character.get("accent_hex", "#F5C451"), (245, 196, 81))
-    aura_rgb = _hex_to_rgb(character.get("aura_hex", "#38BDF8"), (56, 189, 248))
 
     cmd = [
         "ffmpeg", "-y",
@@ -4059,147 +4233,122 @@ def _render_motion_story_scene(
     try:
         for f_idx in range(n_frames):
             t = f_idx / float(max(n_frames - 1, 1))
-            if has_photo_bg:
-                # Smooth 1.00x -> 1.12x Ken Burns zoom on real topic-accurate AI/Pexels artwork
-                z = 1.0 + 0.12 * t
+
+            # 1. Distinct Camera Motion driven by this scene's exact `action`!
+            if action == "dramatic_pull_back":
+                z = 1.22 - 0.20 * t
                 cw, ch = int(W / z), int(H / z)
                 x0, y0 = (W - cw) // 2, (H - ch) // 2
                 frame = bg_base.crop((x0, y0, x0 + cw, y0 + ch)).resize((W, H), Image.Resampling.BILINEAR)
+            elif action == "pan_left_to_right":
+                z = 1.18
+                cw, ch = int(W / z), int(H / z)
+                x0 = int((W - cw) * t)
+                y0 = (H - ch) // 2
+                frame = bg_base.crop((x0, y0, x0 + cw, y0 + ch)).resize((W, H), Image.Resampling.BILINEAR)
+            elif action == "pan_right_to_left":
+                z = 1.18
+                cw, ch = int(W / z), int(H / z)
+                x0 = int((W - cw) * (1.0 - t))
+                y0 = (H - ch) // 2
+                frame = bg_base.crop((x0, y0, x0 + cw, y0 + ch)).resize((W, H), Image.Resampling.BILINEAR)
+            elif action == "pulse_beat_zoom":
+                z = 1.04 + 0.14 * t + 0.03 * abs(math.sin(t * 4.0 * math.pi))
+                cw, ch = int(W / z), int(H / z)
+                x0, y0 = (W - cw) // 2, (H - ch) // 2
+                frame = bg_base.crop((x0, y0, x0 + cw, y0 + ch)).resize((W, H), Image.Resampling.BILINEAR)
+            elif action == "spotlight_drift":
+                z = 1.14
+                cw, ch = int(W / z), int(H / z)
+                x0 = int((W - cw) * (0.5 + 0.35 * math.sin(t * 1.5 * math.pi)))
+                y0 = int((H - ch) * (0.5 + 0.20 * math.cos(t * 1.5 * math.pi)))
+                frame = bg_base.crop((x0, y0, x0 + cw, y0 + ch)).resize((W, H), Image.Resampling.BILINEAR)
             else:
-                frame = bg_base.copy()
+                # cinematic_zoom_in / kinetic_stat_slam / timeline_reveal / quote_card_styled / focus_callout
+                z = 1.0 + 0.15 * t
+                cw, ch = int(W / z), int(H / z)
+                x0, y0 = (W - cw) // 2, (H - ch) // 2
+                frame = bg_base.crop((x0, y0, x0 + cw, y0 + ch)).resize((W, H), Image.Resampling.BILINEAR)
+
             draw = ImageDraw.Draw(frame)
 
-            horizon_y = int(H * 0.74)
-            # Only draw water/ground horizon when procedural & appropriate to the world (not in deep space!)
-            if not has_photo_bg:
-                if visual_world == "space":
-                    # Distant planet curvature & subtle orbital grid
-                    draw.ellipse((-320, horizon_y + 10, W + 320, H + 520), fill=(18, 36, 74), outline=aura_rgb, width=4)
-                    draw.arc((-140, horizon_y - 160, W + 140, H + 180), start=205, end=335, fill=(75, 110, 165), width=2)
-                elif visual_world in {"ocean", "history_myth", "nature"}:
-                    draw.rectangle((0, horizon_y, W, H), fill=(12, 22, 46))
-                    for wi in range(12):
-                        wy = horizon_y + 22 + wi * 38
-                        shift = int(math.sin(t * 2.0 * math.pi + wi * 0.7) * 40)
-                        draw.line((80 + shift, wy, 360 + shift, wy), fill=(72, 102, 148), width=3)
-                        draw.line((560 - shift, wy + 12, 960 - shift, wy + 12), fill=(60, 88, 134), width=2)
-                else:
-                    # Sleek dark tech/finance studio floor grid
-                    draw.rectangle((0, horizon_y, W, H), fill=(14, 18, 32))
-                    for gi in range(6):
-                        gy = horizon_y + gi * 70
-                        draw.line((0, gy, W, gy), fill=(36, 54, 88), width=2)
+            # 2. Art-style frame decorations (comic borders, cyber scanlines, anime speedlines, letterbox, etc.)
+            _draw_style_frame_decor(draw, W, H, theme_cfg, t)
 
-            if scene_type == "hero_intro":
-                if not has_photo_bg:
-                    subj_scale = 0.85 + 0.25 * min(1.0, t * 1.4)
-                    _draw_topic_subject(draw, visual_world, W * 0.5, horizon_y + 10, subj_scale, character, phase=t)
-                if t > 0.30:
-                    ruler_t = min(1.0, (t - 0.30) / 0.45)
-                    ry_top = int(horizon_y - 520 * ruler_t)
-                    draw.line((110, horizon_y, 110, ry_top), fill=accent_rgb, width=4)
-                    for step_i, mult in enumerate(["×1", "×2", "×3"], start=1):
-                        sy = int(horizon_y - step_i * 165)
-                        if sy >= ry_top:
-                            draw.line((96, sy, W - 90, sy), fill=(145, 170, 205), width=2)
-                            draw.text((126, sy - 40), mult, font=font_med, fill=accent_rgb)
+            # 3. Topic-matched procedural centerpiece ONLY when no photo/AI art loaded
+            if not has_photo_bg and action not in {"quote_card_styled", "timeline_reveal"}:
+                subj_x = W * (0.25 + 0.5 * t) if action in {"pan_left_to_right", "pan_right_to_left"} else W * 0.5
+                _draw_topic_subject(draw, visual_world, subj_x, int(H * 0.68), 0.92 + 0.12 * t, character, phase=t)
 
-            elif scene_type == "scale_comparison":
-                cur_val = metric_val * min(1.0, t * 1.25)
-                val_str = f"{int(round(cur_val)):,} {metric_unit}".strip()
-                f_stat = _fit_font(draw, val_str, max_width=W - 140, start_size=76, min_size=34, bold=True)
-                sb = draw.textbbox((0, 0), val_str, font=f_stat)
-                # Subtle dark pill behind stat so it never clashes with sun/moon or photo
-                pw, ph = (sb[2] - sb[0]) + 48, (sb[3] - sb[1]) + 28
-                px = (W - pw) // 2
-                draw.rounded_rectangle((px, 218, px + pw, 218 + ph), radius=16, fill=(12, 18, 34))
-                draw.text(((W - (sb[2] - sb[0])) // 2, 228), val_str, font=f_stat, fill=accent_rgb)
+            # 4. Action-specific graphic overlay (ONLY when chosen by the AI Council for this scene!)
+            if action == "kinetic_stat_slam" and stat_text:
+                slam_scale = min(1.0, t * 4.0)
+                f_stat = _fit_font(draw, stat_text, max_width=W - 180, start_size=int(96 * max(0.5, slam_scale)), min_size=40, bold=True)
+                sb = draw.textbbox((0, 0), stat_text, font=f_stat)
+                sw, sh = sb[2] - sb[0], sb[3] - sb[1]
+                sx, sy = (W - sw) // 2, int(H * 0.34)
+                draw.rounded_rectangle((sx - 38, sy - 24, sx + sw + 38, sy + sh + 28), radius=20, fill=theme_cfg["card_bg"], outline=accent_rgb, width=theme_cfg["border_w"])
+                draw.text((sx, sy), stat_text, font=f_stat, fill=accent_rgb)
 
-                if not has_photo_bg:
-                    grow_scale = 0.65 + 0.48 * min(1.0, t * 1.2)
-                    _draw_topic_subject(draw, visual_world, W * 0.52, horizon_y + 10, grow_scale, character, phase=t)
-                bar_h = int(480 * min(1.0, t * 1.2))
-                draw.line((110, horizon_y, 110, horizon_y - bar_h), fill=accent_rgb, width=6)
+            elif action == "timeline_reveal":
+                bar_y = int(H * 0.44)
+                x_start, x_end = 130, W - 130
+                cur_x = int(x_start + (x_end - x_start) * min(1.0, t * 1.35))
+                draw.line((x_start, bar_y, x_end, bar_y), fill=(90, 100, 120), width=6)
+                draw.line((x_start, bar_y, cur_x, bar_y), fill=accent_rgb, width=10)
+                for si, lbl in enumerate(timeline_steps[:3]):
+                    nx = int(x_start + (x_end - x_start) * (si / 2.0))
+                    active = cur_x >= nx - 10
+                    nr = 22 if active else 14
+                    draw.ellipse((nx - nr, bar_y - nr, nx + nr, bar_y + nr), fill=accent_rgb if active else (70, 80, 100), outline=sec_rgb, width=4)
+                    lb = draw.textbbox((0, 0), lbl, font=font_med)
+                    lw = lb[2] - lb[0]
+                    draw.text((max(48, min(W - 48 - lw, nx - lw // 2)), bar_y - 76), lbl, font=font_med, fill=accent_rgb if active else (180, 190, 210))
 
-            elif scene_type == "action_flight":
-                fx = 180 + (W - 360) * t
-                fy = 820 + math.sin(t * 2.5 * math.pi) * 85
-                for ti in range(1, 7):
-                    tx = fx - ti * 38
-                    ty = fy - 140 + math.sin((t - ti * 0.03) * 2.5 * math.pi) * 20
-                    tr = max(4, 20 - ti * 3)
-                    draw.ellipse((tx - tr, ty - tr, tx + tr, ty + tr), fill=aura_rgb)
-                if not has_photo_bg:
-                    _draw_topic_subject(draw, visual_world, fx, fy, 0.72, character, phase=t * 1.5, flying=True)
-
-            elif scene_type == "source_quote":
-                # Auto-sized parchment/editorial quote card — tight height with zero empty bottom gap!
+            elif action == "quote_card_styled":
                 words = quote_text.split()
                 q_lines: list[str] = []
                 cur_l = ""
                 for w in words:
                     test_l = (cur_l + " " + w).strip()
-                    if len(test_l) > 36 and cur_l:
+                    if len(test_l) > 34 and cur_l:
                         q_lines.append(cur_l)
                         cur_l = w
                     else:
                         cur_l = test_l
                 if cur_l:
                     q_lines.append(cur_l)
-                q_lines = q_lines[:7]
-
-                card_h = 175 + len(q_lines) * 52
-                card_top = max(320, (H - 360 - card_h) // 2)
-                card_scale = min(1.0, t * 3.0)
-                cy_off = int((1.0 - card_scale) * 65)
+                q_lines = q_lines[:6]
+                card_h = 165 + len(q_lines) * 52
+                card_top = max(320, (H - 420 - card_h) // 2)
+                cy_off = int((1.0 - min(1.0, t * 3.5)) * 60)
                 box = (86, card_top + cy_off, W - 86, card_top + card_h + cy_off)
-                draw.rounded_rectangle(box, radius=24, fill=(242, 230, 202), outline=accent_rgb, width=6)
-                qt_str = f"|| {quote_title} ||"
-                f_qt = _fit_font(draw, qt_str, max_width=W - 260, start_size=38, min_size=22, bold=True)
+                draw.rounded_rectangle(box, radius=20, fill=theme_cfg["card_bg"], outline=accent_rgb, width=theme_cfg["border_w"])
+                qt_str = quote_title.upper()
+                f_qt = _fit_font(draw, qt_str, max_width=W - 240, start_size=36, min_size=22, bold=True)
                 qb = draw.textbbox((0, 0), qt_str, font=f_qt)
-                draw.text(((W - (qb[2] - qb[0])) // 2, card_top + 38 + cy_off), qt_str, font=f_qt, fill=(108, 72, 24))
-                draw.line((130, card_top + 102 + cy_off, W - 130, card_top + 102 + cy_off), fill=(170, 138, 86), width=3)
+                draw.text(((W - (qb[2] - qb[0])) // 2, card_top + 34 + cy_off), qt_str, font=f_qt, fill=accent_rgb)
+                draw.line((130, card_top + 96 + cy_off, W - 130, card_top + 96 + cy_off), fill=sec_rgb, width=3)
                 for li, ql in enumerate(q_lines):
-                    draw.text((130, card_top + 128 + cy_off + li * 52), ql, font=font_body, fill=(32, 26, 20))
+                    draw.text((130, card_top + 122 + cy_off + li * 52), ql, font=font_body, fill=theme_cfg["card_text"])
 
-            else:
-                # zoom_callout: Rim-anchored circular magnifier callout + topic-matched icon
-                if not has_photo_bg:
-                    _draw_topic_subject(draw, visual_world, W * 0.64, horizon_y + 10, 0.95, character, phase=t)
-                pop = min(1.0, t * 2.5)
-                cr = int(138 * pop)
-                ccx, ccy = 270, 620
-                if cr > 24:
-                    # Anchor leader line strictly from circle rim (not center!)
-                    tx, ty = int(W * 0.56), horizon_y - 40
-                    dx, dy = tx - ccx, ty - ccy
-                    dist = max(1.0, math.hypot(dx, dy))
-                    rim_x = int(ccx + (dx / dist) * cr)
-                    rim_y = int(ccy + (dy / dist) * cr)
-                    draw.line((rim_x, rim_y, tx, ty), fill=(235, 244, 255), width=4)
-                    draw.ellipse((ccx - cr, ccy - cr, ccx + cr, ccy + cr), fill=(18, 30, 56), outline=(245, 248, 255), width=6)
-                    # Topic-appropriate icon inside magnifier
-                    if visual_world == "space":
-                        draw.ellipse((ccx - cr * 0.36, ccy - cr * 0.36, ccx + cr * 0.36, ccy + cr * 0.36), fill=accent_rgb, outline=(255, 248, 220), width=3)
-                        draw.ellipse((ccx - cr * 0.10, ccy - cr * 0.10, ccx + cr * 0.10, ccy + cr * 0.10), fill=(18, 30, 56))
-                    elif visual_world == "ocean":
-                        draw.arc((ccx - cr * 0.5, ccy - cr * 0.15, ccx + cr * 0.5, ccy + cr * 0.45), start=0, end=180, fill=aura_rgb, width=6)
-                        draw.ellipse((ccx - cr * 0.16, ccy - cr * 0.42, ccx + cr * 0.16, ccy - cr * 0.10), outline=(200, 238, 255), width=3)
-                    else:
-                        draw.ellipse((ccx - cr * 0.42, ccy - cr * 0.42, ccx + cr * 0.42, ccy + cr * 0.42), outline=accent_rgb, width=4)
-                        draw.ellipse((ccx - cr * 0.14, ccy - cr * 0.14, ccx + cr * 0.14, ccy + cr * 0.14), fill=aura_rgb)
-                    f_co = _fit_font(draw, callout_label, max_width=520, start_size=36, min_size=22, bold=True)
-                    cb = draw.textbbox((0, 0), callout_label, font=f_co)
-                    co_x = max(48, min(W - 48 - (cb[2] - cb[0]), int(ccx - (cb[2] - cb[0]) // 2)))
-                    draw.text((co_x, ccy - cr - 64), callout_label, font=f_co, fill=accent_rgb)
+            elif action == "focus_callout" and callout_label:
+                slide = min(1.0, t * 3.0)
+                f_co = _fit_font(draw, callout_label, max_width=W - 220, start_size=44, min_size=26, bold=True)
+                cb = draw.textbbox((0, 0), callout_label, font=f_co)
+                cw_txt, ch_txt = cb[2] - cb[0], cb[3] - cb[1]
+                bx = int(-cw_txt + (cw_txt + (W - cw_txt) // 2) * slide)
+                by = int(H * 0.28)
+                draw.rounded_rectangle((bx - 28, by - 18, bx + cw_txt + 28, by + ch_txt + 22), radius=14, fill=theme_cfg["card_bg"], outline=sec_rgb, width=theme_cfg["border_w"])
+                draw.text((bx, by), callout_label, font=f_co, fill=accent_rgb)
 
-            # Top editorial title header (cleanly auto-fitted with subtle dark backing pill)
+            # 5. Clean style-matched top chapter header
             if top_label:
-                f_top = _fit_font(draw, top_label, max_width=W - 120, start_size=54, min_size=26, bold=True)
+                f_top = _fit_font(draw, top_label, max_width=W - 140, start_size=48, min_size=26, bold=True)
                 bbox = draw.textbbox((0, 0), top_label, font=f_top)
                 tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
                 tx = (W - tw) // 2
-                draw.rounded_rectangle((tx - 24, 110, tx + tw + 24, 110 + th + 24), radius=14, fill=(10, 16, 30))
+                draw.rounded_rectangle((tx - 26, 108, tx + tw + 26, 108 + th + 24), radius=14, fill=theme_cfg["card_bg"], outline=accent_rgb, width=max(2, theme_cfg["border_w"] // 2))
                 draw.text((tx, 118), top_label, font=f_top, fill=accent_rgb)
 
             proc.stdin.write(frame.tobytes())
@@ -4544,6 +4693,7 @@ def main() -> int:
                             model_name=args.model,
                             allow_all_licenses=args.allow_all_licenses,
                             public_dir=public_dir,
+                            art_style=args.art_style,
                         )
                         break
                     except Exception as err:
@@ -4585,6 +4735,7 @@ def main() -> int:
                     device=args.device,
                     model_name=args.model,
                     public_dir=public_dir,
+                    art_style=args.art_style,
                 )
             elif args.engine == "digital_product":
                 src_dir = Path(args.source_app_dir) if args.source_app_dir else None
