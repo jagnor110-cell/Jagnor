@@ -11,7 +11,7 @@ All-in-One Standalone Script: Built-in Social Publisher (YouTube Shorts + Instag
 4. OpenRouter (`OPENROUTER_API_KEY` / `openrouter/free`)                — Chief Consensus Judge & Universal Fallback Router
 
 Free Visual Engines (`--engine ai_faceless` with selectable `--art-style` & `--theme`):
-- Pollinations.ai (`POLLINATIONS_API_KEY`) -> Pexels HD Portrait Photos (`PEXELS_API_KEY`) -> Clean Branded Fallback
+- Pollinations.ai (`POLLINATIONS_API_KEY`) -> OpenRouter/HF FLUX (`HF_TOKEN`) -> Pixabay HD Portrait Media (`PIXABAY_API_KEY`) -> Clean Branded Fallback
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ import argparse
 import base64
 import fcntl
 import gc
+import hashlib
+import html
 import json
 import logging
 import math
@@ -36,6 +38,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+import zlib
 from dataclasses import asdict, dataclass, field
 from email.message import EmailMessage
 from fractions import Fraction
@@ -113,7 +116,7 @@ def urlopen_with_retry(
                 last_exc = RuntimeError(f"HTTP {err.code}: {err_body}")
                 continue
             raise RuntimeError(f"HTTP {err.code}: {err_body}") from err
-        except urllib.error.URLError as err:
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as err:
             if attempt < max_attempts:
                 sleep_s = base_backoff * (2 ** (attempt - 1))
                 log.warning("Network error %s (attempt %d/%d); retrying in %.1fs...", err, attempt, max_attempts, sleep_s)
@@ -136,7 +139,7 @@ def format_manifest_report(
     m = manifest or {}
     engine = m.get("source_mode") or m.get("engine", "unknown")
     status = "FAILED" if error_msg else m.get("status", "UNKNOWN")
-    public_base = os.environ.get("PUBLIC_VIDEO_BASE_URL", "").strip().rstrip("/")
+    public_base = _get_public_base_url()
 
     subject = f"[Jagnor AI | {engine}] {status} (stage={stage})"
     lines: list[str] = [
@@ -158,8 +161,6 @@ def format_manifest_report(
         lines.append(f"Source Video: {m['source_url']}")
     if m.get("product_title"):
         lines.append(f"Product Title: {m['product_title']} (${m.get('price_usd', 0):.2f})")
-    if m.get("whop_checkout_url"):
-        lines.append(f"Whop Checkout URL: {m['whop_checkout_url']}")
     if m.get("client_name"):
         lines.append(f"B2B Client: {m['client_name']} (Invoice {m.get('invoice_id', 'N/A')} - ${m.get('amount_due_usd', 0):.2f})")
     if m.get("council_models_used"):
@@ -180,12 +181,26 @@ def format_manifest_report(
             lines.append(f"  Preview URL: {preview_url}")
         lines.append("")
 
-    if m.get("promo_mp4_path") and public_base:
-        lines.append(f"Promo Video URL: {public_base}/{Path(m['promo_mp4_path']).name}")
-    if m.get("slide_paths") and public_base:
-        slide_urls = [f"{public_base}/{Path(p).name}" for p in m["slide_paths"]]
+    if m.get("promo_mp4_path"):
+        promo_name = Path(m["promo_mp4_path"]).name
+        lines.append(f"Promo Video URL: {public_base}/{promo_name}" if public_base else f"Promo Video: {m['promo_mp4_path']}")
+    if m.get("bundle_zip_path"):
+        zip_name = Path(m["bundle_zip_path"]).name
+        lines.append(f"Product Bundle ZIP: {public_base}/{zip_name}" if public_base else f"Product Bundle ZIP: {m['bundle_zip_path']}")
+    if m.get("whop_checkout_url"):
+        simulated = " (SIMULATED - add WHOP secrets)" if m.get("whop_simulated") else ""
+        lines.append(f"Whop Checkout URL: {m['whop_checkout_url']}{simulated}")
+    if m.get("slide_paths"):
+        slide_urls = [f"{public_base}/{Path(p).name}" if public_base else str(p) for p in m["slide_paths"]]
         lines.append("Carousel Slides:")
         lines.extend(f"  - {u}" for u in slide_urls)
+        lines.append("")
+    if engine == "b2b_agency":
+        lines.append(f"Client: {m.get('client_name', 'N/A')} | Invoice: {m.get('invoice_id', 'N/A')} | Deposit Due: ${m.get('amount_due_usd', 0):,.2f}")
+        for label, key in [("Call Summary", "ops_summary_path"), ("Client Proposal", "proposal_path"), ("Invoice JSON", "invoice_path")]:
+            if m.get(key):
+                fname = Path(m[key]).name
+                lines.append(f"  - {label}: {public_base}/{fname}" if public_base else f"  - {label}: {m[key]}")
         lines.append("")
 
     # Published Receipts
@@ -506,12 +521,13 @@ def publish_instagram_reel(
 
     ig_user_id = os.environ.get("IG_USER_ID", "").strip()
     access_token = os.environ.get("IG_ACCESS_TOKEN", "").strip()
-    public_base = os.environ.get("PUBLIC_VIDEO_BASE_URL", "").strip().rstrip("/")
+    public_base = _get_public_base_url()
     if not (ig_user_id and access_token and public_base):
         raise EnvironmentError("Missing IG_USER_ID, IG_ACCESS_TOKEN, or PUBLIC_VIDEO_BASE_URL.")
 
     check_ig_publishing_quota(ig_user_id, access_token)
-    video_url = f"{public_base}/{mp4_path.name}"
+    video_url = f"{public_base}/{urllib.parse.quote(mp4_path.name)}"
+    wait_until_public(video_url)
 
     create_res = _ig_api_call(
         f"{IG_GRAPH_BASE}/{ig_user_id}/media",
@@ -555,7 +571,7 @@ def publish_instagram_carousel(
 
     ig_user_id = os.environ.get("IG_USER_ID", "").strip()
     access_token = os.environ.get("IG_ACCESS_TOKEN", "").strip()
-    public_base = os.environ.get("PUBLIC_VIDEO_BASE_URL", "").strip().rstrip("/")
+    public_base = _get_public_base_url()
     if not (ig_user_id and access_token and public_base):
         raise EnvironmentError("Missing IG_USER_ID, IG_ACCESS_TOKEN, or PUBLIC_VIDEO_BASE_URL.")
 
@@ -563,7 +579,8 @@ def publish_instagram_carousel(
 
     child_ids: list[str] = []
     for sp in slide_paths:
-        img_url = f"{public_base}/{sp.name}"
+        img_url = f"{public_base}/{urllib.parse.quote(sp.name)}"
+        wait_until_public(img_url)
         child_res = _ig_api_call(
             f"{IG_GRAPH_BASE}/{ig_user_id}/media",
             method="POST",
@@ -637,10 +654,21 @@ def process_manifest(
         raise FileNotFoundError(f"Manifest not found: {manifest_path}")
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    def _save() -> None:
+        # Dry-run must be side-effect free: no fake receipts in the manifest, so a later LIVE publish still runs.
+        if not dry_run:
+            atomic_write_json(manifest_path, manifest)
+
+    def _record(platform: str, post_id: str, title_or_caption: str) -> None:
+        # ...and no fake posts in the ledger, so test runs never consume the 4/day or 3.5h anti-ban budget.
+        if not dry_run:
+            record_publish_event(ledger_data, ledger_path, platform, post_id, title_or_caption)
+
     if approve_manifest and manifest.get("status") == "APPROVAL_PENDING":
         manifest["status"] = "APPROVED"
         manifest["approved_at"] = int(time.time())
-        atomic_write_json(manifest_path, manifest)
+        _save()
         log.info("Paperclip Human-Approval Gate passed -> manifest marked APPROVED.")
 
     status = manifest.get("status")
@@ -664,6 +692,11 @@ def process_manifest(
     if engine == "digital_product":
         if not manifest.get("qa_verified", False):
             raise ValueError("QA_GATE_BLOCKED: digital_product promo MP4 is not qa_verified.")
+        if manifest.get("whop_simulated") and not dry_run:
+            raise ValueError(
+                "WHOP_NOT_CONFIGURED: the checkout link is a simulated placeholder. Add WHOP_API_KEY and "
+                "WHOP_COMPANY_ID secrets and rebuild before publishing (a fake link must never go public)."
+            )
         mp4_path = _resolve_media_path(manifest["promo_mp4_path"], public_dir)
         yt_title = manifest.get("yt_title", f"{manifest['product_title']} #Shorts")
         ig_caption = manifest.get("ig_caption", manifest["product_title"])
@@ -679,16 +712,16 @@ def process_manifest(
                 contains_synthetic_media=False,
                 dry_run=dry_run,
             )
-            record_publish_event(ledger_data, ledger_path, "youtube", yt_id, yt_title)
+            _record("youtube", yt_id, yt_title)
             done_platforms["youtube"] = yt_id
-            atomic_write_json(manifest_path, manifest)
+            _save()
 
         if "instagram" in platforms and "instagram" not in done_platforms:
             check_platform_pacing(ledger_data, "instagram", max_daily_posts, min_gap_hours, skip_spacing_check)
             ig_id = publish_instagram_reel(mp4_path, caption=ig_caption, dry_run=dry_run)
-            record_publish_event(ledger_data, ledger_path, "instagram", ig_id, ig_caption)
+            _record("instagram", ig_id, ig_caption)
             done_platforms["instagram"] = ig_id
-            atomic_write_json(manifest_path, manifest)
+            _save()
 
         published_receipts.append({"item": manifest["product_title"], **done_platforms})
 
@@ -718,16 +751,16 @@ def process_manifest(
                     contains_synthetic_media=synthetic,
                     dry_run=dry_run,
                 )
-                record_publish_event(ledger_data, ledger_path, "youtube", yt_id, yt_title)
+                _record("youtube", yt_id, yt_title)
                 clip_done["youtube"] = yt_id
-                atomic_write_json(manifest_path, manifest)
+                _save()
 
             if "instagram" in platforms and "instagram" not in clip_done:
                 check_platform_pacing(ledger_data, "instagram", max_daily_posts, min_gap_hours, skip_spacing_check)
                 ig_id = publish_instagram_reel(mp4_path, caption=ig_caption, dry_run=dry_run)
-                record_publish_event(ledger_data, ledger_path, "instagram", ig_id, ig_caption)
+                _record("instagram", ig_id, ig_caption)
                 clip_done["instagram"] = ig_id
-                atomic_write_json(manifest_path, manifest)
+                _save()
 
             if platforms.issubset(clip_done.keys()):
                 clip["published"] = True
@@ -737,16 +770,19 @@ def process_manifest(
             break
 
     elif engine == "carousel_funnel":
-        slide_paths = [_resolve_media_path(p, public_dir) for p in manifest.get("slide_paths", [])]
+        slide_paths = [_resolve_media_path(p, public_dir) for p in (manifest.get("slide_jpg_paths") or manifest.get("slide_paths", []))]
         ig_caption = manifest.get("ig_caption", manifest.get("topic", ""))
         done_platforms = manifest.setdefault("published_platforms", {})
         if "instagram" in platforms and "instagram" not in done_platforms:
             check_platform_pacing(ledger_data, "instagram", max_daily_posts, min_gap_hours, skip_spacing_check)
             ig_id = publish_instagram_carousel(slide_paths, caption=ig_caption, dry_run=dry_run)
-            record_publish_event(ledger_data, ledger_path, "instagram", ig_id, ig_caption)
+            _record("instagram", ig_id, ig_caption)
             done_platforms["instagram"] = ig_id
-            atomic_write_json(manifest_path, manifest)
-        published_receipts.append({"topic": manifest.get("topic"), **done_platforms})
+            _save()
+        receipt_obj: dict[str, Any] = {"topic": manifest.get("topic"), **done_platforms}
+        if "instagram" not in done_platforms:
+            receipt_obj["note"] = "Carousel slides saved in public/ (connect IG_USER_ID & IG_ACCESS_TOKEN to auto-post)"
+        published_receipts.append(receipt_obj)
 
     elif engine == "b2b_agency":
         published_receipts.append({
@@ -769,7 +805,7 @@ def process_manifest(
         manifest["status"] = "PUBLISHED"
         manifest["published_at"] = int(time.time())
     manifest["published_receipts"] = published_receipts
-    atomic_write_json(manifest_path, manifest)
+    _save()
     return manifest
 
 
@@ -1023,6 +1059,13 @@ class AICouncil:
         self.nvidia_key = os.environ.get("NVIDIA_API_KEY", "").strip()
         self.openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         self.models_called: list[str] = []
+        # Hard wall-clock budget for ALL LLM calls in one run so dead/slow free APIs can never
+        # push the GitHub job past its 35-minute timeout (every caller has a deterministic fallback).
+        self.time_budget_sec = float(os.environ.get("COUNCIL_TIME_BUDGET_SEC", "240"))
+        self._started = time.monotonic()
+
+    def _budget_left(self) -> bool:
+        return (time.monotonic() - self._started) < self.time_budget_sec
 
     def _call_openai_compatible(
         self,
@@ -1128,6 +1171,9 @@ class AICouncil:
         raise RuntimeError("All native NVIDIA NIM model endpoints failed.")
 
     def invoke_stage(self, provider: str, system_prompt: str, user_prompt: str) -> str | None:
+        if not self._budget_left():
+            log.warning("AI Council time budget (%.0fs) exhausted; skipping [%s] stage and using deterministic fallback.", self.time_budget_sec, provider)
+            return None
         openrouter_candidates = {
             "gemini": ["google/gemini-2.5-flash", "openrouter/free", "openrouter/auto"],
             "groq": ["meta-llama/llama-3.3-70b-instruct:free", "openrouter/free", "openrouter/auto"],
@@ -1151,7 +1197,7 @@ class AICouncil:
         except Exception as native_exc:
             log.warning("Native [%s] API failed (%s); falling back to OpenRouter if configured...", provider, native_exc)
 
-        if self.openrouter_key:
+        if self.openrouter_key and self._budget_left():
             for or_model in dict.fromkeys(openrouter_candidates.get(provider, ["openrouter/free", "openrouter/auto"])):
                 try:
                     res = self._call_openai_compatible(
@@ -1179,16 +1225,24 @@ class AICouncil:
             return None
         cleaned = re.sub(r"```(?:json)?", "", raw_text, flags=re.IGNORECASE).replace("```", "").strip()
         decoder = json.JSONDecoder()
-        for idx, ch in enumerate(cleaned):
-            if ch in {"{", "["}:
+        first_list: list[Any] | None = None
+        idx = 0
+        while idx < len(cleaned):
+            if cleaned[idx] in {"{", "["}:
                 try:
-                    obj, _ = decoder.raw_decode(cleaned[idx:])
-                    if isinstance(obj, dict):
-                        return obj
-                    if isinstance(obj, list):
-                        return {"clips": obj}
+                    obj, end = decoder.raw_decode(cleaned[idx:])
                 except Exception:
+                    idx += 1
                     continue
+                if isinstance(obj, dict):
+                    return obj
+                if isinstance(obj, list) and first_list is None and any(isinstance(x, dict) for x in obj):
+                    first_list = obj
+                idx += max(end, 1)  # skip the whole decoded span so nested dicts are not mistaken for the top level
+                continue
+            idx += 1
+        if first_list is not None:
+            return {"clips": first_list}
         return None
 
     @staticmethod
@@ -1389,7 +1443,7 @@ class AICouncil:
         Passes a topic, theme, and art_style through the 4-Brain Free AI Council to produce
         a cohesive 5-scene motion-animated faceless Short script.
         """
-        style_desc = ART_STYLE_PROMPTS.get(art_style, ART_STYLE_PROMPTS["dark_cinematic"])
+        style_desc = gen_style_prompt(art_style)
 
         s1 = self.invoke_stage(
             "gemini",
@@ -1490,7 +1544,7 @@ class AICouncil:
         from STORY_ACTIONS (never repeating the same 5 fixed templates!) and aligns
         every visual_prompt strictly to the topic, theme, character, and art_style.
         """
-        style_desc = ART_STYLE_PROMPTS.get(art_style, ART_STYLE_PROMPTS["dark_cinematic"])
+        style_desc = gen_style_prompt(art_style)
         char_hint = character_desc.strip() or f"Topic-accurate central subject for {topic}"
         actions_csv = ", ".join(STORY_ACTIONS)
 
@@ -1693,8 +1747,13 @@ def get_ytdlp_cookie_args(job_dir: Path) -> list[str]:
     cookies_raw = os.environ.get("YT_COOKIES_TXT", "").strip()
     if not cookies_raw:
         return []
+    # Normalize mobile/Windows line endings and ensure Netscape header is present
+    normalized = cookies_raw.replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff").strip()
+    if not normalized.startswith("# Netscape HTTP Cookie File") and not normalized.startswith("# HTTP Cookie File"):
+        normalized = "# Netscape HTTP Cookie File\n" + normalized
+    job_dir.mkdir(parents=True, exist_ok=True)
     cookie_file = job_dir / ".yt_cookies.txt"
-    cookie_file.write_text(cookies_raw + "\n", encoding="utf-8")
+    cookie_file.write_text(normalized + "\n", encoding="utf-8")
     return ["--cookies", str(cookie_file)]
 
 
@@ -1774,7 +1833,11 @@ def discover_youtube_trending(
             "--no-playlist",
             "--skip-download",
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=180)
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=240)
+        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            log.warning("yt-dlp trend search failed (%s).", exc)
+            return []
         found: list[dict[str, Any]] = []
         for line in res.stdout.splitlines():
             line = line.strip()
@@ -1872,7 +1935,13 @@ def discover_trending_video(
 
 def run_cmd(cmd: list[str], check: bool = True, timeout: int = 900) -> subprocess.CompletedProcess[str]:
     log.debug("Executing: %s", " ".join(cmd))
-    return subprocess.run(cmd, capture_output=True, text=True, check=check, timeout=timeout)
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, check=check, timeout=timeout)
+    except subprocess.CalledProcessError as err:
+        tail = (err.stderr or err.stdout or "").strip()[-700:]
+        raise RuntimeError(f"Command failed (exit {err.returncode}): {cmd[0]} ... | {tail}") from err
+    except subprocess.TimeoutExpired as err:
+        raise RuntimeError(f"Command timed out after {timeout}s: {cmd[0]} ...") from err
 
 
 def resolve_device(requested: str) -> str:
@@ -1883,6 +1952,54 @@ def resolve_device(requested: str) -> str:
         return "cuda" if torch.cuda.is_available() else "cpu"
     except ImportError:
         return "cpu"
+
+
+
+def _get_public_base_url(default: str = "") -> str:
+    """Returns PUBLIC_VIDEO_BASE_URL normalized so GitHub Pages URLs always include `/public`."""
+    raw = os.environ.get("PUBLIC_VIDEO_BASE_URL", "").strip().rstrip("/") or default.strip().rstrip("/")
+    if not raw:
+        return ""
+    if "github.io/" in raw.lower() and not raw.lower().endswith("/public"):
+        raw = f"{raw}/public"
+    return raw
+
+
+def _run_tag() -> str:
+    """UTC minute stamp used to make published filenames unique (defeats GitHub Pages CDN caching
+    and stops a later run from overwriting a file Instagram has not fetched yet)."""
+    return time.strftime("%Y%m%d%H%M", time.gmtime())
+
+
+def wait_until_public(url: str, timeout_sec: int = 480, interval_sec: int = 15) -> None:
+    """Blocks until `url` answers HTTP 200 (GitHub Pages can take minutes to deploy a fresh push).
+    Instagram's Graph API fails the whole container if it cannot fetch the media on first try."""
+    deadline = time.monotonic() + timeout_sec
+    last = "no response"
+    while True:
+        try:
+            req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "JagnorPublisher/2.0"})
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                if resp.status == 200:
+                    log.info("Public media is live: %s", url)
+                    return
+                last = f"HTTP {resp.status}"
+        except urllib.error.HTTPError as err:
+            last = f"HTTP {err.code}"
+        except Exception as err:
+            last = str(err)
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"PUBLIC_URL_NOT_READY: {url} not reachable after {timeout_sec}s ({last}). Re-run stage=publish later.")
+        time.sleep(interval_sec)
+
+
+def _safe_slug(text: str, prefix: str = "item", max_len: int = 28) -> str:
+    """Produces a clean, unique ASCII filename slug even for non-ASCII titles."""
+    ascii_part = re.sub(r"[^a-zA-Z0-9]+", "_", (text or "").lower()).strip("_")[:max_len]
+    if ascii_part:
+        return ascii_part
+    digest = hashlib.md5((text or prefix).encode("utf-8")).hexdigest()[:10]
+    return f"{prefix}_{digest}"
 
 
 def export_to_public_dir(files: list[Path], public_dir: Path | None) -> None:
@@ -1953,14 +2070,51 @@ def ffprobe_metadata(video_path: Path, min_duration: float = 5.0) -> dict[str, A
     }
 
 
-def verify_rendered_mp4(mp4_path: Path, min_duration: float = 5.0) -> bool:
+def gen_style_prompt(art_style: str) -> str:
+    """Prompt suffix for AI image generation. `original` only makes sense for clipped footage, so
+    generated engines fall back to the dark_cinematic look instead of sending a nonsense phrase."""
+    key = (art_style or "dark_cinematic").lower()
+    if key == "original" or key not in ART_STYLE_PROMPTS:
+        key = "dark_cinematic"
+    return ART_STYLE_PROMPTS[key]
+
+
+ASPECT_RATIOS: dict[str, tuple[int, int]] = {
+    "9:16": (1080, 1920),
+    "16:9": (1920, 1080),
+    "1:1": (1080, 1080),
+    "4:5": (1080, 1350),
+}
+
+
+def verify_rendered_mp4(
+    mp4_path: Path,
+    min_duration: float = 5.0,
+    expected_size: tuple[int, int] = (1080, 1920),
+) -> bool:
     meta = ffprobe_metadata(mp4_path, min_duration=min_duration)
-    if meta["width"] != 1080 or meta["height"] != 1920:
-        raise ValueError(f"QA_FAIL: Expected 1080x1920, got {meta['width']}x{meta['height']}")
+    exp_w, exp_h = expected_size
+    if meta["width"] != exp_w or meta["height"] != exp_h:
+        raise ValueError(f"QA_FAIL: Expected {exp_w}x{exp_h}, got {meta['width']}x{meta['height']}")
     if meta["vcodec"] != "h264" or meta["acodec"] != "aac":
         raise ValueError(f"QA_FAIL: Expected h264/aac, got {meta['vcodec']}/{meta['acodec']}")
     if meta["duration"] > 59.5:
         raise ValueError(f"QA_FAIL: Duration {meta['duration']:.2f}s exceeds 59.5s Shorts/Reels cap")
+
+    try:
+        meas = subprocess.run(
+            ["ffmpeg", "-nostats", "-i", str(mp4_path), "-af", "ebur128=peak=none", "-vn", "-f", "null", "-"],
+            capture_output=True, text=True, timeout=240, check=False,
+        )
+        hits = re.findall(r"I:\s*(-?\d+(?:\.\d+)?)\s*LUFS", meas.stderr)
+        if hits:
+            lufs = float(hits[-1])
+            if abs(lufs - (-14.0)) > 3.0:
+                log.warning("QA loudness %.1f LUFS is outside -14 +/- 3 LUFS for %s", lufs, mp4_path.name)
+            else:
+                log.info("QA loudness OK: %.1f LUFS (%s)", lufs, mp4_path.name)
+    except Exception as exc:
+        log.debug("Loudness measurement skipped: %s", exc)
 
     with mp4_path.open("rb") as f:
         head = f.read(65536)
@@ -1973,13 +2127,17 @@ def verify_rendered_mp4(mp4_path: Path, min_duration: float = 5.0) -> bool:
 
 def escape_ffmpeg_filter_path(path: Path) -> str:
     s = str(path.resolve()).replace("\\", "/")
-    s = s.replace(":", r"\:").replace("'", r"\'").replace("[", r"\[").replace("]", r"\]")
+    s = s.replace(":", r"\:").replace("'", r"\'").replace("[", r"\[").replace("]", r"\]").replace(",", r"\,")
     return s
 
 
 # ============================================================================
 # 5. ENGINE A: DIGITAL PRODUCT & MICRO-SAAS FACTORY (`--engine digital_product`)
 # ============================================================================
+
+def whop_is_configured() -> bool:
+    return bool(os.environ.get("WHOP_API_KEY", "").strip() and os.environ.get("WHOP_COMPANY_ID", "").strip())
+
 
 def create_whop_checkout_link(product_title: str, price_usd: float, redirect_url: str) -> str:
     api_key = os.environ.get("WHOP_API_KEY", "").strip()
@@ -2040,6 +2198,8 @@ def run_digital_product_engine(
     job_dir: Path,
     brain: CompanyBrain,
     public_dir: Path | None = None,
+    voice: str = "deep_male",
+    notes: str = "",
 ) -> dict[str, Any]:
     item_key = f"product:{product_title.lower().strip()}"
     brain.check_pre_flight(item_key, estimated_cost_usd=0.05)
@@ -2048,20 +2208,49 @@ def run_digital_product_engine(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     council = AICouncil()
-    copy_spec = council.run_6_brain_copy_council(product_title, brain.offers_pricing, brain)
+    context_text = notes.strip() or brain.offers_pricing
+    copy_spec = council.run_6_brain_copy_council(product_title, context_text, brain)
+    pillars = copy_spec.get("points") or [
+        "Step-by-step quickstart framework",
+        "Plug-and-play templates & prompts",
+        "Automation checklist for immediate launch",
+    ]
+    slug = _safe_slug(product_title, prefix="product")
 
-    bundle_zip = out_dir / "pro_app_bundle.zip"
+    bundle_zip = out_dir / f"product_{slug}.zip"
     with zipfile.ZipFile(bundle_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         if source_app_dir and source_app_dir.exists():
             for file_p in sorted(source_app_dir.rglob("*")):
                 if file_p.is_file() and file_p.resolve() != bundle_zip.resolve():
                     zf.write(file_p, file_p.relative_to(source_app_dir))
         else:
-            readme_content = f"# {product_title}\n\nGenerated by Jagnor AI Digital Product Factory.\n\n{brain.offers_pricing}\n"
+            bullets_md = "\n".join(f"{i}. **{p}**" for i, p in enumerate(pillars, start=1))
+            readme_content = (
+                f"# {product_title}\n\n"
+                f"**Price:** ${price_usd:,.2f} USD | **Publisher:** Jagnor AI\n\n"
+                f"## Overview\n{copy_spec.get('ig_caption', context_text)}\n\n"
+                f"## Core Modules Included\n{bullets_md}\n\n"
+                f"## Quick-Start Checklist\n"
+                f"- [ ] Open `index.html` in any browser to view the interactive guide.\n"
+                f"- [ ] Customize the workflow parameters for your niche.\n"
+                f"- [ ] Deploy and track results using your weekly KPI sheet.\n"
+            )
+            bullets_html = "".join(f"<li>{html.escape(str(p))}</li>" for p in pillars)
+            safe_title = html.escape(product_title)
+            safe_caption = html.escape(str(copy_spec.get("ig_caption", context_text)))
+            guide_html = (
+                "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'>"
+                f"<meta name='viewport' content='width=device-width,initial-scale=1'><title>{safe_title}</title>"
+                "<style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;max-width:760px;margin:40px auto;padding:24px;line-height:1.6}"
+                "h1{color:#38bdf8}li{margin:10px 0}.card{background:#1e293b;border-radius:14px;padding:20px;margin-top:20px}</style></head>"
+                f"<body><h1>{safe_title}</h1><p>{safe_caption}</p>"
+                f"<div class='card'><h2>What's Inside</h2><ol>{bullets_html}</ol></div>"
+                "<p style='margin-top:24px;color:#94a3b8'>Built by Jagnor AI Studio</p></body></html>"
+            )
             zf.writestr("README.md", readme_content)
-            zf.writestr("index.html", f"<!DOCTYPE html><html><body><h1>{product_title}</h1></body></html>")
+            zf.writestr("index.html", guide_html)
 
-    promo_png = out_dir / "promo_card.png"
+    promo_png = out_dir / f"promo_{slug}.png"
     _render_brand_slide_png(
         promo_png,
         width=1080,
@@ -2069,24 +2258,53 @@ def run_digital_product_engine(
         badge=copy_spec["hook_badge"],
         headline=product_title.upper(),
         subline=f"Instant Download • ${price_usd:.0f} One-Time • Link in Bio",
-        footer="6-AI COUNCIL VERIFIED BUILD",
+        footer="JAGNOR AI VERIFIED BUILD",
     )
-    promo_mp4 = out_dir / "product_demo_9x16.mp4"
-    run_cmd([
-        "ffmpeg", "-y",
-        "-loop", "1", "-t", "12", "-i", str(promo_png),
-        "-f", "lavfi", "-t", "12", "-i", "anullsrc=channel_layout=mono:sample_rate=48000",
-        "-vf", "scale=1080:1920,format=yuv420p",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
-        "-movflags", "+faststart",
-        str(promo_mp4),
-    ])
+    promo_mp4 = out_dir / f"promo_{slug}.mp4"
+    promo_audio = out_dir / f"promo_{slug}.wav"
+    pitch_text = (
+        f"Introducing {product_title}. "
+        f"{pillars[0]}. {pillars[1] if len(pillars) > 1 else ''}. "
+        f"Grab instant access today for just {int(round(price_usd))} dollars. Link in bio."
+    )
+    audio_dur = 12.0
+    use_tts = False
+    try:
+        audio_dur = max(10.5, _synthesize_scene_voiceover(pitch_text, promo_audio, voice=voice))
+        use_tts = promo_audio.exists() and promo_audio.stat().st_size > 1000
+    except Exception as exc:
+        log.info("Digital product promo TTS unavailable (%s); falling back to silent audio.", exc)
+
+    if use_tts:
+        target_dur = max(12.0, audio_dur + 1.0)
+        run_cmd([
+            "ffmpeg", "-y",
+            "-loop", "1", "-t", f"{target_dur:.2f}", "-i", str(promo_png),
+            "-i", str(promo_audio),
+            "-vf", "scale=1080:1920,format=yuv420p",
+            "-af", f"loudnorm=I=-14:TP=-1.5:LRA=11,apad=whole_dur={target_dur:.2f}",
+            "-t", f"{target_dur:.2f}",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
+            "-movflags", "+faststart",
+            str(promo_mp4),
+        ])
+    else:
+        run_cmd([
+            "ffmpeg", "-y",
+            "-loop", "1", "-t", "12", "-i", str(promo_png),
+            "-f", "lavfi", "-t", "12", "-i", "anullsrc=channel_layout=mono:sample_rate=48000",
+            "-vf", "scale=1080:1920,format=yuv420p",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
+            "-movflags", "+faststart",
+            str(promo_mp4),
+        ])
     qa_ok = verify_rendered_mp4(promo_mp4, min_duration=10.0)
     export_to_public_dir([bundle_zip, promo_mp4], public_dir)
 
-    public_base = os.environ.get("PUBLIC_VIDEO_BASE_URL", "https://jagnor110-cell.github.io/Jagnor").rstrip("/")
-    redirect_url = f"{public_base}/pro_app_bundle.zip"
+    public_base = _get_public_base_url("https://jagnor110-cell.github.io/Jagnor/public")
+    redirect_url = f"{public_base}/{bundle_zip.name}"
     checkout_url = create_whop_checkout_link(product_title, price_usd, redirect_url)
 
     result = {
@@ -2098,6 +2316,7 @@ def run_digital_product_engine(
         "promo_mp4_path": str(promo_mp4),
         "qa_verified": qa_ok,
         "whop_checkout_url": checkout_url,
+        "whop_simulated": not whop_is_configured(),
         "yt_title": copy_spec["yt_title"],
         "ig_caption": copy_spec["ig_caption"],
         "council_models_used": copy_spec["council_models_used"],
@@ -2450,6 +2669,40 @@ def detect_faces_in_frame(rgb_frame: np.ndarray, mp_detector: Any = None, cv_cas
     return detections
 
 
+HAAR_FACE_XML = "haarcascade_frontalface_default.xml"
+HAAR_FACE_URL = "https://raw.githubusercontent.com/opencv/opencv/4.x/data/haarcascades/" + HAAR_FACE_XML
+
+
+def _load_face_cascade() -> Any | None:
+    """Loads OpenCV's Haar face model robustly. Some pip builds (opencv-contrib / mixed opencv wheels)
+    ship `cv2.data` without the XML, which makes detectMultiScale assert and kills the whole run."""
+    candidates: list[Path] = []
+    try:
+        candidates.append(Path(cv2.data.haarcascades) / HAAR_FACE_XML)
+    except Exception:
+        pass
+    candidates += [
+        Path("/usr/share/opencv4/haarcascades") / HAAR_FACE_XML,
+        Path("/usr/local/share/opencv4/haarcascades") / HAAR_FACE_XML,
+        Path(tempfile.gettempdir()) / HAAR_FACE_XML,
+    ]
+    for cand in candidates:
+        if cand.exists():
+            cascade = cv2.CascadeClassifier(str(cand))
+            if not cascade.empty():
+                return cascade
+    try:
+        data, _ = urlopen_with_retry(urllib.request.Request(HAAR_FACE_URL, headers={"User-Agent": "Mozilla/5.0"}), timeout=30, max_attempts=2)
+        dst = Path(tempfile.gettempdir()) / HAAR_FACE_XML
+        dst.write_bytes(data)
+        cascade = cv2.CascadeClassifier(str(dst))
+        if not cascade.empty():
+            return cascade
+    except Exception as exc:
+        log.warning("Could not download Haar face model (%s).", exc)
+    return None
+
+
 def analyze_speaker_centers(
     video_path: Path,
     start_sec: float,
@@ -2476,8 +2729,12 @@ def analyze_speaker_centers(
         mp_detector = None
 
     if mp_detector is None:
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        cv_cascade = cv2.CascadeClassifier(cascade_path)
+        cv_cascade = _load_face_cascade()
+
+    if (mp_detector is None and cv_cascade is None) or not cap.isOpened():
+        log.warning("No face detector available (or video unreadable); using centered crop.")
+        cap.release()
+        return [(0.0, 0.5)], "single_ema"
 
     try:
         frame_idx = int(start_sec * fps)
@@ -2491,7 +2748,11 @@ def analyze_speaker_centers(
             if (frame_idx - int(start_sec * fps)) % step == 0:
                 total_sampled += 1
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                faces = detect_faces_in_frame(rgb, mp_detector=mp_detector, cv_cascade=cv_cascade)
+                try:
+                    faces = detect_faces_in_frame(rgb, mp_detector=mp_detector, cv_cascade=cv_cascade)
+                except Exception as exc:
+                    log.debug("Face detection frame skipped (%s)", exc)
+                    faces = []
                 t_rel = (frame_idx / fps) - start_sec
 
                 if faces:
@@ -2549,16 +2810,22 @@ def write_ass_captions(
     clip_start: float,
     ass_path: Path,
     hook_overlay: str = "",
+    target_size: tuple[int, int] = (1080, 1920),
 ) -> None:
-    header = """[Script Info]
+    res_x, res_y = target_size
+    cap_margin_v = int(res_y * (0.18 if res_y >= res_x else 0.10))
+    hook_margin_v = int(res_y * (0.12 if res_y >= res_x else 0.08))
+    font_default = 72 if res_y >= 1350 else 58
+    font_hook = 58 if res_y >= 1350 else 48
+    header = f"""[Script Info]
 ScriptType: v4.00+
-PlayResX: 1080
-PlayResY: 1920
+PlayResX: {res_x}
+PlayResY: {res_y}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,72,&H00FFFFFF,&H0000D7FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,70,70,360,1
-Style: HookBanner,Arial,58,&H0000D7FF,&H00FFFFFF,&H00000000,&H99000000,-1,0,0,0,100,100,0,0,3,3,0,8,80,80,240,1
+Style: Default,Arial,{font_default},&H00FFFFFF,&H0000D7FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,70,70,{cap_margin_v},1
+Style: HookBanner,Arial,{font_hook},&H0000D7FF,&H00FFFFFF,&H00000000,&H99000000,-1,0,0,0,100,100,0,0,3,3,0,8,80,80,{hook_margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -2606,21 +2873,25 @@ def render_vertical_short(
     norm_cx: float,
     layout_mode: str,
     art_style: str = "original",
+    aspect_ratio: str = "9:16",
 ) -> None:
     src_w, src_h = meta["width"], meta["height"]
+    out_w, out_h = ASPECT_RATIOS.get(aspect_ratio, (1080, 1920))
+    target_ratio = out_w / float(out_h)
+    src_ratio = src_w / float(max(src_h, 1))
     duration_sec = min(58.5, max(1.0, end_sec - start_sec))
-    is_already_vertical = abs((src_w / src_h) - (9 / 16)) < 0.05
+    is_matching_ratio = abs(src_ratio - target_ratio) < 0.05
     ass_escaped = escape_ffmpeg_filter_path(ass_path)
     style_vf = FFMPEG_ART_STYLE_FILTERS.get((art_style or "original").lower(), "")
     style_chain = f"{style_vf}," if style_vf else ""
 
-    if is_already_vertical:
+    if is_matching_ratio:
         vf = (
-            f"scale=1080:1920:force_original_aspect_ratio=decrease,"
-            f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2,{style_chain}ass='{ass_escaped}'"
+            f"scale={out_w}:{out_h}:force_original_aspect_ratio=decrease,"
+            f"pad={out_w}:{out_h}:(ow-iw)/2:(oh-ih)/2,{style_chain}ass='{ass_escaped}'"
         )
         filter_args = ["-vf", vf]
-    elif layout_mode == "split":
+    elif aspect_ratio == "9:16" and layout_mode == "split":
         fc = (
             f"[0:v]split=2[left][right];"
             f"[left]crop=trunc(iw/4)*2:trunc(ih/2)*2:0:0,"
@@ -2630,12 +2901,18 @@ def render_vertical_short(
             f"[top][bot]vstack=inputs=2,{style_chain}ass='{ass_escaped}'[vout]"
         )
         filter_args = ["-filter_complex", fc, "-map", "[vout]", "-map", "0:a:0"]
-    else:
-        crop_w = int((src_h * 9 / 16) // 2 * 2)
+    elif src_ratio > target_ratio:
+        crop_w = int((src_h * target_ratio) // 2 * 2)
         crop_w = min(crop_w, (src_w // 2) * 2)
         x_offset = int(np.clip(norm_cx * src_w - crop_w / 2, 0, src_w - crop_w))
         x_offset = (x_offset // 2) * 2
-        vf = f"crop={crop_w}:{(src_h // 2) * 2}:{x_offset}:0,scale=1080:1920,{style_chain}ass='{ass_escaped}'"
+        vf = f"crop={crop_w}:{(src_h // 2) * 2}:{x_offset}:0,scale={out_w}:{out_h},{style_chain}ass='{ass_escaped}'"
+        filter_args = ["-vf", vf]
+    else:
+        vf = (
+            f"scale={out_w}:{out_h}:force_original_aspect_ratio=increase,"
+            f"crop={out_w}:{out_h},{style_chain}ass='{ass_escaped}'"
+        )
         filter_args = ["-vf", vf]
 
     cmd = [
@@ -2663,6 +2940,7 @@ def run_clipping_engine(
     allow_all_licenses: bool = False,
     public_dir: Path | None = None,
     art_style: str = "original",
+    aspect_ratio: str = "9:16",
 ) -> dict[str, Any]:
     item_key = f"clip_url:{url.strip()}"
     brain.check_pre_flight(item_key, estimated_cost_usd=0.25)
@@ -2697,6 +2975,7 @@ def run_clipping_engine(
     exported_mp4s: list[Path] = []
     for idx, c_spec in enumerate(council_specs, start=1):
         clip_id = f"clip_{idx:02d}"
+        file_stem = f"clip_{_run_tag()}_{idx:02d}"
         s_id = int(c_spec["start_segment_id"])
         e_id = int(c_spec["end_segment_id"])
         start_sec = seg_map[s_id].start
@@ -2710,12 +2989,14 @@ def run_clipping_engine(
         norm_cx = smooth_crop_x(centers)
 
         ass_path = out_dir / f"{clip_id}.ass"
-        mp4_path = out_dir / f"{clip_id}.mp4"
-        write_ass_captions(segments, s_id, e_id, start_sec, ass_path, hook_overlay=hook_overlay)
+        mp4_path = out_dir / f"{file_stem}.mp4"
+        target_sz = ASPECT_RATIOS.get(aspect_ratio, (1080, 1920))
+        write_ass_captions(segments, s_id, e_id, start_sec, ass_path, hook_overlay=hook_overlay, target_size=target_sz)
         render_vertical_short(
-            video_path, meta, start_sec, end_sec, ass_path, mp4_path, norm_cx, layout_mode
+            video_path, meta, start_sec, end_sec, ass_path, mp4_path, norm_cx, layout_mode,
+            art_style=art_style, aspect_ratio=aspect_ratio,
         )
-        qa_ok = verify_rendered_mp4(mp4_path, min_duration=10.0)
+        qa_ok = verify_rendered_mp4(mp4_path, min_duration=10.0, expected_size=target_sz)
         exported_mp4s.append(mp4_path)
 
         rendered.append(
@@ -2769,17 +3050,30 @@ def run_b2b_agency_engine(
     price_usd: float,
     job_dir: Path,
     brain: CompanyBrain,
+    public_dir: Path | None = None,
 ) -> dict[str, Any]:
     item_key = f"b2b_client:{client_name.lower().strip()}"
     brain.check_pre_flight(item_key, estimated_cost_usd=0.05)
 
     out_dir = job_dir / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
+    slug = _safe_slug(client_name, prefix="client")
 
-    ops_summary_path = out_dir / "01_operations_call_summary.md"
+    notes_clean = discovery_notes.strip() or "Automate lead outreach, call summaries, and weekly short-form content."
+    council = AICouncil()
+    copy_spec = council.run_6_brain_copy_council(f"AI Automation Proposal for {client_name}", notes_clean, brain)
+    deliverable_points = copy_spec.get("points") or [
+        "Automated workflow discovery & architecture setup",
+        "Custom AI content and operations pipeline deployment",
+        "Weekly reporting, QA checks, and team handoff",
+    ]
+    deliverables_md = "\n".join(f"{i}. **{p}**" for i, p in enumerate(deliverable_points, start=1))
+
+    ops_summary_path = out_dir / f"b2b_{slug}_summary.md"
     ops_md = (
         f"# Discovery Call Summary — {client_name}\n\n"
-        f"## Captured Notes\n{discovery_notes}\n\n"
+        f"## Captured Notes\n{notes_clean}\n\n"
+        f"## Recommended Automation Pillars\n{deliverables_md}\n\n"
         f"## Action Items & Owners\n"
         f"- **Operations Agent:** Lock scope against `03_offers_pricing.md`.\n"
         f"- **Deals Agent:** Draft turnkey automation proposal at **${price_usd:,.2f}**.\n"
@@ -2787,21 +3081,24 @@ def run_b2b_agency_engine(
     )
     ops_summary_path.write_text(ops_md, encoding="utf-8")
 
-    proposal_path = out_dir / "02_deals_proposal.md"
+    proposal_path = out_dir / f"b2b_{slug}_proposal.md"
     proposal_md = (
         f"# AI Automation Proposal for {client_name}\n\n"
         f"## 1. Objective & Scope\n"
-        f"Addressing key bottleneck identified in discovery: *{discovery_notes}*\n\n"
-        f"## 2. Deliverables (Aligned with Company Brain)\n"
+        f"Addressing key bottleneck identified in discovery: *{notes_clean}*\n\n"
+        f"## 2. Proposed Solution & Deliverables\n"
+        f"{deliverables_md}\n\n"
+        f"## 3. Standard Offer & SLA Reference\n"
         f"{brain.offers_pricing}\n\n"
-        f"## 3. Investment & Terms\n"
+        f"## 4. Investment & Terms\n"
         f"- **Total Setup & Retainer:** ${price_usd:,.2f} USD\n"
         f"- **First Milestone (50% on sign-off):** ${price_usd / 2.0:,.2f} USD\n"
+        f"- **Final Milestone (50% on delivery):** ${price_usd / 2.0:,.2f} USD\n"
     )
     proposal_path.write_text(proposal_md, encoding="utf-8")
 
     invoice_id = f"INV-{int(time.time())}"
-    invoice_path = out_dir / "03_backoffice_invoice.json"
+    invoice_path = out_dir / f"b2b_{slug}_invoice.json"
     invoice_payload = {
         "invoice_id": invoice_id,
         "client_name": client_name,
@@ -2810,6 +3107,7 @@ def run_b2b_agency_engine(
         "status": "APPROVAL_PENDING",
     }
     atomic_write_json(invoice_path, invoice_payload)
+    export_to_public_dir([ops_summary_path, proposal_path, invoice_path], public_dir)
 
     result = {
         "engine": "b2b_agency",
@@ -2820,6 +3118,7 @@ def run_b2b_agency_engine(
         "invoice_path": str(invoice_path),
         "invoice_id": invoice_id,
         "amount_due_usd": invoice_payload["amount_due_usd"],
+        "council_models_used": copy_spec.get("council_models_used", []),
     }
     brain.record_completion(item_key, "b2b_agency", 0.05, result)
     return result
@@ -2908,8 +3207,19 @@ def run_carousel_funnel_engine(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     council = AICouncil()
-    copy_spec = council.run_6_brain_copy_council(topic, "; ".join(points), brain)
-    padded_points = copy_spec["points"]
+    clean_pts = [p.strip() for p in points if p and p.strip()]
+    copy_spec = council.run_6_brain_copy_council(topic, "; ".join(clean_pts) or topic, brain)
+    padded_points = [str(p).strip() for p in (copy_spec.get("points") or []) if str(p).strip()]
+    fallback_pts = [
+        f"Master the core strategy behind {topic}",
+        "Automate the repetitive steps with repeatable workflows",
+        "Measure results weekly and scale what converts",
+    ]
+    for fp in fallback_pts:
+        if len(padded_points) >= 3:
+            break
+        padded_points.append(fp)
+    slug = _safe_slug(topic, prefix="carousel")
 
     slides_spec = [
         (f"SLIDE 01 / {copy_spec['hook_badge'][:18]}", topic.upper(), "Swipe to see the exact 4-stage blueprint ->"),
@@ -2920,9 +3230,10 @@ def run_carousel_funnel_engine(
     ]
 
     slide_paths: list[str] = []
+    slide_jpg_paths: list[str] = []
     slide_files: list[Path] = []
     for idx, (badge, headline, subline) in enumerate(slides_spec, start=1):
-        p = out_dir / f"slide_{idx:02d}.png"
+        p = out_dir / f"carousel_{slug}_{idx:02d}.png"
         _render_brand_slide_png(
             p,
             width=1080,
@@ -2932,8 +3243,13 @@ def run_carousel_funnel_engine(
             subline=subline,
             footer=f"JAGNOR AI • {idx}/5",
         )
+        # Instagram's Graph API only accepts JPEG for image_url, so ship a JPEG twin of every PNG slide.
+        jpg = p.with_suffix(".jpg")
+        with Image.open(p) as _im:
+            _im.convert("RGB").save(jpg, format="JPEG", quality=92, optimize=True)
         slide_paths.append(str(p))
-        slide_files.append(p)
+        slide_jpg_paths.append(str(jpg))
+        slide_files.extend([p, jpg])
 
     export_to_public_dir(slide_files, public_dir)
 
@@ -2942,6 +3258,7 @@ def run_carousel_funnel_engine(
         "status": "APPROVAL_PENDING",
         "topic": topic,
         "slide_paths": slide_paths,
+        "slide_jpg_paths": slide_jpg_paths,
         "ig_caption": copy_spec["ig_caption"],
         "council_models_used": copy_spec["council_models_used"],
     }
@@ -2961,6 +3278,7 @@ def run_raw_video_drop_engine(
     model_name: str = "base",
     public_dir: Path | None = None,
     art_style: str = "original",
+    aspect_ratio: str = "9:16",
 ) -> dict[str, Any]:
     """
     Scans `inbox_dir` (e.g. `inbox_videos/`) for the next unprocessed MP4/MOV exported from
@@ -3000,11 +3318,12 @@ def run_raw_video_drop_engine(
 
     if not has_audio:
         log.info("Dropped video %s has no audio track (e.g. Qwen/Wan); muxing silent 48kHz track...", target_file.name)
+        v_codec = ["-c:v", "copy"] if target_file.suffix.lower() == ".mp4" else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
         run_cmd([
             "ffmpeg", "-y",
             "-i", str(target_file),
             "-f", "lavfi", "-t", f"{raw_dur:.3f}", "-i", "anullsrc=channel_layout=mono:sample_rate=48000",
-            "-c:v", "copy", "-c:a", "aac", "-shortest",
+            *v_codec, "-c:a", "aac", "-ar", "48000", "-shortest",
             str(working_src),
         ])
     else:
@@ -3053,10 +3372,11 @@ def run_raw_video_drop_engine(
 
     ass_path = out_dir / "drop_01.ass"
     safe_slug = re.sub(r"[^a-zA-Z0-9]+", "_", target_file.stem)[:24].strip("_") or "01"
-    mp4_path = out_dir / f"drop_{safe_slug}.mp4"
-    write_ass_captions(segments, s_id, e_id, start_sec, ass_path, hook_overlay=hook_overlay)
-    render_vertical_short(working_src, meta, start_sec, end_sec, ass_path, mp4_path, norm_cx, layout_mode, art_style=art_style)
-    qa_ok = verify_rendered_mp4(mp4_path, min_duration=5.0)
+    mp4_path = out_dir / f"drop_{safe_slug}_{_run_tag()}.mp4"
+    target_sz = ASPECT_RATIOS.get(aspect_ratio, (1080, 1920))
+    write_ass_captions(segments, s_id, e_id, start_sec, ass_path, hook_overlay=hook_overlay, target_size=target_sz)
+    render_vertical_short(working_src, meta, start_sec, end_sec, ass_path, mp4_path, norm_cx, layout_mode, art_style=art_style, aspect_ratio=aspect_ratio)
+    qa_ok = verify_rendered_mp4(mp4_path, min_duration=5.0, expected_size=target_sz)
 
     export_to_public_dir([mp4_path], public_dir)
     if working_src.exists():
@@ -3201,7 +3521,7 @@ def _apply_art_style_filter(im: Image.Image, art_style: str) -> Image.Image:
             out[:, :, 2] = np.clip(out[:, :, 2] * 1.05, 0, 255)
             out = cv2.convertScaleAbs(out, alpha=1.08, beta=-14)
 
-        return Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB), mode="RGB")
+        return Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))
 
 
     except Exception as exc:
@@ -3384,29 +3704,49 @@ def _fetch_wikimedia_topic_image(query: str, out_img: Path, scene_num: int, used
         return False
 
 
-def _fetch_pexels_portrait_image(keywords: str, out_img: Path, scene_num: int) -> bool:
-    """Fetches a free, watermark-free 9:16 portrait HD photo from Pexels API (`PEXELS_API_KEY`)."""
-    pexels_key = os.environ.get("PEXELS_API_KEY", "").strip()
-    if not pexels_key:
+def _fetch_pixabay_portrait_image(
+    keywords: str,
+    out_img: Path,
+    scene_num: int,
+    art_style: str = "dark_cinematic",
+    used_urls: set[str] | None = None,
+) -> bool:
+    """Fetches a free, watermark-free 9:16 portrait HD photo or illustration from Pixabay API (`PIXABAY_API_KEY`)."""
+    pixabay_key = os.environ.get("PIXABAY_API_KEY", "").strip()
+    if not pixabay_key:
         return False
     clean_q = re.sub(r"[^a-zA-Z0-9\s]+", " ", keywords).strip() or "futuristic dark technology"
-    search_url = (
-        "https://api.pexels.com/v1/search?"
-        + urllib.parse.urlencode({"query": clean_q[:60], "orientation": "portrait", "per_page": 8})
-    )
+    prefer_illustration = art_style in {"anime", "comic_book", "3d_pixar", "minimalist_sketch", "oil_painting", "cyberpunk"}
+    search_types = ["illustration", "all"] if prefer_illustration else ["all"]
     try:
-        req = urllib.request.Request(
-            search_url,
-            headers={"Authorization": pexels_key, "User-Agent": "JagnorAIStudio/2.0"},
-        )
-        raw, _ = urlopen_with_retry(req, timeout=25, max_attempts=2)
-        data = json.loads(raw.decode("utf-8"))
-        photos = data.get("photos") or []
-        if not photos:
+        hits = []
+        for img_type in search_types:
+            search_url = (
+                "https://pixabay.com/api/?"
+                + urllib.parse.urlencode({
+                    "key": pixabay_key,
+                    "q": clean_q[:95],
+                    "image_type": img_type,
+                    "orientation": "vertical",
+                    "safesearch": "true",
+                    "per_page": 10,
+                })
+            )
+            req = urllib.request.Request(search_url, headers={"User-Agent": "JagnorAIStudio/2.0"})
+            raw, _ = urlopen_with_retry(req, timeout=25, max_attempts=2)
+            data = json.loads(raw.decode("utf-8"))
+            hits = data.get("hits") or []
+            if hits:
+                break
+        if not hits:
             return False
-        chosen = photos[(scene_num - 1) % len(photos)]
-        src_obj = chosen.get("src") or {}
-        img_url = src_obj.get("portrait") or src_obj.get("large2x") or src_obj.get("large")
+        candidates = [
+            h for h in hits
+            if (h.get("largeImageURL") or h.get("webformatURL"))
+            and (used_urls is None or (h.get("largeImageURL") or h.get("webformatURL")) not in used_urls)
+        ] or hits
+        chosen = candidates[(scene_num - 1) % len(candidates)]
+        img_url = chosen.get("largeImageURL") or chosen.get("webformatURL")
         if not img_url:
             return False
         img_req = urllib.request.Request(img_url, headers={"User-Agent": "Mozilla/5.0"})
@@ -3414,7 +3754,7 @@ def _fetch_pexels_portrait_image(keywords: str, out_img: Path, scene_num: int) -
             img_bytes = resp.read()
         if len(img_bytes) < 10000:
             return False
-        tmp_jpg = out_img.with_suffix(".pexels.jpg")
+        tmp_jpg = out_img.with_suffix(".pixabay.jpg")
         tmp_jpg.write_bytes(img_bytes)
         with Image.open(tmp_jpg) as im:
             rgb = im.convert("RGB")
@@ -3431,10 +3771,12 @@ def _fetch_pexels_portrait_image(keywords: str, out_img: Path, scene_num: int) -
                 rgb = rgb.crop((0, y0, w, y0 + new_h))
             rgb.resize((1080, 1920), Image.Resampling.LANCZOS).save(out_img, format="PNG")
         tmp_jpg.unlink(missing_ok=True)
-        log.info("Scene %d visual loaded from Pexels HD (%s).", scene_num, clean_q[:30])
+        if used_urls is not None:
+            used_urls.add(img_url)
+        log.info("Scene %d visual loaded from Pixabay HD (%s).", scene_num, clean_q[:30])
         return True
     except Exception as exc:
-        log.info("Scene %d Pexels API unavailable (%s).", scene_num, exc)
+        log.info("Scene %d Pixabay API unavailable (%s).", scene_num, exc)
         return False
 
 
@@ -3449,10 +3791,10 @@ def _fetch_free_ai_scene_image(
     """
     3-Layer Free Visual Chain:
       1) Pollinations.ai (`POLLINATIONS_API_KEY` on gen.pollinations.ai, or 1-shot legacy check; stops immediately on HTTP 401/402)
-      2) Pexels HD Portrait Photos (`PEXELS_API_KEY` — 100% free, zero watermarks)
+      2) Pixabay HD Portrait Photos & Illustrations (`PIXABAY_API_KEY` — 100% free, zero watermarks)
       3) Cleanly word-wrapped branded editorial card
     """
-    style_suffix = ART_STYLE_PROMPTS.get(art_style, ART_STYLE_PROMPTS["dark_cinematic"])
+    style_suffix = gen_style_prompt(art_style)
     full_prompt = f"{visual_prompt}, {style_suffix}, vertical 9:16 composition"
     encoded = urllib.parse.quote(full_prompt)
     poll_key = os.environ.get("POLLINATIONS_API_KEY", "").strip()
@@ -3496,7 +3838,7 @@ def _fetch_free_ai_scene_image(
         except urllib.error.HTTPError as exc:
             last_exc = exc
             if exc.code in {401, 402, 403}:
-                log.info("Scene %d Pollinations returned HTTP %d; skipping retries and checking Pexels fallback.", scene_num, exc.code)
+                log.info("Scene %d Pollinations returned HTTP %d; skipping retries and checking next visual fallback.", scene_num, exc.code)
                 break
             if attempt < max_attempts:
                 time.sleep(4.0 * attempt)
@@ -3513,7 +3855,7 @@ def _fetch_free_ai_scene_image(
     if _fetch_hf_ai_image(full_prompt, out_img, scene_num):
         return out_img
 
-    if _fetch_pexels_portrait_image(stock_keywords or visual_prompt, out_img, scene_num) or _fetch_wikimedia_topic_image(stock_keywords or fallback_headline, out_img, scene_num):
+    if _fetch_pixabay_portrait_image(stock_keywords or visual_prompt, out_img, scene_num, art_style=art_style) or _fetch_wikimedia_topic_image(stock_keywords or fallback_headline, out_img, scene_num):
         with Image.open(out_img) as im:
             _apply_art_style_filter(im, art_style).save(out_img, format="PNG")
         return out_img
@@ -3602,10 +3944,10 @@ def _synthesize_scene_voiceover(text: str, out_wav: Path, voice: str = "deep_mal
             last_exc = exc
             if attempt < len(voices_to_try):
                 sleep_s = 2.0 * attempt
-                log.info("edge-tts attempt %d/%d failed (%s); retrying in %.0fs...", attempt, len(voices_to_try), exc, sleep_s)
+                log.info("edge-tts attempt %d/%d failed (%s); retrying in %.0fs...", attempt, len(voices_to_try), str(exc).strip()[-160:], sleep_s)
                 time.sleep(sleep_s)
 
-    log.info("edge-tts unavailable (%s); generating %.1fs silent fallback audio.", last_exc, est_dur)
+    log.info("edge-tts unavailable (%s); generating %.1fs silent fallback audio.", str(last_exc).strip()[-160:], est_dur)
     run_cmd([
         "ffmpeg", "-y", "-f", "lavfi", "-t", f"{est_dur:.2f}",
         "-i", "anullsrc=channel_layout=mono:sample_rate=48000",
@@ -3732,7 +4074,7 @@ def run_ai_faceless_engine(
     # Burn HookBanner + word-by-word gold karaoke ASS captions and enforce -14 LUFS + faststart
     ass_path = out_dir / "faceless_01.ass"
     safe_slug = re.sub(r"[^a-zA-Z0-9]+", "_", topic)[:24].strip("_").lower() or f"short_{int(time.time()) % 100000}"
-    final_mp4 = out_dir / f"faceless_{safe_slug}.mp4"
+    final_mp4 = out_dir / f"faceless_{safe_slug}_{_run_tag()}.mp4"
     write_ass_captions(
         indexed_segments,
         0,
@@ -3834,7 +4176,7 @@ def _build_gradient_backdrop(width: int, height: int, mood: str, scene_idx: int)
             t = (y - split) / float(max(height - split, 1))
             c = [int(mid_c[i] + (bot_c[i] - mid_c[i]) * t) for i in range(3)]
         arr[y, :] = c
-    img = Image.fromarray(arr, mode="RGB")
+    img = Image.fromarray(arr)
     draw = ImageDraw.Draw(img)
 
     # Subtle twinkling starfield in upper sky
@@ -4028,7 +4370,7 @@ def _fetch_story_backdrop_if_available(
       1) Pollinations.ai (`POLLINATIONS_API_KEY`) — custom AI art
       2) OpenRouter Image API (`OPENROUTER_API_KEY`) — custom AI art
       3) Hugging Face FLUX (`HF_TOKEN`) — custom AI art
-      4) Stylized topic media (Pexels / Wikimedia transformed via `_apply_art_style_filter`
+      4) Stylized topic media (Pixabay / Wikimedia transformed via `_apply_art_style_filter`
          so it NEVER looks like raw unstyled photography)
     """
     tmp_png = tmp_dir / f"story_bg_{scene_num:02d}.png"
@@ -4036,19 +4378,20 @@ def _fetch_story_backdrop_if_available(
     vp = str(scene.get("visual_prompt") or "")
     sk = _extract_narration_search_query(narration, str(scene.get("stock_keywords") or ""), topic or str(scene.get("top_label") or ""))
 
-    style_suffix = ART_STYLE_PROMPTS.get(art_style, ART_STYLE_PROMPTS["dark_cinematic"])
+    style_suffix = gen_style_prompt(art_style)
     char_clause = f", featuring {character_desc}" if character_desc.strip() else ""
     theme_clause = f", theme: {theme}" if theme.strip() else ""
     full_prompt = f"{vp or sk}{char_clause}{theme_clause}, topic: {topic}, {style_suffix}, vertical 9:16 composition"
 
     poll_key = os.environ.get("POLLINATIONS_API_KEY", "").strip()
-    pexels_key = os.environ.get("PEXELS_API_KEY", "").strip()
+    pixabay_key = os.environ.get("PIXABAY_API_KEY", "").strip()
     loaded_ai = False
     loaded_photo = False
 
     if poll_key:
         encoded = urllib.parse.quote(full_prompt)
-        url = f"https://gen.pollinations.ai/image/{encoded}?width=1080&height=1920&model=flux&nologo=true&seed={abs(hash((topic, art_style, scene_num))) % 999999}"
+        seed_val = zlib.crc32(f"{topic}|{art_style}|{scene_num}".encode("utf-8")) % 999999
+        url = f"https://gen.pollinations.ai/image/{encoded}?width=1080&height=1920&model=flux&nologo=true&seed={seed_val}"
         try:
             req = urllib.request.Request(url, headers={"Authorization": f"Bearer {poll_key}", "User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=40) as resp:
@@ -4071,8 +4414,8 @@ def _fetch_story_backdrop_if_available(
     if not loaded_ai:
         loaded_ai = _fetch_hf_ai_image(full_prompt, tmp_png, scene_num)
 
-    if not loaded_ai and pexels_key:
-        loaded_photo = _fetch_pexels_portrait_image(sk, tmp_png, scene_num)
+    if not loaded_ai and pixabay_key:
+        loaded_photo = _fetch_pixabay_portrait_image(sk, tmp_png, scene_num, art_style=art_style, used_urls=used_urls)
 
     if not loaded_ai and not loaded_photo:
         loaded_photo = _fetch_wikimedia_topic_image(sk, tmp_png, scene_num, used_urls=used_urls)
@@ -4081,7 +4424,7 @@ def _fetch_story_backdrop_if_available(
         with Image.open(tmp_png) as im:
             styled = _apply_art_style_filter(im, art_style) if loaded_photo else im.convert("RGB")
             arr = np.asarray(styled, dtype=np.float32) * 0.65
-            return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB")
+            return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
     return None
 
 
@@ -4141,7 +4484,7 @@ def _build_style_themed_backdrop(W: int, H: int, theme_cfg: dict[str, Any], scen
         else:
             u = (y - split) / float(max(H - split, 1))
             arr[y, :] = [int(c2[i] + (c3[i] - c2[i]) * u) for i in range(3)]
-    img = Image.fromarray(arr, mode="RGB")
+    img = Image.fromarray(arr)
     draw = ImageDraw.Draw(img)
     # Subtle geometric atmosphere matching art style
     rng = random.Random(3000 + scene_idx * 91 + sum(c1))
@@ -4219,6 +4562,7 @@ def _render_motion_story_scene(
 
     cmd = [
         "ffmpeg", "-y",
+        "-loglevel", "error", "-nostats",
         "-f", "rawvideo", "-vcodec", "rawvideo", "-pix_fmt", "rgb24",
         "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
         "-i", str(wav_path),
@@ -4463,7 +4807,7 @@ def run_motion_story_engine(
 
     ass_path = out_dir / "motion_story_01.ass"
     safe_slug = re.sub(r"[^a-zA-Z0-9]+", "_", topic)[:24].strip("_").lower() or f"story_{int(time.time()) % 100000}"
-    final_mp4 = out_dir / f"story_{safe_slug}.mp4"
+    final_mp4 = out_dir / f"story_{safe_slug}_{_run_tag()}.mp4"
     # Pass empty hook_overlay so ASS top banner doesn't collide with the animated scene header
     write_ass_captions(
         indexed_segments,
@@ -4548,7 +4892,7 @@ def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
         "groq",
         "Return ONE short, high-curiosity YouTube Shorts story topic (5-10 words, no quotes, no numbering).",
         f"Theme: {theme}. Give a fresh, fascinating scale/mystery/history/science story idea that viewers haven't seen yet. "
-        f"Avoid repeating recent titles: {list(processed)[-8:]}",
+        f"Avoid repeating recent titles: {[str(h.get('item_key', '')).split(':')[1] for h in ledger_data.get('history', [])[-8:] if ':' in str(h.get('item_key', ''))]}",
     )
     if ai_raw:
         cand = " ".join(ai_raw.strip().strip('"').strip("'").splitlines()[0].split())[:72]
@@ -4614,7 +4958,13 @@ def main() -> int:
         "--art-style",
         default="dark_cinematic",
         choices=list(ART_STYLE_PROMPTS.keys()),
-        help="[ai_faceless] Visual art style preset for animated scenes",
+        help="[all video engines] Visual art style preset for scenes/clips",
+    )
+    parser.add_argument(
+        "--aspect-ratio",
+        default="9:16",
+        choices=list(ASPECT_RATIOS.keys()),
+        help="[clipping / raw_video_drop] Output video aspect ratio (9:16, 16:9, 1:1, 4:5)",
     )
     parser.add_argument(
         "--theme",
@@ -4661,6 +5011,8 @@ def main() -> int:
     public_dir = Path(args.public_dir) if args.public_dir else None
     manifest_path = job_dir / "manifest.json"
 
+    build_started = args.stage in {"build", "full"}
+    build_finished = False
     try:
         if args.stage in {"build", "full"}:
             brain = CompanyBrain.load(brain_dir)
@@ -4694,6 +5046,7 @@ def main() -> int:
                             allow_all_licenses=args.allow_all_licenses,
                             public_dir=public_dir,
                             art_style=args.art_style,
+                            aspect_ratio=args.aspect_ratio,
                         )
                         break
                     except Exception as err:
@@ -4736,6 +5089,7 @@ def main() -> int:
                     model_name=args.model,
                     public_dir=public_dir,
                     art_style=args.art_style,
+                    aspect_ratio=args.aspect_ratio,
                 )
             elif args.engine == "digital_product":
                 src_dir = Path(args.source_app_dir) if args.source_app_dir else None
@@ -4746,14 +5100,20 @@ def main() -> int:
                     job_dir=job_dir,
                     brain=brain,
                     public_dir=public_dir,
+                    voice=args.voice,
+                    notes=args.notes,
                 )
             elif args.engine == "b2b_agency":
+                client_label = (args.client or "").strip()
+                if not client_label or client_label == "Acme Corp":
+                    client_label = (args.title or "Client Company").strip()
                 manifest = run_b2b_agency_engine(
-                    client_name=args.client,
+                    client_name=client_label,
                     discovery_notes=args.notes,
                     price_usd=args.price,
                     job_dir=job_dir,
                     brain=brain,
+                    public_dir=public_dir,
                 )
             elif args.engine == "carousel_funnel":
                 pts = [p.strip() for p in args.notes.split(";") if p.strip()]
@@ -4768,6 +5128,7 @@ def main() -> int:
                 raise ValueError(f"Unsupported engine: {args.engine}")
 
             atomic_write_json(manifest_path, manifest)
+            build_finished = True
             log.info("Build stage [%s] complete -> %s (status=%s)", args.engine, manifest_path, manifest.get("status"))
 
         if args.stage in {"publish", "full"}:
@@ -4791,13 +5152,19 @@ def main() -> int:
             )
             manifest = updated
 
-        final_manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+        if args.stage in {"publish", "full"}:
+            final_manifest = manifest  # in dry-run the on-disk manifest is intentionally untouched
+        else:
+            final_manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
         subj, body = format_manifest_report(final_manifest, stage=args.stage)
         send_gmail_report(subj, body, dry_run=args.dry_run_publish)
         return 0
     except Exception as exc:
         log.error("Master pipeline halted: %s", exc)
-        err_manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"engine": args.engine}
+        if (build_started and not build_finished) or not manifest_path.exists():
+            err_manifest = {"engine": args.engine}  # a failed build must not echo the previous run's stale manifest
+        else:
+            err_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         subj, body = format_manifest_report(err_manifest, stage=args.stage, error_msg=str(exc))
         send_gmail_report(subj, body, dry_run=args.dry_run_publish)
         return 1
@@ -4805,3 +5172,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+ 
