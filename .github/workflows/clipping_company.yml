@@ -116,6 +116,10 @@ on:
         description: "[clipping] Optional specific YouTube or Instagram video URL"
         required: false
         default: ""
+      slice_start:
+        description: "[clipping] Optional start time for long videos/streams (e.g. 1:30:00 — clips 15 min from here)"
+        required: false
+        default: ""
       allow_all_licenses:
         description: "[clipping] Override CC-only license check (ONLY if you own/have permission)"
         required: false
@@ -206,6 +210,7 @@ jobs:
         env:
           INPUT_ENGINE: ${{ github.event.inputs.engine || 'motion_story' }}
           INPUT_URL: ${{ github.event.inputs.source_url }}
+          INPUT_SLICE_START: ${{ github.event.inputs.slice_start }}
           INPUT_NICHE: ${{ github.event.inputs.niche_query || 'AI agents automation tech podcast' }}
           INPUT_TREND_PLAT: ${{ github.event.inputs.trend_platform || 'auto' }}
           INPUT_TITLE: ${{ github.event.inputs.title_or_topic }}
@@ -246,6 +251,7 @@ jobs:
             --stage build \
             --engine "$INPUT_ENGINE" \
             --url "$INPUT_URL" \
+            --slice-start "$INPUT_SLICE_START" \
             --niche "$INPUT_NICHE" \
             --trend-platform "$INPUT_TREND_PLAT" \
             --title "$INPUT_TITLE" \
