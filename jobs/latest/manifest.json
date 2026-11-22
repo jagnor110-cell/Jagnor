@@ -1,7 +1,7 @@
 {
   "engine": "clipping",
   "source_mode": "ai_faceless",
-  "status": "APPROVAL_PENDING",
+  "status": "PUBLISHED",
   "source_url": "ai_faceless:Revolutionary Pill Just C",
   "language": "English",
   "settings_applied": {
@@ -39,7 +39,23 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "ai_faceless:Revolutionary Pill Just C"
+      "source_url": "ai_faceless:Revolutionary Pill Just C",
+      "published_platforms": {
+        "youtube": "OxoeqN4cJ6U"
+      },
+      "published": true,
+      "receipt": {
+        "clip_id": "faceless_01",
+        "youtube": "OxoeqN4cJ6U"
+      }
+    }
+  ],
+  "approved_at": 1795364393,
+  "published_at": 1795364395,
+  "published_receipts": [
+    {
+      "clip_id": "faceless_01",
+      "youtube": "OxoeqN4cJ6U"
     }
   ]
 }
