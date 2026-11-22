@@ -2929,6 +2929,9 @@ def write_ass_captions(
     hook_margin_v = int(res_y * (0.12 if res_y >= res_x else 0.08))
     font_default = 72 if res_y >= 1350 else 58
     font_hook = 58 if res_y >= 1350 else 48
+    sample_ass = f"{hook_overlay} " + " ".join(s.text for s in segments[:3])
+    script_info = _detect_script(sample_ass)
+    ass_font = f"Noto Sans {script_info[1]}" if script_info else "Noto Sans"
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {res_x}
@@ -2936,8 +2939,8 @@ PlayResY: {res_y}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,{font_default},&H00FFFFFF,&H0000D7FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,70,70,{cap_margin_v},1
-Style: HookBanner,Arial,{font_hook},&H0000D7FF,&H00FFFFFF,&H00000000,&H99000000,-1,0,0,0,100,100,0,0,3,3,0,8,80,80,{hook_margin_v},1
+Style: Default,{ass_font},{font_default},&H00FFFFFF,&H0000D7FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,70,70,{cap_margin_v},1
+Style: HookBanner,{ass_font},{font_hook},&H0000D7FF,&H00FFFFFF,&H00000000,&H99000000,-1,0,0,0,100,100,0,0,3,3,0,8,80,80,{hook_margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -5393,7 +5396,7 @@ def pick_fresh_auto_topic_with_context(theme: str, brain: CompanyBrain, engine: 
     Live Trending Topic Selector returning `(topic_title, grounded_fact_brief)` so the
     script council uses real headline facts instead of inventing numbers or dates.
     """
-    ledger_data, _ = load_ledger(brain.ledger_path.parent)
+    ledger_data, _ = load_ledger(brain.ledger_path.parent if brain.ledger_path else brain.brain_dir)
     all_previous = _previous_topics(ledger_data)
     recent_titles = all_previous[-12:]
 
@@ -5667,8 +5670,9 @@ def main() -> int:
                 )
             elif args.engine == "digital_product":
                 src_dir = Path(args.source_app_dir) if args.source_app_dir else None
+                safe_prod_title = (args.title or "").strip() or "Jagnor Pro Automation Suite"
                 manifest = run_digital_product_engine(
-                    product_title=args.title,
+                    product_title=safe_prod_title,
                     price_usd=args.price,
                     source_app_dir=src_dir,
                     job_dir=job_dir,
@@ -5691,8 +5695,9 @@ def main() -> int:
                 )
             elif args.engine == "carousel_funnel":
                 pts = [p.strip() for p in args.notes.split(";") if p.strip()]
+                safe_car_topic = (args.title or "").strip() or pick_fresh_auto_topic(args.theme, brain, "carousel_funnel")
                 manifest = run_carousel_funnel_engine(
-                    topic=args.title,
+                    topic=safe_car_topic,
                     points=pts,
                     job_dir=job_dir,
                     brain=brain,
