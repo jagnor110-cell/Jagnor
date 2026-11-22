@@ -3,11 +3,12 @@
   "processed_items": [
     "ai_faceless:how deep is space actually is:20261121",
     "motion_story:how far voyager 1 has traveled into deep space:20261121",
+    "motion_story:how to unlock hidden auto drive in gta 6:20261122",
     "motion_story:new pill could end pancreatic cancer forever:20261122",
     "motion_story:why gta vi is breaking every gaming record:20261122"
   ],
   "allowlisted_channels": [],
-  "daily_spend_usd": 0.2,
+  "daily_spend_usd": 0.3,
   "daily_budget_cap_usd": 5.0,
   "publish_log": [
     {
@@ -65,6 +66,17 @@
         "topic": "New Pill Could End Pancreatic Cancer Forever",
         "character": "Dr. Nova Virell",
         "mp4_path": "jobs/latest/out/story_new_pill_could_end_pancr_202611220916.mp4"
+      }
+    },
+    {
+      "timestamp": 1795342456,
+      "engine": "motion_story",
+      "item_key": "motion_story:how to unlock hidden auto drive in gta 6:20261122",
+      "cost_usd": 0.1,
+      "summary": {
+        "topic": "How to unlock hidden auto drive in GTA 6",
+        "character": "How to unlock hidden aut",
+        "mp4_path": "jobs/latest/out/story_how_to_unlock_hidden_aut_202611221014.mp4"
       }
     }
   ]
