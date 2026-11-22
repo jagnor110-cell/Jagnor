@@ -164,6 +164,8 @@ def format_manifest_report(
         lines.append(f"Product Title: {m['product_title']} (${m.get('price_usd', 0):.2f})")
     if m.get("client_name"):
         lines.append(f"B2B Client: {m['client_name']} (Invoice {m.get('invoice_id', 'N/A')} - ${m.get('amount_due_usd', 0):.2f})")
+    if m.get("script_source") and m.get("script_source") != "ai":
+        lines.append(f"Script source: {m['script_source']} (AI council unavailable{' - NOT published' if m.get('script_source') == 'template' else ''})")
     if m.get("council_models_used"):
         lines.append(f"AI Council Models: {', '.join(m['council_models_used'])}")
     lines.append("")
@@ -694,6 +696,16 @@ def process_manifest(
             f"GOVERNANCE_GATE_BLOCKED: Manifest status is '{status}' (must be 'APPROVED' before publishing)."
         )
 
+    if (
+        manifest.get("script_source") == "template"
+        and not dry_run
+        and os.environ.get("ALLOW_TEMPLATE_PUBLISH", "").strip() != "1"
+    ):
+        raise ValueError(
+            "SCRIPT_TEMPLATE_BLOCKED: every AI council provider failed and no verified facts were available, so the "
+            "script is a generic placeholder. It was built but NOT published. Re-run the build once the AI keys/quota work."
+        )
+
     ledger_data, ledger_path = load_ledger(brain_dir)
     engine = manifest.get("engine", "clipping")
     published_receipts: list[dict[str, Any]] = []
@@ -1150,6 +1162,34 @@ def _classify_visual_world(low_ctx: str) -> str:
     return best
 
 
+def _brief_sentences(fact_brief: str, max_n: int = 5) -> list[str]:
+    """Real, relevant sentences from the Verified Fact Brief (Wikipedia / trend text) for no-LLM fallbacks."""
+    out: list[str] = []
+    for line in (fact_brief or "").splitlines():
+        line = re.sub(r"^(Background:|Wikipedia \([^)]*\):)\s*", "", line.strip(), flags=re.I)
+        if not line or "headline only" in line.lower() or line.lower().startswith("trending"):
+            continue
+        for sent in re.split(r"(?<=[.!?])\s+", line):
+            sent = re.sub(r"\s*\([^)]{0,80}\)", "", sent).strip()
+            n = len(sent.split())
+            if 6 <= n <= 30 and sent not in out:
+                out.append(sent)
+            if len(out) >= max_n:
+                return out
+    return out
+
+
+def _honest_template_narrations(topic: str) -> list[str]:
+    """Claim-free generic script used only when no AI draft and no fact brief exist (never auto-published)."""
+    return [
+        f"Here is what makes {topic} worth a closer look.",
+        f"Start with the basics: what {topic} actually is and why people talk about it.",
+        "Then look at what changed, and why it matters right now.",
+        f"Here is the part about {topic} that most people overlook at first.",
+        f"What is your take on {topic}? Share it in the comments.",
+    ]
+
+
 class AICouncil:
     """
     Passes each video or product brief sequentially through 4 free-tier AI brains:
@@ -1170,8 +1210,10 @@ class AICouncil:
         self.time_budget_sec = float(os.environ.get("COUNCIL_TIME_BUDGET_SEC", "240"))
         self._started = time.monotonic()
 
-    def _budget_left(self) -> bool:
-        return (time.monotonic() - self._started) < self.time_budget_sec
+    def _budget_left(self, final_pass: bool = False) -> bool:
+        # The last-resort JSON pass gets a small extra reserve so one slow provider can never force the generic template.
+        limit = self.time_budget_sec + (90.0 if final_pass else 0.0)
+        return (time.monotonic() - self._started) < limit
 
     def _call_openai_compatible(
         self,
@@ -1181,6 +1223,8 @@ class AICouncil:
         system_prompt: str,
         user_prompt: str,
         extra_headers: dict[str, str] | None = None,
+        timeout: int = 30,
+        max_attempts: int = 2,
     ) -> str:
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -1202,7 +1246,7 @@ class AICouncil:
             headers=headers,
             method="POST",
         )
-        raw, _ = urlopen_with_retry(req, timeout=45, max_attempts=2)
+        raw, _ = urlopen_with_retry(req, timeout=timeout, max_attempts=max_attempts)
         data = json.loads(raw.decode("utf-8"))
         choices = data.get("choices") or []
         if not choices:
@@ -1270,7 +1314,7 @@ class AICouncil:
             "nvidia/nemotron-3.5-lightning-30b-a3b",
             "nvidia/llama-3.1-nemotron-70b-instruct",
         ]
-        for nv_model in dict.fromkeys(fallback_models):
+        for nv_model in list(dict.fromkeys(fallback_models))[:2]:
             try:
                 return self._call_openai_compatible(
                     nv_url,
@@ -1278,14 +1322,16 @@ class AICouncil:
                     nv_model,
                     system_prompt,
                     user_prompt,
+                    timeout=25,
+                    max_attempts=1,
                 )
             except Exception as exc:
                 log.debug("NVIDIA NIM model %s attempt failed: %s", nv_model, exc)
                 continue
         raise RuntimeError("All native NVIDIA NIM model endpoints failed.")
 
-    def invoke_stage(self, provider: str, system_prompt: str, user_prompt: str) -> str | None:
-        if not self._budget_left():
+    def invoke_stage(self, provider: str, system_prompt: str, user_prompt: str, final_pass: bool = False) -> str | None:
+        if not self._budget_left(final_pass):
             log.warning("AI Council time budget (%.0fs) exhausted; skipping [%s] stage and using deterministic fallback.", self.time_budget_sec, provider)
             return None
         openrouter_candidates = {
@@ -1311,7 +1357,7 @@ class AICouncil:
         except Exception as native_exc:
             log.warning("Native [%s] API failed (%s); falling back to OpenRouter if configured...", provider, native_exc)
 
-        if self.openrouter_key and self._budget_left():
+        if self.openrouter_key and self._budget_left(final_pass):
             for or_model in dict.fromkeys(openrouter_candidates.get(provider, ["openrouter/free", "openrouter/auto"])):
                 try:
                     res = self._call_openai_compatible(
@@ -1332,6 +1378,34 @@ class AICouncil:
                     continue
 
         return None
+
+    @staticmethod
+    def _has_scenes(d: dict[str, Any] | None) -> bool:
+        if not isinstance(d, dict) or not isinstance(d.get("scenes"), list):
+            return False
+        good = [x for x in d["scenes"] if isinstance(x, dict) and str(x.get("narration") or "").strip()]
+        return len(good) >= 3
+
+    def _resolve_script_json(self, outputs: list[str | None], judge_prompt: str) -> dict[str, Any]:
+        """
+        Pick the first council output that is real JSON WITH scenes (judge first, then drafts). If none, ask Groq then
+        Gemini to convert the drafts into JSON. Metadata-only dicts never block a later draft that has the scenes.
+        """
+        dicts = [self._extract_json_dict(o) for o in outputs]
+        for d in dicts:
+            if self._has_scenes(d):
+                return d  # type: ignore[return-value]
+        for fb_provider in ("groq", "gemini"):
+            fb_out = self.invoke_stage(
+                fb_provider,
+                "Convert the drafts into strict valid JSON ONLY. No markdown fences, no commentary.",
+                judge_prompt,
+                final_pass=True,
+            )
+            fb = self._extract_json_dict(fb_out)
+            if self._has_scenes(fb):
+                return fb  # type: ignore[return-value]
+        return next((d for d in dicts if d), {})
 
     @staticmethod
     def _extract_json_dict(raw_text: str | None) -> dict[str, Any] | None:
@@ -1478,7 +1552,7 @@ class AICouncil:
 
         if not final_specs:
             for s_id, e_id in deterministic_windows:
-                hook_text = seg_map[s_id].text[:48].strip() or "AI Automation Breakdown"
+                hook_text = seg_map[s_id].text[:48].strip() or "Must-See Moment"
                 final_specs.append({
                     "start_segment_id": s_id,
                     "end_segment_id": e_id,
@@ -1501,6 +1575,7 @@ class AICouncil:
         title_or_topic: str,
         raw_notes: str,
         brain: CompanyBrain,
+        default_points: list[str] | None = None,
     ) -> dict[str, Any]:
         s1 = self.invoke_stage(
             "gemini",
@@ -1530,14 +1605,16 @@ class AICouncil:
             or self._extract_json_dict(s1)
             or {}
         )
-        default_pts = [p.strip() for p in raw_notes.split(";") if p.strip()] or [
-            "Centralize brand SOPs in a shared Company Brain.",
-            "Pass every video through the 4-Brain Free AI Council.",
-            "Gate every public post behind human approval.",
+        fillers = default_points or [
+            f"What {title_or_topic} is and why it matters.",
+            f"The key idea behind {title_or_topic}.",
+            f"How to apply {title_or_topic} today.",
         ]
+        default_pts = [p.strip() for p in raw_notes.split(";") if p.strip()]
+        default_pts += [f for f in fillers if f not in default_pts][: max(0, 3 - len(default_pts))]
         pts = parsed.get("points") if isinstance(parsed.get("points"), list) and len(parsed["points"]) >= 3 else default_pts
         return {
-            "hook_badge": str(parsed.get("hook_badge") or "AI COUNCIL VERIFIED")[:36].upper(),
+            "hook_badge": str(parsed.get("hook_badge") or "KEY TAKEAWAYS")[:36].upper(),
             "points": [str(p) for p in pts[:3]],
             "yt_title": str(parsed.get("yt_title") or f"{title_or_topic[:48]} #Shorts")[:100],
             "ig_caption": str(parsed.get("ig_caption") or f"{title_or_topic} — full breakdown via the link in bio."),
@@ -1580,20 +1657,17 @@ class AICouncil:
             "You are Stage 3 (NVIDIA Nemotron SEO & Retention Polisher). Add a <=60-char `yt_title` with #Shorts, polish visual_prompt consistency for the chosen Art Style, and add 3 niche hashtags to `ig_caption`.",
             f"Art Style: {art_style} ({style_desc})\nGroq Draft:\n{s2 or topic}",
         )
+        judge_prompt = (
+            f"Merge all 3 drafts into final strict JSON:\nGemini:{s1}\nGroq:{s2}\nNVIDIA:{s3}\n"
+            'Output ONLY valid JSON (no markdown, no explanation): {"hook_overlay": str, "yt_title": str, "ig_caption": str, '
+            '"scenes": [{"narration": str, "visual_prompt": str, "stock_keywords": str}]} (exactly 5 scenes).'
+        )
         s4 = self.invoke_stage(
             "openrouter",
             "You are Stage 4 (OpenRouter Chief Consensus Judge). Output ONLY strict JSON.",
-            f"Merge all 3 drafts:\nGemini:{s1}\nGroq:{s2}\nNVIDIA:{s3}\n"
-            'Output ONLY valid JSON: {"hook_overlay": str, "yt_title": str, "ig_caption": str, '
-            '"scenes": [{"narration": str, "visual_prompt": str, "stock_keywords": str}]} (exactly 5 scenes).',
+            judge_prompt,
         )
-        parsed = (
-            self._extract_json_dict(s4)
-            or self._extract_json_dict(s3)
-            or self._extract_json_dict(s2)
-            or self._extract_json_dict(s1)
-            or {}
-        )
+        parsed = self._resolve_script_json([s4, s3, s2, s1], judge_prompt)
         raw_scenes = parsed.get("scenes")
         scenes: list[dict[str, str]] = []
         if isinstance(raw_scenes, list):
@@ -1605,39 +1679,30 @@ class AICouncil:
                         "stock_keywords": str(sc.get("stock_keywords") or f"{theme} {topic}")[:40].strip(),
                     })
 
+        script_source = "ai"
         if len(scenes) < 3:
+            sents = _brief_sentences(fact_brief, 5)
+            if len(sents) >= 3:
+                script_source = "fact_brief"
+                narrs = sents[:4] + [f"What is your take on {topic}? Share it in the comments."]
+            else:
+                script_source = "template"
+                narrs = _honest_template_narrations(topic)
+            angles = ["opening wide shot", "key subject close-up", "moment of change", "detail view", "closing wide shot"]
             scenes = [
                 {
-                    "narration": f"Most people still overlook how {topic} is reshaping {theme} right now.",
-                    "visual_prompt": f"dramatic opening scene representing {topic} in {theme}",
-                    "stock_keywords": f"{theme} futuristic",
-                },
-                {
-                    "narration": "The shift starts when one clear system replaces hours of repetitive manual work.",
-                    "visual_prompt": f"glowing command hub illustrating {topic} workflow",
-                    "stock_keywords": "technology workspace neon",
-                },
-                {
-                    "narration": "Four specialized AI models collaborate in sequence to write, sharpen, and verify every angle.",
-                    "visual_prompt": f"four luminous energy nodes connecting into a single beam, {theme}",
-                    "stock_keywords": "abstract digital network",
-                },
-                {
-                    "narration": "Every visual is locked to one cohesive aesthetic so viewers recognize your brand instantly.",
-                    "visual_prompt": f"sleek futuristic studio screen displaying bold art frames, {theme}",
-                    "stock_keywords": "creative studio lighting",
-                },
-                {
-                    "narration": "Build the engine once, review the output, and let consistency compound every single week.",
-                    "visual_prompt": f"rising golden horizon over futuristic cityscape symbolizing growth, {theme}",
-                    "stock_keywords": "city skyline sunset",
-                },
+                    "narration": nr,
+                    "visual_prompt": f"{angles[k % 5]} of {topic}, {theme}",
+                    "stock_keywords": " ".join(topic.split()[:4])[:40],
+                }
+                for k, nr in enumerate(narrs[:5])
             ]
 
         return {
             "hook_overlay": str(parsed.get("hook_overlay") or topic[:36]).upper()[:42],
             "yt_title": str(parsed.get("yt_title") or f"{topic[:48]} #Shorts")[:100],
-            "ig_caption": str(parsed.get("ig_caption") or f"{topic} — built automatically with our free AI studio. Follow for more! #AI #Automation #Shorts"),
+            "ig_caption": str(parsed.get("ig_caption") or f"{topic} — what to know. Follow for more! #Shorts"),
+            "script_source": script_source,
             "scenes": scenes,
             "art_style": art_style,
             "theme": theme,
@@ -1692,24 +1757,21 @@ class AICouncil:
             "You are Stage 3 (NVIDIA Nemotron Polish & SEO). Add a <=60-char `yt_title` with #Shorts, verify every visual_prompt matches the Art Style & Topic, and add 3 niche hashtags to `ig_caption`.",
             f"Art Style: {art_style}\nGroq Draft:\n{s2 or topic}",
         )
-        s4 = self.invoke_stage(
-            "openrouter",
-            "You are Stage 4 (OpenRouter Chief Consensus Judge). Output ONLY strict valid JSON.",
-            f"Merge all 3 drafts:\nGemini:{s1}\nGroq:{s2}\nNVIDIA:{s3}\n"
-            'Output ONLY valid JSON: {"hook_overlay": str, "yt_title": str, "ig_caption": str, '
+        judge_prompt = (
+            f"Merge all 3 drafts into strict valid JSON:\nGemini:{s1}\nGroq:{s2}\nNVIDIA:{s3}\n"
+            'Output ONLY valid JSON (no markdown, no explanation): {"hook_overlay": str, "yt_title": str, "ig_caption": str, '
             '"visual_world": str, '
             '"character": {"name": str, "archetype": str, "primary_hex": str, "accent_hex": str, "skin_hex": str, "aura_hex": str}, '
             '"scenes": [{"action": str, "narration": str, "top_label": str, "visual_prompt": str, "stock_keywords": str, '
             '"stat_text": str, "quote_title": str, "quote_text": str, "timeline_steps": [str, str, str], "callout_label": str}]} '
-            "(exactly 5 scenes with 5 distinct actions).",
+            "(exactly 5 scenes with 5 distinct actions)."
         )
-        parsed = (
-            self._extract_json_dict(s4)
-            or self._extract_json_dict(s3)
-            or self._extract_json_dict(s2)
-            or self._extract_json_dict(s1)
-            or {}
+        s4 = self.invoke_stage(
+            "openrouter",
+            "You are Stage 4 (OpenRouter Chief Consensus Judge). Output ONLY strict valid JSON.",
+            judge_prompt,
         )
+        parsed = self._resolve_script_json([s4, s3, s2, s1], judge_prompt)
 
         def _safe_hex(val: Any, default: str) -> str:
             s = str(val or "").strip()
@@ -1772,68 +1834,31 @@ class AICouncil:
                         "callout_label": _trim_words(str(sc.get("callout_label") or ""), 20).upper(),
                     })
 
+        script_source = "ai"
         if len(scenes) < 3:
+            sents = _brief_sentences(fact_brief, 5)
+            if len(sents) >= 3:
+                script_source = "fact_brief"
+                narrs = sents[:4] + [f"What is your take on {topic}? Share it in the comments."]
+            else:
+                script_source = "template"
+                narrs = _honest_template_narrations(topic)
+            labels = ["THE STORY", "THE BASICS", "WHAT CHANGED", "OVERLOOKED", "YOUR TAKE"]
+            angles = ["dramatic opening visual", "clear establishing view", "dynamic moment of change", "detailed close-up", "wide closing shot"]
             scenes = [
                 {
-                    "action": fallback_actions[0],
-                    "narration": f"Most people completely miss the real story behind {topic} until they see it up close.",
-                    "top_label": _trim_words(topic, 26).upper(),
-                    "visual_prompt": f"dramatic opening visual of {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} {topic}",
-                    "stat_text": "100% REAL",
+                    "action": fallback_actions[k % len(fallback_actions)],
+                    "narration": nr,
+                    "top_label": labels[k % 5],
+                    "visual_prompt": f"{angles[k % 5]} of {topic}, {theme}",
+                    "stock_keywords": f"{v_world.replace('_', ' ')} {' '.join(topic.split()[:3])}"[:42].strip(),
+                    "stat_text": "",
                     "quote_title": theme.upper(),
-                    "quote_text": "",
-                    "timeline_steps": ["BEGIN", "PEAK", "LEGACY"],
-                    "callout_label": "KEY DETAIL",
-                },
-                {
-                    "action": fallback_actions[1],
-                    "narration": f"Every detail of {topic} pushes far beyond ordinary limits in ways few expect.",
-                    "top_label": "THE REAL SCALE",
-                    "visual_prompt": f"epic wide visual illustrating {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} vast",
-                    "stat_text": "10X IMPACT",
-                    "quote_title": theme.upper(),
-                    "quote_text": "",
-                    "timeline_steps": ["STEP 1", "STEP 2", "STEP 3"],
-                    "callout_label": "BREAKTHROUGH",
-                },
-                {
-                    "action": fallback_actions[2],
-                    "narration": "At the turning point, everything shifts in seconds and changes what comes next.",
-                    "top_label": "TURNING POINT",
-                    "visual_prompt": f"dynamic intense action moment of {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} dramatic",
-                    "stat_text": "CRITICAL",
-                    "quote_title": theme.upper(),
-                    "quote_text": f"The turning point of {topic} reshaped how we understand {theme}.",
+                    "quote_text": nr if k in (2, 3) else "",
                     "timeline_steps": ["BEFORE", "SHIFT", "AFTER"],
-                    "callout_label": "TURNING POINT",
-                },
-                {
-                    "action": fallback_actions[3],
-                    "narration": f"Look closer at the evidence behind {topic}—the pattern repeats across time.",
-                    "top_label": "THE EVIDENCE",
-                    "visual_prompt": f"detailed atmospheric close-up of {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} closeup",
-                    "stat_text": "VERIFIED",
-                    "quote_title": f"{theme.upper()} ARCHIVE",
-                    "quote_text": f"Every record of {topic} points to one unforgettable lesson.",
-                    "timeline_steps": ["PAST", "PRESENT", "FUTURE"],
-                    "callout_label": "HIDDEN CLUE",
-                },
-                {
-                    "action": fallback_actions[4],
-                    "narration": f"Did you know this side of {topic}? Tell me your take in the comments.",
-                    "top_label": "YOUR TAKE",
-                    "visual_prompt": f"awe-inspiring finale shot of {topic}, {theme}",
-                    "stock_keywords": f"{v_world.replace('_', ' ')} horizon",
-                    "stat_text": "COMMENT",
-                    "quote_title": theme.upper(),
-                    "quote_text": "",
-                    "timeline_steps": ["WATCH", "THINK", "SHARE"],
-                    "callout_label": "DROP A COMMENT",
-                },
+                    "callout_label": "",
+                }
+                for k, nr in enumerate(narrs[:5])
             ]
 
         scenes = _sanitize_motion_scenes(scenes, fact_brief)
@@ -1841,9 +1866,10 @@ class AICouncil:
         return {
             "hook_overlay": _trim_words(str(parsed.get("hook_overlay") or topic), 36).upper(),
             "yt_title": str(parsed.get("yt_title") or f"{topic[:48]} #Shorts")[:100],
-            "ig_caption": str(parsed.get("ig_caption") or f"{topic} — animated story breakdown. Tell us your thoughts! #Story #Shorts"),
+            "ig_caption": str(parsed.get("ig_caption") or f"{topic} — the story in 30 seconds. Tell us your thoughts! #Shorts"),
             "visual_world": v_world,
             "character": character,
+            "script_source": script_source,
             "scenes": scenes,
             "art_style": art_style,
             "theme": theme,
@@ -2467,12 +2493,32 @@ def run_digital_product_engine(
 # 6. ENGINE B: AUTOMATED VIDEO CLIPPING (`--engine clipping`)
 # ============================================================================
 
+def _parse_timestamp_sec(raw: str) -> int | None:
+    """Parse HH:MM:SS, MM:SS, or plain seconds into integer seconds (None if blank)."""
+    s = (raw or "").strip()
+    if not s:
+        return None
+    parts = s.split(":")
+    try:
+        if len(parts) == 1:
+            return max(0, int(float(parts[0])))
+        if len(parts) == 2:
+            return max(0, int(parts[0]) * 60 + int(float(parts[1])))
+        if len(parts) == 3:
+            return max(0, int(parts[0]) * 3600 + int(parts[1]) * 60 + int(float(parts[2])))
+    except ValueError as exc:
+        raise ValueError(f"Invalid --slice-start timestamp '{raw}'. Use HH:MM:SS, MM:SS, or seconds.") from exc
+    raise ValueError(f"Invalid --slice-start timestamp '{raw}'. Use HH:MM:SS, MM:SS, or seconds.")
+
+
 def ingest_video(
     url: str,
     job_dir: Path,
     require_cc: bool = True,
     allowlisted_channels: set[str] | None = None,
+    slice_start_sec: int | None = None,
 ) -> tuple[Path, Path]:
+    url = re.sub(r"^(https?)://", lambda m: m.group(1).lower() + "://", (url or "").strip(), flags=re.IGNORECASE)
     job_dir.mkdir(parents=True, exist_ok=True)
     out_tpl = str(job_dir / "source.%(ext)s")
     cookie_args = get_ytdlp_cookie_args(job_dir)
@@ -2510,6 +2556,8 @@ def ingest_video(
 
     json_lines = [ln for ln in meta_res.stdout.splitlines() if ln.strip().startswith("{")]
     info = json.loads(json_lines[-1] if json_lines else meta_res.stdout)
+    if info.get("is_live") or str(info.get("live_status") or "") in {"is_live", "is_upcoming"}:
+        raise ValueError("DEAD_LETTER: This URL is an active live stream. Wait until it ends or provide a finished video URL.")
     channel_id = info.get("channel_id", "")
     extractor = (info.get("extractor") or "").lower()
     license_str = (info.get("license") or "").lower()
@@ -2523,6 +2571,38 @@ def ingest_video(
             f"DEAD_LETTER: License '{info.get('license')}' is not Creative Commons and channel '{channel_id}' is not allowlisted."
         )
 
+    # Never let leftovers from a previous source (video, captions, slice window) leak into this job.
+    for stale in job_dir.glob("source.*"):
+        try:
+            stale.unlink()
+        except OSError:
+            pass
+
+    duration_sec = float(info.get("duration") or 0.0)
+    slice_args: list[str] = []
+    fmt_selector = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+    slice_meta_path = job_dir / "source.slice.json"
+    slice_meta_path.unlink(missing_ok=True)
+    if duration_sec > 10800.0 and not _ytdlp_supports("--download-sections"):
+        raise ValueError(
+            f"DEAD_LETTER: Video is {duration_sec / 3600.0:.1f}h long and this yt-dlp cannot download a slice; refusing a full download."
+        )
+    if (slice_start_sec is not None or duration_sec > 1800.0) and _ytdlp_supports("--download-sections"):
+        slice_start = slice_start_sec if slice_start_sec is not None else (300 if duration_sec > 2400.0 else 0)
+        if duration_sec > 0 and slice_start >= int(duration_sec) - 20:
+            raise ValueError(
+                f"DEAD_LETTER: --slice-start ({slice_start}s) is past the end of the video ({int(duration_sec)}s)."
+            )
+        slice_end = min(int(duration_sec), slice_start + 900) if duration_sec > 0 else (slice_start + 900)
+        slice_args = ["--download-sections", f"*{slice_start}-{slice_end}", "--force-keyframes-at-cuts"]
+        if duration_sec > 1800.0 or slice_start_sec is not None:
+            fmt_selector = "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+        slice_meta_path.write_text(json.dumps({"start": slice_start, "end": slice_end}), encoding="utf-8")
+        log.info(
+            "Slicing video (%.1fh total) window %ds..%ds (15m max) at <=720p so it finishes quickly on the runner.",
+            duration_sec / 3600.0, slice_start, slice_end,
+        )
+
     dl_ok = False
     last_dl_err: Exception | None = None
     for extra_args in meta_attempts:
@@ -2530,6 +2610,7 @@ def ingest_video(
             run_cmd([
                 "yt-dlp",
                 *extra_args,
+                *slice_args,
                 "--geo-bypass",
                 "--no-playlist",
                 "--write-info-json",
@@ -2537,7 +2618,7 @@ def ingest_video(
                 "--write-auto-subs",
                 "--sub-langs", "en.*,en",
                 "--sub-format", "json3",
-                "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+                "-f", fmt_selector,
                 "--merge-output-format", "mp4",
                 "--remux-video", "mp4",
                 "-o", out_tpl,
@@ -2585,13 +2666,31 @@ def parse_yt_json3_subtitles(job_dir: Path) -> list[IndexedSegment]:
     except Exception:
         return []
 
+    slice_start_ms = 0.0
+    slice_end_ms: float | None = None
+    slice_meta = job_dir / "source.slice.json"
+    if slice_meta.exists():
+        try:
+            sm = json.loads(slice_meta.read_text(encoding="utf-8"))
+            slice_start_ms = float(sm.get("start", 0.0)) * 1000.0
+            if sm.get("end"):
+                slice_end_ms = float(sm["end"]) * 1000.0
+        except Exception:
+            pass
+
+    if slice_end_ms is not None:
+        events = [
+            ev for ev in events
+            if slice_start_ms <= float(ev.get("tStartMs", 0.0)) < slice_end_ms
+        ]
+
     indexed: list[IndexedSegment] = []
     for ev_i, ev in enumerate(events):
         segs = ev.get("segs", [])
-        t_start_ms = float(ev.get("tStartMs", 0.0))
+        t_start_ms = max(0.0, float(ev.get("tStartMs", 0.0)) - slice_start_ms)
         d_dur_ms = float(ev.get("dDurationMs", 2500.0))
         if ev_i + 1 < len(events):
-            next_start_ms = float(events[ev_i + 1].get("tStartMs", t_start_ms + d_dur_ms))
+            next_start_ms = max(0.0, float(events[ev_i + 1].get("tStartMs", 0.0)) - slice_start_ms)
             event_end_ms = min(t_start_ms + d_dur_ms, max(t_start_ms + 300.0, next_start_ms))
         else:
             event_end_ms = t_start_ms + d_dur_ms
@@ -3131,8 +3230,10 @@ def run_clipping_engine(
     public_dir: Path | None = None,
     art_style: str = "original",
     aspect_ratio: str = "9:16",
+    slice_start: str = "",
 ) -> dict[str, Any]:
-    item_key = f"clip_url:{url.strip()}"
+    slice_start_sec = _parse_timestamp_sec(slice_start)
+    item_key = f"clip_url:{url.strip()}" + (f"@s={slice_start_sec}" if slice_start_sec is not None else "")
     brain.check_pre_flight(item_key, estimated_cost_usd=0.25)
 
     out_dir = job_dir / "out"
@@ -3143,6 +3244,7 @@ def run_clipping_engine(
         job_dir,
         require_cc=not allow_all_licenses,
         allowlisted_channels=brain.allowlisted_channels,
+        slice_start_sec=slice_start_sec,
     )
     meta = ffprobe_metadata(video_path, min_duration=15.0)
     actual_device = resolve_device(device)
@@ -3249,9 +3351,18 @@ def run_b2b_agency_engine(
     out_dir.mkdir(parents=True, exist_ok=True)
     slug = _safe_slug(client_name, prefix="client")
 
-    notes_clean = discovery_notes.strip() or "Automate lead outreach, call summaries, and weekly short-form content."
+    notes_clean = discovery_notes.strip() or "No discovery notes were supplied; scope to be confirmed with the client on a call."
     council = AICouncil()
-    copy_spec = council.run_6_brain_copy_council(f"AI Automation Proposal for {client_name}", notes_clean, brain)
+    copy_spec = council.run_6_brain_copy_council(
+        f"AI Automation Proposal for {client_name}",
+        discovery_notes.strip(),
+        brain,
+        default_points=[
+            "Automated workflow discovery & architecture setup",
+            "Custom AI content and operations pipeline deployment",
+            "Weekly reporting, QA checks, and team handoff",
+        ],
+    )
     deliverable_points = copy_spec.get("points") or [
         "Automated workflow discovery & architecture setup",
         "Custom AI content and operations pipeline deployment",
@@ -3328,7 +3439,14 @@ def _wrap_text_lines(text: str, max_chars_per_line: int = 24, max_lines: int = 5
     cur: list[str] = []
     for w in words:
         if len(w) > max_chars_per_line:
-            w = w[:max_chars_per_line]
+            # Unspaced scripts (CJK/Thai) and long tokens: split into chunks instead of truncating the text away.
+            if cur:
+                lines.append(" ".join(cur))
+                cur = []
+            chunks = [w[i:i + max_chars_per_line] for i in range(0, len(w), max_chars_per_line)]
+            lines.extend(chunks[:-1])
+            cur = [chunks[-1]]
+            continue
         cur.append(w)
         if len(" ".join(cur)) > max_chars_per_line:
             lines.append(" ".join(cur[:-1]) if len(cur) > 1 else cur[0])
@@ -4074,7 +4192,7 @@ def _fetch_free_ai_scene_image(
 
 VOICE_PRESETS: dict[str, tuple[str, str, str]] = {
     # preset_name: (edge_tts_voice, rate, pitch)
-    "original": ("en-US-AndrewNeural", "+0%", "+0Hz"),
+    "original": ("en-US-ChristopherNeural", "+0%", "+0Hz"),
     "deep_male": ("en-US-ChristopherNeural", "-6%", "-14Hz"),
     "serious_male": ("en-GB-RyanNeural", "-4%", "-6Hz"),
     "mysterious_male": ("en-US-SteffanNeural", "-12%", "-10Hz"),
@@ -4107,7 +4225,15 @@ def _synthesize_scene_voiceover(text: str, out_wav: Path, voice: str = "deep_mal
     text = " ".join(str(text or "").split()).strip() or "Discover the hidden story behind this moment."
     mp3_tmp = out_wav.with_suffix(".mp3")
     est_dur = max(3.2, min(9.5, len(text.split()) / 2.6))
-    voices_to_try = [resolved_voice, resolved_voice, "en-US-ChristopherNeural"]
+    locale = resolved_voice.split("-")[0:2]
+    alt_by_locale = {
+        "ml-IN": ["ml-IN-MidhunNeural", "ml-IN-SobhanaNeural"],
+        "hi-IN": ["hi-IN-MadhurNeural", "hi-IN-SwaraNeural"],
+    }
+    alts = alt_by_locale.get("-".join(locale), ["en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-AriaNeural"])
+    voices_to_try = list(dict.fromkeys([resolved_voice, *alts]))
+    if len(voices_to_try) < 3:
+        voices_to_try.insert(0, resolved_voice)
     last_exc: Exception | None = None
 
     for attempt, active_voice in enumerate(voices_to_try, start=1):
@@ -4330,6 +4456,7 @@ def run_ai_faceless_engine(
             "topic": topic, "theme": theme, "art_style": art_style, "voice": voice, "character_desc": character_desc,
         },
         "council_models_used": script_pkg["council_models_used"],
+        "script_source": script_pkg.get("script_source", "ai"),
         "clips": [asdict(clip_obj)],
     }
     brain.record_completion(item_key, "ai_faceless", 0.12, {"topic": topic, "mp4_path": str(final_mp4)})
@@ -5280,6 +5407,7 @@ def run_motion_story_engine(
         },
         "character": character,
         "council_models_used": story_pkg["council_models_used"],
+        "script_source": story_pkg.get("script_source", "ai"),
         "clips": [asdict(clip_obj)],
     }
     brain.record_completion(
@@ -5614,8 +5742,9 @@ def main() -> int:
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"], help="[clipping] Execution device")
     parser.add_argument("--model", default="large-v3-turbo", help="[clipping] WhisperX / faster-whisper model")
     parser.add_argument("--allow-all-licenses", action="store_true", help="[clipping] Disable CC-only filter")
+    parser.add_argument("--slice-start", default="", help="[clipping] Optional start timestamp (HH:MM:SS, MM:SS, or seconds) for a 15-min slice of long videos")
 
-    parser.add_argument("--title", default="Jagnor Pro Automation Suite", help="[ai_faceless / digital_product / carousel_funnel] Title or topic")
+    parser.add_argument("--title", default="", help="[ai_faceless / digital_product / carousel_funnel] Title or topic")
     parser.add_argument(
         "--art-style",
         default="dark_cinematic",
@@ -5652,7 +5781,7 @@ def main() -> int:
     parser.add_argument("--source-app-dir", default=None, help="[digital_product] Optional folder to bundle into zip")
 
     parser.add_argument("--client", default="Acme Corp", help="[b2b_agency] Client name")
-    parser.add_argument("--notes", default="Automate lead outreach, call summaries, and weekly reels.", help="[b2b_agency / carousel_funnel] Discovery notes or semicolon-separated points")
+    parser.add_argument("--notes", default="", help="[b2b_agency / carousel_funnel] Discovery notes or semicolon-separated points")
 
     parser.add_argument(
         "--approve-manifest",
@@ -5709,6 +5838,7 @@ def main() -> int:
                             public_dir=public_dir,
                             art_style=args.art_style,
                             aspect_ratio=args.aspect_ratio,
+                            slice_start=args.slice_start,
                         )
                         break
                     except Exception as err:
@@ -5719,10 +5849,10 @@ def main() -> int:
                     raise RuntimeError(f"All {len(candidate_urls)} trending candidates failed. Last error: {last_err}")
 
             elif args.engine == "motion_story":
-                if args.auto_topic:
+                if args.auto_topic or not (args.title or "").strip():
                     active_topic, fact_brief = pick_fresh_auto_topic_with_context(args.theme, brain, "motion_story")
                 else:
-                    active_topic, fact_brief = (args.title or args.niche), ""
+                    active_topic, fact_brief = args.title.strip(), ""
                 fact_brief = enrich_fact_brief(active_topic, fact_brief)
                 manifest = run_motion_story_engine(
                     topic=active_topic,
@@ -5736,10 +5866,10 @@ def main() -> int:
                     fact_brief=fact_brief,
                 )
             elif args.engine == "ai_faceless":
-                if args.auto_topic:
+                if args.auto_topic or not (args.title or "").strip():
                     active_topic, fact_brief = pick_fresh_auto_topic_with_context(args.theme, brain, "ai_faceless")
                 else:
-                    active_topic, fact_brief = (args.title or args.niche), ""
+                    active_topic, fact_brief = args.title.strip(), ""
                 fact_brief = enrich_fact_brief(active_topic, fact_brief)
                 manifest = run_ai_faceless_engine(
                     topic=active_topic,
@@ -5779,7 +5909,7 @@ def main() -> int:
             elif args.engine == "b2b_agency":
                 client_label = (args.client or "").strip()
                 if not client_label or client_label == "Acme Corp":
-                    client_label = (args.title or "Client Company").strip()
+                    client_label = (args.title or "").strip() or "Client Company"
                 manifest = run_b2b_agency_engine(
                     client_name=client_label,
                     discovery_notes=args.notes,
