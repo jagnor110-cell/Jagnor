@@ -1,24 +1,15 @@
 {
   "engine": "clipping",
-  "source_mode": "motion_story",
-  "status": "PUBLISHED",
-  "source_url": "motion_story:How to unlock hidden auto drive in GTA 6",
+  "source_mode": "ai_faceless",
+  "status": "APPROVAL_PENDING",
+  "source_url": "ai_faceless:Revolutionary Pill Just C",
   "language": "English",
   "settings_applied": {
-    "topic": "How to unlock hidden auto drive in GTA 6",
-    "theme": "Gaming & Pop Culture",
-    "art_style": "original",
-    "voice": "original",
+    "topic": "Revolutionary Pill Just C",
+    "theme": "Trending Tech, AI & World Breakthroughs",
+    "art_style": "dark_cinematic",
+    "voice": "deep_male",
     "character_desc": ""
-  },
-  "character": {
-    "name": "How to unlock hidden aut",
-    "archetype": "hero",
-    "primary_hex": "#C84F3B",
-    "accent_hex": "#6150F5",
-    "skin_hex": "#6E4628",
-    "aura_hex": "#F87F37",
-    "visual_world": "tech_ai"
   },
   "council_models_used": [
     "gemini-native",
@@ -28,19 +19,19 @@
   ],
   "clips": [
     {
-      "clip_id": "story_01",
+      "clip_id": "faceless_01",
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 33.67,
-      "duration_sec": 33.67,
-      "mp4_path": "jobs/latest/out/story_how_to_unlock_hidden_aut_202611221014.mp4",
-      "layout_mode": "motion_story_2d_9x16",
+      "end_sec": 34.94,
+      "duration_sec": 34.94,
+      "mp4_path": "jobs/latest/out/faceless_revolutionary_pill_just_202611221618.mp4",
+      "layout_mode": "ai_faceless_9x16",
       "qa_verified": true,
-      "yt_title": "How to unlock hidden auto drive in GTA 6 #Shorts",
-      "ig_caption": "How to unlock hidden auto drive in GTA 6 — animated story breakdown. Tell us your thoughts! #Story #Shorts",
-      "hook_overlay": "HOW TO UNLOCK HIDDEN AUTO DRIVE IN...",
-      "council_score": 9.7,
+      "yt_title": "Revolutionary Pill Just C #Shorts",
+      "ig_caption": "Revolutionary Pill Just C — built automatically with our free AI studio. Follow for more! #AI #Automation #Shorts",
+      "hook_overlay": "REVOLUTIONARY PILL JUST C",
+      "council_score": 9.6,
       "council_models_used": [
         "gemini-native",
         "groq-native",
@@ -48,23 +39,7 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:How to unlock hidden auto drive in GTA 6",
-      "published_platforms": {
-        "youtube": "Udcb3aq4RhE"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "Udcb3aq4RhE"
-      }
-    }
-  ],
-  "approved_at": 1795342505,
-  "published_at": 1795342506,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "Udcb3aq4RhE"
+      "source_url": "ai_faceless:Revolutionary Pill Just C"
     }
   ]
 }
