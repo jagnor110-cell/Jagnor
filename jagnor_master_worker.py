@@ -1080,7 +1080,7 @@ class AICouncil:
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "JagnorAICouncil/2.0",
+            "User-Agent": "curl/8.18.0",
             **(extra_headers or {}),
         }
         payload = {
@@ -1105,9 +1105,10 @@ class AICouncil:
         return str(choices[0].get("message", {}).get("content") or "").strip()
 
     def _call_gemini_native(self, system_prompt: str, user_prompt: str) -> str:
-        primary_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        for model in dict.fromkeys([primary_model, "gemini-2.5-flash", "gemini-2.0-flash"]):
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.gemini_key}"
+        primary_model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        last_err = ""
+        for model in dict.fromkeys([primary_model, "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]):
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
                 "systemInstruction": {"parts": [{"text": system_prompt}]},
                 "contents": [{"parts": [{"text": user_prompt}]}],
@@ -1116,7 +1117,11 @@ class AICouncil:
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self.gemini_key,
+                    "User-Agent": "curl/8.18.0",
+                },
                 method="POST",
             )
             try:
@@ -1126,14 +1131,16 @@ class AICouncil:
                 if candidates:
                     return str(candidates[0]["content"]["parts"][0]["text"]).strip()
             except Exception as exc:
+                last_err = f"{model}: {str(exc)[:180]}"
                 log.debug("Gemini model %s attempt failed: %s", model, exc)
                 continue
-        raise RuntimeError("All native Gemini model endpoints failed.")
+        raise RuntimeError(f"All native Gemini model endpoints failed ({last_err}).")
 
     def _call_groq_native(self, system_prompt: str, user_prompt: str) -> str:
         """Calls Groq's ultra-fast free-tier OpenAI-compatible endpoint (`GROQ_API_KEY`)."""
         primary_model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-        for g_model in dict.fromkeys([primary_model, "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]):
+        last_err = ""
+        for g_model in dict.fromkeys([primary_model, "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-20b"]):
             try:
                 return self._call_openai_compatible(
                     "https://api.groq.com/openai/v1/chat/completions",
@@ -1143,9 +1150,10 @@ class AICouncil:
                     user_prompt,
                 )
             except Exception as exc:
+                last_err = f"{g_model}: {str(exc)[:180]}"
                 log.debug("Groq model %s attempt failed: %s", g_model, exc)
                 continue
-        raise RuntimeError("All native Groq model endpoints failed.")
+        raise RuntimeError(f"All native Groq model endpoints failed ({last_err}).")
 
     def _call_nvidia_native(self, system_prompt: str, user_prompt: str) -> str:
         """Calls NVIDIA NIM OpenAI-compatible endpoint (`NVIDIA_API_KEY`)."""
