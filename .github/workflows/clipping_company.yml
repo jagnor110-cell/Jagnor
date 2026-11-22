@@ -121,8 +121,10 @@ on:
         type: boolean
 
   schedule:
-    # Runs 2x daily spaced 12 hours apart (03:30, 15:30 UTC = 9:00 AM, 9:00 PM IST)
-    - cron: "30 3,15 * * *"
+    # Slot 1 (9:00 AM IST / 03:30 UTC): 1x daily trending `motion_story` Short
+    - cron: "30 3 * * *"
+    # Slot 2 (9:00 PM IST / 15:30 UTC): 1x daily trending `ai_faceless` Short
+    - cron: "30 15 * * *"
 
 permissions:
   contents: write
@@ -212,6 +214,15 @@ jobs:
           AUTO_TOPIC_FLAG=""
           if [ "${{ github.event_name }}" = "schedule" ]; then
             AUTO_TOPIC_FLAG="--auto-topic"
+            if [ "${{ github.event.schedule }}" = "30 15 * * *" ]; then
+              INPUT_ENGINE="ai_faceless"
+              INPUT_ART_STYLE="dark_cinematic"
+              INPUT_THEME="Trending Tech, AI & World Breakthroughs"
+            else
+              INPUT_ENGINE="motion_story"
+              INPUT_ART_STYLE="anime"
+              INPUT_THEME="Trending Science, Space & Untold Stories"
+            fi
           fi
 
           CLEAN_PRICE=$(echo "${INPUT_PRICE:-17}" | tr -cd '0-9.')
