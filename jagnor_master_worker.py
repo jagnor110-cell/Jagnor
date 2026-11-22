@@ -37,6 +37,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 import zipfile
 import zlib
 from dataclasses import asdict, dataclass, field
@@ -4879,26 +4880,187 @@ def run_motion_story_engine(
 # 9. UNIFIED CLI ENTRYPOINT (TREND SCOUT + 4-BRAIN FREE AI COUNCIL + SOCIAL PUBLISHER)
 # ============================================================================
 
+_SENSITIVE_TOPIC_RE = re.compile(
+    r"\b(kill(?:ed|s|ing)?|dead|death|dies|died|dying|murder\w*|shoot(?:ing|er|ings)?|shot dead|stabb\w*|attack(?:s|ed)?|"
+    r"bomb\w*|war|massacre|terror\w*|hostage\w*|rape\w*|abus\w*|suicide|trump|biden|harris|modi|putin|netanyahu|"
+    r"election\w*|vote[sd]?|voting|senate|congress|parliament|bjp|democrat\w*|republican\w*|gop|lawsuit|sued|arrest\w*|"
+    r"scandal|crash(?:es|ed)?|explosion|wildfire|flood\w*|hurricane|earthquake|tsunami|victims?|tragedy|funeral|"
+    r"obituary|shutdown|strike|protest\w*|riot\w*|gaza|ukraine|israel|hamas|nude|leak(?:ed)?|vs\.?|odds|score|live updates?)\b",
+    re.IGNORECASE,
+)
+_TOPIC_STOPWORDS = {"the", "and", "for", "with", "that", "this", "from", "into", "how", "why", "what", "when", "are", "was",
+                    "has", "have", "its", "can", "your", "you", "will", "just", "about", "more", "than", "all", "new"}
+
+
+def _is_safe_topic(text: str) -> bool:
+    """Unattended auto-publishing must never post tragedies, politics or breaking-news claims."""
+    return not _SENSITIVE_TOPIC_RE.search(text or "")
+
+
+def _topic_tokens(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) >= 3 and w not in _TOPIC_STOPWORDS}
+
+
+def _is_similar_topic(cand: str, previous: list[str]) -> bool:
+    ct = _topic_tokens(cand)
+    if not ct:
+        return False
+    cl = cand.lower().strip()
+    for prev in previous:
+        pl = prev.lower().strip()
+        if not pl:
+            continue
+        if cl == pl or cl in pl or pl in cl:
+            return True
+        pt = _topic_tokens(prev)
+        if pt:
+            inter = len(ct & pt)
+            ratio = inter / max(1, len(ct | pt))
+            if ratio >= 0.5 or (inter >= 3 and ratio >= 0.33):
+                return True
+    return False
+
+
+def _previous_topics(ledger_data: dict[str, Any]) -> list[str]:
+    """All topics ever produced by the two daily engines (ledger keys look like `engine:topic:YYYYMMDD`)."""
+    topics: list[str] = []
+    for key in ledger_data.get("processed_items", []):
+        k = str(key)
+        for eng in ("motion_story:", "ai_faceless:"):
+            if k.startswith(eng):
+                body = k[len(eng):]
+                topics.append(body.rsplit(":", 1)[0] if body.count(":") else body)
+    return topics
+
+
+def _parse_rss_titles(xml_bytes: bytes, limit: int = 12) -> list[str]:
+    titles: list[str] = []
+    try:
+        root = ET.fromstring(xml_bytes)
+        for item in root.findall(".//item"):
+            t_el = item.find("title")
+            if t_el is not None and t_el.text:
+                clean = " ".join(t_el.text.split()).strip()
+                # Strip trailing publisher suffix like " - Reuters"
+                clean = re.sub(r"\s+[-|]\s+[^-|]{2,40}$", "", clean).strip()
+                if len(clean) >= 6 and clean not in titles:
+                    titles.append(clean)
+            if len(titles) >= limit:
+                break
+    except Exception:
+        pass
+    return titles
+
+
+def _fetch_live_trending_headlines(max_items: int = 18) -> list[str]:
+    """
+    Fetches live daily trending topics 100% free (zero API keys) from:
+      1) Google Trends Daily RSS (US & India)
+      2) Google News Top Stories RSS
+      3) Hacker News Top Stories (Tech/AI/Science)
+    Fails gracefully to [] when offline.
+    """
+    headlines: list[str] = []
+    rss_urls = [
+        "https://trends.google.com/trending/rss?geo=US",
+        "https://trends.google.com/trending/rss?geo=IN",
+        "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+    ]
+    for u in rss_urls:
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (JagnorTrendScout/2.0)"})
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                for title in _parse_rss_titles(resp.read(), limit=8):
+                    if title not in headlines:
+                        headlines.append(title)
+        except Exception as exc:
+            log.debug("Trend RSS skipped (%s): %s", u, exc)
+
+    # Hacker News Top Stories (Tech / AI / Science)
+    try:
+        req = urllib.request.Request(
+            "https://hacker-news.firebaseio.com/v0/topstories.json",
+            headers={"User-Agent": "JagnorTrendScout/2.0"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            ids = json.loads(resp.read().decode("utf-8"))[:6]
+        for sid in ids:
+            try:
+                sreq = urllib.request.Request(
+                    f"https://hacker-news.firebaseio.com/v0/item/{sid}.json",
+                    headers={"User-Agent": "JagnorTrendScout/2.0"},
+                )
+                with urllib.request.urlopen(sreq, timeout=8) as sresp:
+                    item = json.loads(sresp.read().decode("utf-8"))
+                t = " ".join(str(item.get("title") or "").split()).strip()
+                if len(t) >= 8 and t not in headlines:
+                    headlines.append(t)
+            except Exception:
+                continue
+    except Exception as exc:
+        log.debug("Hacker News trend fetch skipped: %s", exc)
+
+    return headlines[:max_items]
+
+
 def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
     """
-    Picks a fresh, non-duplicate story topic for scheduled cron runs so automated
-    3x/day runs never collide with `05_memory_ledger.json`.
+    Live Trending Topic Selector for scheduled daily runs (1 motion_story + 1 ai_faceless/day):
+      1) Pulls live trending headlines from Google Trends RSS, Google News RSS & Hacker News.
+      2) Uses the 4-Brain Free AI Council to pick the most viral, Shorts-worthy non-duplicate angle.
+      3) Falls back to AI Council ideation or a curated evergreen pool if offline.
     """
-    today_str = time.strftime("%Y%m%d", time.gmtime())
     ledger_data, _ = load_ledger(brain.ledger_path.parent)
-    processed = set(ledger_data.get("processed_items", []))
+    all_previous = _previous_topics(ledger_data)
+    recent_titles = all_previous[-12:]
+
+    live_trends = [t for t in _fetch_live_trending_headlines(max_items=30) if _is_safe_topic(t)][:18]
+    if live_trends:
+        log.info("Live Trend Scout fetched %d real-time trending topics.", len(live_trends))
+
     council = AICouncil()
-    ai_raw = council.invoke_stage(
-        "groq",
-        "Return ONE short, high-curiosity YouTube Shorts story topic (5-10 words, no quotes, no numbering).",
-        f"Theme: {theme}. Give a fresh, fascinating scale/mystery/history/science story idea that viewers haven't seen yet. "
-        f"Avoid repeating recent titles: {[str(h.get('item_key', '')).split(':')[1] for h in ledger_data.get('history', [])[-8:] if ':' in str(h.get('item_key', ''))]}",
-    )
-    if ai_raw:
-        cand = " ".join(ai_raw.strip().strip('"').strip("'").splitlines()[0].split())[:72]
-        if len(cand) >= 10 and f"{engine}:{cand.lower().strip()}:{today_str}" not in processed:
-            log.info("Auto-topic selected via AI Council: %s", cand)
-            return cand
+    if live_trends:
+        trend_bullets = "\n".join(f"- {t}" for t in live_trends)
+        prompt = (
+            f"Engine: {engine} | Theme: {theme}\n"
+            f"Live Trending Headlines Right Now:\n{trend_bullets}\n\n"
+            f"Pick the SINGLE most fascinating, curiosity-driving trending topic above (prefer science, tech, AI, space, money, world events, or viral breakthroughs; avoid sensitive tragedies or politics) "
+            f"and rewrite it as ONE punchy YouTube Shorts title (5-10 words, no quotes, no numbering).\n"
+            f"Avoid repeating recent titles: {recent_titles}"
+        )
+    else:
+        prompt = (
+            f"Engine: {engine} | Theme: {theme}. Give ONE fresh, high-curiosity YouTube Shorts topic "
+            f"(5-10 words, no quotes, no numbering) that viewers haven't seen yet. "
+            f"Avoid repeating recent titles: {recent_titles}"
+        )
+
+    for provider in ("groq", "gemini", "openrouter"):
+        ai_raw = council.invoke_stage(
+            provider,
+            "Return ONLY one short, viral YouTube Shorts topic title (5-10 words, plain text, no quotes, no bullet or numbering).",
+            prompt,
+        )
+        if ai_raw:
+            lines = [ln for ln in ai_raw.strip().splitlines() if ln.strip()]
+            first = lines[0] if lines else ""
+            first = re.sub(r"^\s*(?:[-*\u2022]|\d{1,2}[.)])\s+", "", first).strip().strip('"').strip("'").strip("*").strip()
+            cand = " ".join(first.split())[:72]
+            looks_like_preface = cand.endswith(":") or cand.lower().startswith(("here", "sure", "title", "okay", "ok,", "topic"))
+            if (
+                len(cand) >= 10
+                and not looks_like_preface
+                and _is_safe_topic(cand)
+                and not _is_similar_topic(cand, all_previous)
+            ):
+                log.info("Trending auto-topic selected via [%s]: %s", provider, cand)
+                return cand
+            log.info("AI topic from [%s] rejected (preface/unsafe/duplicate): %r", provider, cand[:80])
+
+    # Without the AI Council a raw headline would become a template script with no facts behind it,
+    # so we deliberately fall through to the evergreen pool instead of auto-publishing a raw news title.
+    if live_trends:
+        log.info("AI Council unavailable for trend rewrite; using evergreen pool instead of a raw headline.")
 
     fallback_pool = [
         "How Deep The Mariana Trench Really Goes",
@@ -4913,10 +5075,10 @@ def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
         "How One Algorithm Changed Modern Navigation Forever",
     ]
     for cand in fallback_pool:
-        if f"{engine}:{cand.lower().strip()}:{today_str}" not in processed:
+        if not _is_similar_topic(cand, all_previous):
             log.info("Auto-topic selected from curated pool: %s", cand)
             return cand
-    return f"{theme} Untold Story {time.strftime('%H%M', time.gmtime())}"
+    return f"{theme} Untold Story {time.strftime('%Y%m%d%H%M', time.gmtime())}"
 
 
 def main() -> int:
