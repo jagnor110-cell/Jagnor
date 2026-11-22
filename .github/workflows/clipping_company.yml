@@ -34,13 +34,24 @@ on:
         required: false
         default: ""
       price_usd:
-        description: "[digital_product / b2b_agency] Price in USD (e.g. 17 or 1500)"
+        description: "[digital_product / b2b_agency ONLY] Sale price in USD (leave blank for video engines)"
         required: false
-        default: "17"
+        default: ""
       theme:
-        description: "[motion_story / ai_faceless] Any theme (History, Mythology, Space, AI, Psychology, Finance)"
-        required: false
+        description: "[motion_story / ai_faceless] Content theme"
+        required: true
         default: "Universal Storytelling"
+        type: choice
+        options:
+          - Universal Storytelling
+          - Trending Tech & AI
+          - Space & Science
+          - History & Mythology
+          - Psychology & Self-Improvement
+          - Finance & Business
+          - Health & Medical Breakthroughs
+          - Gaming & Pop Culture
+          - Survival & Unexplained Mysteries
       character_desc:
         description: "[motion_story] Optional character idea (leave blank to auto-create universally)"
         required: false
@@ -70,11 +81,12 @@ on:
           - "1:1"
           - "4:5"
       voice:
-        description: "[motion_story / ai_faceless] Narrator Voice & Mood (serious, happy, mysterious, deep male/female)"
+        description: "[all video engines] Narrator Voice & Mood (use 'original' for natural voice / original clip audio)"
         required: true
-        default: "deep_male"
+        default: "original"
         type: choice
         options:
+          - original
           - deep_male
           - serious_male
           - mysterious_male
@@ -179,7 +191,7 @@ jobs:
       - name: Install System FFmpeg & Fonts
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y ffmpeg libmagic1 fonts-dejavu-core fonts-noto-core fonts-indic
+          sudo apt-get install -y ffmpeg libmagic1 fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-indic
 
       - name: Install Python Dependencies (yt-dlp + faster-whisper CPU + edge-tts + OpenCV + Pillow)
         run: |
