@@ -254,15 +254,28 @@ def send_gmail_report(
     msg["Subject"] = subject
     msg.set_content(body_text)
 
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as smtp:
-            smtp.login(sender, app_password)
-            smtp.send_message(msg)
-        log.info("Gmail report sent to %s (%s)", recipient, subject)
-        return True
-    except Exception as exc:
-        log.warning("Failed to send Gmail report: %s", exc)
-        return False
+    last_exc: Exception | None = None
+    # Try STARTTLS on port 587 first (more reliable on GitHub Actions/Azure runners), then SSL on port 465
+    for mode in ("starttls_587", "ssl_465"):
+        try:
+            if mode == "starttls_587":
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls()
+                    smtp.ehlo()
+                    smtp.login(sender, app_password)
+                    smtp.send_message(msg)
+            else:
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as smtp:
+                    smtp.login(sender, app_password)
+                    smtp.send_message(msg)
+            log.info("Gmail report sent to %s via %s (%s)", recipient, mode, subject)
+            return True
+        except Exception as exc:
+            last_exc = exc
+            log.debug("Gmail SMTP (%s) failed: %s", mode, exc)
+    log.warning("Failed to send Gmail report: %s", last_exc)
+    return False
 
 
 # ============================================================================
@@ -1045,6 +1058,98 @@ STORY_ACTIONS: tuple[str, ...] = (
 )
 
 
+_CAMERA_DIRECTION_RE = re.compile(
+    r"\bcamera\b|\bpulls? back\b|\bpull(?:s|ing)? out\b|\bzoom(?:s|ed|ing)? (?:in|out|back)\b|\bpans? (?:left|right|across|over)\b|"
+    r"\bwatch (?:the )?screen\b|\bon[- ]screen\b|\bfades? (?:in|out|to)\b|\bcuts? to\b|\bas we (?:see|watch)\b|"
+    r"\bwe (?:now )?see\b|\bthe (?:shot|frame|scene) (?:shifts|changes|opens)\b|\bscene \d\b",
+    re.IGNORECASE,
+)
+_VISUAL_TEXT_RE = re.compile(
+    r"\b(?:(?:neon|street|shop|store|road|wall|billboard|game|movie|film|brand|company)\s+)?"
+    r"(?:signs?|signage|logos?|billboards?|posters?|text|lettering|letters?|captions?|titles?|words?|typography|banners?|labels?|storefronts?|"
+    r"watermarks?|slogans?|headlines?|screens? showing)\b",
+    re.IGNORECASE,
+)
+_GENERIC_STEP_LABELS = ["START", "SHIFT", "NOW"]
+_CINEMATIC_ACTIONS = ("cinematic_zoom_in", "dramatic_pull_back", "pan_left_to_right", "pan_right_to_left",
+                      "spotlight_drift", "pulse_beat_zoom", "focus_callout")
+
+
+def _strip_camera_directions(narration: str) -> str:
+    """Narration is spoken aloud by TTS, so visual/camera directions must never reach it."""
+    text = " ".join(str(narration or "").split())
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    kept = [x for x in sentences if x and not _CAMERA_DIRECTION_RE.search(x)]
+    return " ".join(kept).strip() if kept else text
+
+
+def _clean_visual_prompt(prompt: str) -> str:
+    """Image models garble lettering ('gand talet VI'); drop every request for signs/logos/text."""
+    cleaned = re.sub(
+        r"\b(?:reading|saying|that says|which says|spelling|spelled|inscribed|labell?ed|written|displaying|titled|named)\b[^,.;]*",
+        "", str(prompt or ""), flags=re.IGNORECASE,
+    )
+    cleaned = _VISUAL_TEXT_RE.sub("", cleaned)
+    cleaned = re.sub(r"\b(?:glowing|lit|illuminated|large|giant|huge)\s+(?=(?:on|over|above|behind|in|at)\b|,|$)", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s+([,.;])", r"\1", cleaned)
+    cleaned = re.sub(r"(?:,\s*){2,}", ", ", cleaned).strip(" ,;")
+    return cleaned or "cinematic atmospheric scene"
+
+
+def _digits_grounded(label: str, evidence: str) -> bool:
+    nums = re.findall(r"\d[\d,.]*", label or "")
+    return bool(nums) and all(n.strip(",.") in evidence for n in nums)
+
+
+def _sanitize_motion_scenes(scenes: list[dict[str, Any]], fact_brief: str) -> list[dict[str, Any]]:
+    """Deterministic anti-hallucination pass: spoken-only narration, text-free visuals, and no stat/year
+    on screen unless its digits appear in the Verified Fact Brief (or, for evergreen topics, in the narration)."""
+    used = {str(sc.get("action")) for sc in scenes}
+    for sc in scenes:
+        sc["narration"] = _strip_camera_directions(sc.get("narration", ""))
+        sc["visual_prompt"] = _clean_visual_prompt(sc.get("visual_prompt", ""))
+        evidence = fact_brief if fact_brief.strip() else sc["narration"]
+        if sc.get("stat_text") and not _digits_grounded(sc["stat_text"], evidence):
+            sc["stat_text"] = ""
+        steps = sc.get("timeline_steps") or []
+        if any(re.search(r"\d{4}", str(x)) for x in steps) and not all(
+            _digits_grounded(str(x), evidence) for x in steps if re.search(r"\d", str(x))
+        ):
+            sc["timeline_steps"] = list(_GENERIC_STEP_LABELS)
+        act = str(sc.get("action"))
+        bad = (
+            (act == "kinetic_stat_slam" and not sc.get("stat_text"))
+            or (act == "quote_card_styled" and fact_brief.strip())
+        )
+        if bad:
+            used.discard(act)
+            repl = next((a for a in _CINEMATIC_ACTIONS if a not in used), _CINEMATIC_ACTIONS[0])
+            sc["action"] = repl
+            used.add(repl)
+    return scenes
+
+
+_WORLD_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
+    ("space", ("space", "voyager", "planet", "planets", "mars", "orbit", "galaxy", "galaxies", "nasa", "isro", "spacex", "moon", "universe", "rocket", "telescope", "asteroid", "comet", "astronaut", "cosmos", "black hole", "nebula", "satellite", "supernova", "exoplanet", "solar system")),
+    ("ocean", ("ocean", "oceans", "sea", "mariana", "trench", "submarine", "whale", "whales", "shark", "coral", "deep sea", "titanic", "shipwreck", "marine", "dolphin", "reef")),
+    ("tech_ai", ("ai", "artificial intelligence", "agent", "agents", "robot", "robots", "code", "coding", "algorithm", "software", "tech", "cyber", "computer", "chip", "chips", "gpu", "openai", "chatgpt", "llm", "app", "startup", "internet", "quantum", "iphone", "android", "gaming", "game", "gta", "console", "hacker", "data")),
+    ("finance", ("money", "stock", "stocks", "billion", "wealth", "finance", "crypto", "bitcoin", "business", "economy", "economic", "gold", "market", "markets", "bank", "inflation", "invest", "investing", "trading", "tax", "salary", "rich", "millionaire")),
+    ("history_myth", ("myth", "mythology", "ramayan", "ramayana", "mahabharat", "hanuman", "king", "queen", "empire", "roman", "pyramid", "pyramids", "war", "ancient", "history", "historical", "god", "gods", "legend", "medieval", "dynasty", "pharaoh", "viking", "samurai", "temple", "battle", "revolution")),
+]
+
+
+def _classify_visual_world(low_ctx: str) -> str:
+    """Whole-word keyword scoring (no substring accidents like 'ai' in 'rain' or 'sun' in 'sunday')."""
+    text = f" {re.sub(r'[^a-z0-9]+', ' ', (low_ctx or '').lower())} "
+    best, best_score = "nature", 0
+    for world, kws in _WORLD_KEYWORDS:
+        score = sum(1 for k in kws if f" {k} " in text)
+        if score > best_score:
+            best, best_score = world, score
+    return best
+
+
 class AICouncil:
     """
     Passes each video or product brief sequentially through 4 free-tier AI brains:
@@ -1447,6 +1552,7 @@ class AICouncil:
         theme: str = "AI & Tech Automation",
         character_desc: str = "",
         language_hint: str = "English",
+        fact_brief: str = "",
     ) -> dict[str, Any]:
         """
         Passes a topic, theme, and art_style through the 4-Brain Free AI Council to produce
@@ -1454,13 +1560,15 @@ class AICouncil:
         """
         style_desc = gen_style_prompt(art_style)
 
+        fact_clause = f"Verified Fact Brief (stick strictly to these facts; NEVER invent stats or release years):\n{fact_brief}\n" if fact_brief.strip() else ""
         s1 = self.invoke_stage(
             "gemini",
-            "You are Stage 1 (Gemini Viral Strategist). Outline a 5-scene 35-second faceless vertical video script tailored to the requested theme and art style.",
+            "You are Stage 1 (Gemini Viral Strategist). Outline a 5-scene 35-second faceless vertical video script. NEVER invent unverified numbers, sales figures, or release dates. NEVER include camera directions in narration (no 'the camera pulls back'). NEVER ask for logos, signs, or words in visual_prompt.",
             f"Theme: {theme}\nArt Style: {art_style} ({style_desc})\nTopic: {topic}\nLanguage: {language_hint}\n"
             f"Character/Subject Lock: {character_desc or 'Topic-matched consistent visual subject'}\n"
+            f"{fact_clause}"
             f"ICP:\n{brain.identity_icp}\n"
-            "Give 5 short scenes with narration (12-16 words each), a vivid visual_prompt matching the Art Style, and a 2-3 word stock_keywords phrase for each scene.",
+            "Give 5 short scenes with spoken narration (12-16 words each, zero camera directions, zero invented numbers), a vivid visual_prompt matching the Art Style (pure scenery/action, NO logos, NO text, NO signs), and a 2-3 word stock_keywords phrase for each scene.",
         )
         s2 = self.invoke_stage(
             "groq",
@@ -1492,8 +1600,8 @@ class AICouncil:
             for sc in raw_scenes[:5]:
                 if isinstance(sc, dict) and sc.get("narration"):
                     scenes.append({
-                        "narration": str(sc["narration"]).strip(),
-                        "visual_prompt": str(sc.get("visual_prompt") or f"{topic}, {theme}").strip(),
+                        "narration": _strip_camera_directions(str(sc["narration"]).strip()),
+                        "visual_prompt": _clean_visual_prompt(str(sc.get("visual_prompt") or f"{topic}, {theme}").strip()),
                         "stock_keywords": str(sc.get("stock_keywords") or f"{theme} {topic}")[:40].strip(),
                     })
 
@@ -1546,6 +1654,7 @@ class AICouncil:
         theme: str = "Universal Storytelling",
         character_desc: str = "",
         language_hint: str = "English",
+        fact_brief: str = "",
     ) -> dict[str, Any]:
         """
         4-Brain Free AI Council for `--engine motion_story`:
@@ -1557,19 +1666,21 @@ class AICouncil:
         char_hint = character_desc.strip() or f"Topic-accurate central subject for {topic}"
         actions_csv = ", ".join(STORY_ACTIONS)
 
+        fact_clause = f"Verified Fact Brief (ONLY cite numbers/dates from here or well-established history; NEVER invent stats or future sales figures):\n{fact_brief}\n" if fact_brief.strip() else ""
         s1 = self.invoke_stage(
             "gemini",
-            "You are Stage 1 (Gemini Story & Motion Director). Write a gripping 5-scene 40-second story script where EVERY scene has a DIFFERENT, topic-relevant visual action.",
+            "You are Stage 1 (Gemini Story & Motion Director). Write a factually accurate, gripping 5-scene 40-second story script where EVERY scene has a DIFFERENT visual action. STRICT RULES: (1) NEVER invent unverified numbers, sales figures, or release years. (2) NEVER write camera directions in narration (never say 'the camera pulls back' or 'watch the screen'). (3) NEVER put logos, signs, or words in visual_prompt.",
             f"Topic: {topic}\nTheme: {theme}\nArt Style: {art_style} ({style_desc})\nLanguage: {language_hint}\n"
-            f"Subject/Character: {char_hint}\nICP:\n{brain.identity_icp}\n"
+            f"Subject/Character: {char_hint}\n{fact_clause}ICP:\n{brain.identity_icp}\n"
             f"For each of the 5 scenes, pick a UNIQUE, context-appropriate `action` from [{actions_csv}]:\n"
-            "- Only use `kinetic_stat_slam` if the scene mentions a real number/stat.\n"
-            "- Only use `quote_card_styled` if the scene quotes a real person/book/record.\n"
-            "- Only use `timeline_reveal` if the scene spans years/steps.\n"
-            "- Otherwise use cinematic motion (`cinematic_zoom_in`, `dramatic_pull_back`, `pan_left_to_right`, `pan_right_to_left`, `spotlight_drift`, `pulse_beat_zoom`, `focus_callout`).\n"
-            "For EVERY scene include: action, narration (12-18 words), top_label (<=4 words), visual_prompt (strictly matching topic & art_style, NO text in image), "
-            "stock_keywords (2-4 concrete real-world nouns spoken in THIS scene), stat_text (short e.g. '162 AU' or ''), "
-            "quote_title, quote_text, timeline_steps (list of 3 short labels e.g. ['1977', '2012', 'NOW']), and callout_label.",
+            "- Only use `kinetic_stat_slam` if you have a 100% VERIFIED number from the Fact Brief or undisputed history; otherwise skip it.\n"
+            "- Only use `quote_card_styled` if quoting a real verified source.\n"
+            "- Only use `timeline_reveal` if the years/milestones are 100% verified.\n"
+            "- Otherwise use pure cinematic motion (`cinematic_zoom_in`, `dramatic_pull_back`, `pan_left_to_right`, `pan_right_to_left`, `spotlight_drift`, `pulse_beat_zoom`, `focus_callout`).\n"
+            "For EVERY scene include: action, narration (12-18 words of natural spoken voiceover, NO camera directions), top_label (<=4 words), "
+            "visual_prompt (pure atmospheric scene/character/environment matching topic & art_style — STRICTLY NO logos, NO signs, NO letters, NO text), "
+            "stock_keywords (2-4 concrete real-world nouns spoken in THIS scene), stat_text (verified short stat or ''), "
+            "quote_title, quote_text, timeline_steps (3 verified short milestone labels), and callout_label.",
         )
         s2 = self.invoke_stage(
             "groq",
@@ -1608,18 +1719,7 @@ class AICouncil:
         valid_worlds = {"space", "ocean", "tech_ai", "finance", "history_myth", "nature"}
         v_world = str(parsed.get("visual_world") or "").strip().lower()
         if v_world not in valid_worlds:
-            if any(k in low_ctx for k in ("space", "voyager", "planet", "mars", "star", "orbit", "galaxy", "nasa", "moon", "sun", "universe", "rocket")):
-                v_world = "space"
-            elif any(k in low_ctx for k in ("ocean", "sea", "mariana", "trench", "submarine", "whale", "deep water", "titanic")):
-                v_world = "ocean"
-            elif any(k in low_ctx for k in ("ai", "agent", "robot", "code", "algorithm", "software", "tech", "cyber", "computer")):
-                v_world = "tech_ai"
-            elif any(k in low_ctx for k in ("money", "stock", "billion", "wealth", "finance", "crypto", "business", "economy", "gold", "market")):
-                v_world = "finance"
-            elif any(k in low_ctx for k in ("myth", "ramayan", "hanuman", "king", "empire", "roman", "pyramid", "war", "ancient", "history", "god")):
-                v_world = "history_myth"
-            else:
-                v_world = "nature"
+            v_world = _classify_visual_world(low_ctx)
 
         # Deterministic topic+style hash so different topics/styles pick genuinely different action orders even in fallback!
         seed_rng = random.Random(f"{topic.lower()}|{art_style.lower()}|{theme.lower()}")
@@ -1635,13 +1735,14 @@ class AICouncil:
         seed_rng.shuffle(fallback_actions)
 
         raw_char = parsed.get("character") if isinstance(parsed.get("character"), dict) else {}
+        _dc = _topic_character_colors(topic, v_world)
         character = {
             "name": str(raw_char.get("name") or topic[:24])[:32],
             "archetype": str(raw_char.get("archetype") or "hero").lower(),
-            "primary_hex": _safe_hex(raw_char.get("primary_hex"), "#D94A38"),
-            "accent_hex": _safe_hex(raw_char.get("accent_hex"), "#F5C451"),
-            "skin_hex": _safe_hex(raw_char.get("skin_hex"), "#C68642"),
-            "aura_hex": _safe_hex(raw_char.get("aura_hex"), "#38BDF8"),
+            "primary_hex": _safe_hex(raw_char.get("primary_hex"), _dc["primary_hex"]),
+            "accent_hex": _safe_hex(raw_char.get("accent_hex"), _dc["accent_hex"]),
+            "skin_hex": _safe_hex(raw_char.get("skin_hex"), _dc["skin_hex"]),
+            "aura_hex": _safe_hex(raw_char.get("aura_hex"), _dc["aura_hex"]),
             "visual_world": v_world,
         }
 
@@ -1734,6 +1835,8 @@ class AICouncil:
                     "callout_label": "DROP A COMMENT",
                 },
             ]
+
+        scenes = _sanitize_motion_scenes(scenes, fact_brief)
 
         return {
             "hook_overlay": _trim_words(str(parsed.get("hook_overlay") or topic), 36).upper(),
@@ -3137,19 +3240,8 @@ def run_b2b_agency_engine(
 # 8. ENGINE D: BRANDED 5-SLIDE IG CAROUSEL & FUNNEL (`--engine carousel_funnel`)
 # ============================================================================
 
-def _load_ttf_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            try:
-                return ImageFont.truetype(c, size=size)
-            except Exception:
-                pass
-    return ImageFont.load_default(size=size) if "size" in ImageFont.load_default.__code__.co_varnames else ImageFont.load_default()
+def _load_ttf_font(size: int, bold: bool = False, text_sample: str = "") -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    return _load_font(size, bold=bold, text_sample=text_sample)
 
 
 def _wrap_text_lines(text: str, max_chars_per_line: int = 24, max_lines: int = 5) -> list[str]:
@@ -3183,8 +3275,9 @@ def _render_brand_slide_png(
     draw.rectangle([(60, 80), (width - 60, 92)], fill=(56, 189, 248))
     draw.rounded_rectangle([(60, 130), (width - 60, height - 130)], radius=32, outline=(56, 189, 248), width=3)
 
-    font_lg = _load_ttf_font(52, bold=True)
-    font_md = _load_ttf_font(32, bold=False)
+    _sample = f"{badge} {headline} {subline} {footer}"
+    font_lg = _load_ttf_font(52, bold=True, text_sample=_sample)
+    font_md = _load_ttf_font(32, bold=False, text_sample=_sample)
 
     draw.text((110, 190), badge[:40], fill=(250, 204, 21), font=font_md)
 
@@ -3804,7 +3897,7 @@ def _fetch_free_ai_scene_image(
       3) Cleanly word-wrapped branded editorial card
     """
     style_suffix = gen_style_prompt(art_style)
-    full_prompt = f"{visual_prompt}, {style_suffix}, vertical 9:16 composition"
+    full_prompt = f"{visual_prompt}, {style_suffix}, vertical 9:16 composition, strictly no text, no letters, no logos, no street signs, no watermarks"
     encoded = urllib.parse.quote(full_prompt)
     poll_key = os.environ.get("POLLINATIONS_API_KEY", "").strip()
 
@@ -3974,6 +4067,7 @@ def run_ai_faceless_engine(
     art_style: str = "dark_cinematic",
     theme: str = "AI & Tech Automation",
     character_desc: str = "",
+    fact_brief: str = "",
 ) -> dict[str, Any]:
     """
     100% Hands-Free AI Faceless Short Generator:
@@ -3998,7 +4092,7 @@ def run_ai_faceless_engine(
         topic, theme, art_style, voice, lang_hint, character_desc or "auto",
     )
     script_pkg = council.run_6_brain_faceless_script(
-        topic, brain, art_style=art_style, theme=theme, character_desc=character_desc, language_hint=lang_hint
+        topic, brain, art_style=art_style, theme=theme, character_desc=character_desc, language_hint=lang_hint, fact_brief=fact_brief
     )
     scenes = script_pkg["scenes"]
 
@@ -4204,21 +4298,77 @@ def _build_gradient_backdrop(width: int, height: int, mood: str, scene_idx: int)
     return img
 
 
+_SCRIPT_RANGES: list[tuple[str, int, int, str]] = [
+    ("ml", 0x0D00, 0x0D7F, "Malayalam"),
+    ("hi", 0x0900, 0x097F, "Devanagari"),
+    ("bn", 0x0980, 0x09FF, "Bengali"),
+    ("pa", 0x0A00, 0x0A7F, "Gurmukhi"),
+    ("gu", 0x0A80, 0x0AFF, "Gujarati"),
+    ("ta", 0x0B80, 0x0BFF, "Tamil"),
+    ("te", 0x0C00, 0x0C7F, "Telugu"),
+    ("kn", 0x0C80, 0x0CFF, "Kannada"),
+    ("th", 0x0E00, 0x0E7F, "Thai"),
+    ("ar", 0x0600, 0x06FF, "Arabic"),
+    ("he", 0x0590, 0x05FF, "Hebrew"),
+    ("ja", 0x3040, 0x30FF, "CJK"),
+    ("ko", 0xAC00, 0xD7AF, "Korean"),
+    ("zh", 0x4E00, 0x9FFF, "CJK"),
+]
+_FONT_PATH_CACHE: dict[tuple[str, bool], str | None] = {}
+
+
+def _detect_script(text: str) -> tuple[str, str] | None:
+    for ch in text or "":
+        o = ord(ch)
+        for lang, lo, hi, name in _SCRIPT_RANGES:
+            if lo <= o <= hi:
+                return lang, name
+    return None
+
+
+def _script_font_path(lang: str, name: str, bold: bool) -> str | None:
+    key = (lang, bold)
+    if key in _FONT_PATH_CACHE:
+        return _FONT_PATH_CACHE[key]
+    found: str | None = None
+    weight = "Bold" if bold else "Regular"
+    static = [
+        f"/usr/share/fonts/truetype/noto/NotoSans{name}-{weight}.ttf",
+        f"/usr/share/fonts/truetype/noto/NotoSans{name}-Regular.ttf",
+        f"/usr/share/fonts/opentype/noto/NotoSans{name}-{weight}.ttf",
+        "/usr/share/fonts/truetype/lohit-malayalam/Lohit-Malayalam.ttf",
+        "/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf",
+        "/usr/share/fonts/truetype/lohit-tamil/Lohit-Tamil.ttf",
+        "/usr/share/fonts/truetype/lohit-telugu/Lohit-Telugu.ttf",
+        "/usr/share/fonts/truetype/lohit-bengali/Lohit-Bengali.ttf",
+    ]
+    if name == "CJK" or lang in ("ko", "ja", "zh"):
+        static = [f"/usr/share/fonts/opentype/noto/NotoSansCJK-{weight}.ttc"] + static
+    for p in static:
+        if os.path.exists(p):
+            found = p
+            break
+    if found is None and shutil.which("fc-match"):
+        try:
+            out = subprocess.run(
+                ["fc-match", "-f", "%{file}", f"sans:lang={lang}:{'bold' if bold else 'regular'}"],
+                capture_output=True, text=True, timeout=10,
+            ).stdout.strip()
+            if out and os.path.exists(out):
+                found = out
+        except Exception:
+            found = None
+    _FONT_PATH_CACHE[key] = found
+    return found
+
+
 def _load_font(size: int, bold: bool = False, text_sample: str = "") -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    has_malayalam = any("\u0d00" <= ch <= "\u0d7f" for ch in text_sample)
-    has_devanagari = any("\u0900" <= ch <= "\u097f" for ch in text_sample)
     candidates: list[str] = []
-    if has_malayalam:
-        candidates.extend([
-            "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Regular.ttf",
-            "/usr/share/fonts/truetype/lohit-malayalam/Lohit-Malayalam.ttf",
-            "/usr/share/fonts/truetype/malayalam/Manjari-Bold.ttf",
-        ])
-    elif has_devanagari:
-        candidates.extend([
-            "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
-            "/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf",
-        ])
+    script = _detect_script(text_sample)
+    if script:
+        sp = _script_font_path(script[0], script[1], bold)
+        if sp:
+            candidates.append(sp)
     candidates.extend(
         [
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -4339,6 +4489,31 @@ def _draw_topic_subject(
             draw.rounded_rectangle((bx, y - cur_h, bx + 52 * s, y), radius=int(8 * s), fill=col, outline=(245, 248, 255), width=2)
         draw.line((cx - 130 * s, y - 110 * s, cx + 135 * s, y - 305 * s), fill=accent, width=max(3, int(6 * s)))
 
+    elif (variant := _topic_seed(str(char.get("name", "")), visual_world) % 3) == 1 and visual_world in {"nature", "history_myth"}:
+        if visual_world == "nature":
+            # Lone majestic tree with glowing canopy
+            draw.polygon([(cx - 26 * s, y), (cx - 12 * s, y - 230 * s), (cx + 12 * s, y - 230 * s), (cx + 26 * s, y)], fill=(86, 58, 34))
+            for k, (dx, dy, r) in enumerate([(0, 300, 120), (-90, 250, 90), (90, 250, 90), (0, 370, 80)]):
+                col = _mix_rgb(primary, (40, 150, 70), 0.55 + 0.1 * k)
+                draw.ellipse((cx + (dx - r) * s, y - (dy + r) * s, cx + (dx + r) * s, y - (dy - r) * s), fill=col, outline=accent, width=max(2, int(3 * s)))
+        else:
+            # Temple of pillars under a pediment
+            for k in range(4):
+                px = cx - 135 * s + k * 90 * s
+                draw.rectangle((px, y - 250 * s, px + 36 * s, y), fill=(236, 220, 188), outline=accent, width=max(2, int(3 * s)))
+            draw.polygon([(cx - 175 * s, y - 250 * s), (cx, y - 350 * s), (cx + 175 * s, y - 250 * s)], fill=primary, outline=accent)
+            draw.rectangle((cx - 175 * s, y, cx + 175 * s, y + 20 * s), fill=(210, 190, 150))
+    elif variant == 2 and visual_world in {"nature", "history_myth"}:
+        if visual_world == "nature":
+            # Mountain peak with glowing summit
+            draw.polygon([(cx - 230 * s, y), (cx - 20 * s, y - 330 * s), (cx + 240 * s, y)], fill=_mix_rgb(primary, (60, 80, 110), 0.6), outline=accent)
+            draw.polygon([(cx - 60 * s, y - 250 * s), (cx - 20 * s, y - 330 * s), (cx + 40 * s, y - 232 * s), (cx - 10 * s, y - 262 * s)], fill=(245, 248, 255))
+            draw.ellipse((cx - 50 * s, y - 380 * s, cx + 10 * s, y - 320 * s), fill=accent)
+        else:
+            # Crown over an obelisk
+            draw.polygon([(cx - 40 * s, y), (cx - 22 * s, y - 300 * s), (cx + 22 * s, y - 300 * s), (cx + 40 * s, y)], fill=(222, 206, 170), outline=accent)
+            draw.polygon([(cx - 22 * s, y - 300 * s), (cx, y - 360 * s), (cx + 22 * s, y - 300 * s)], fill=accent)
+            draw.polygon([(cx - 90 * s, y - 380 * s), (cx - 60 * s, y - 440 * s), (cx - 30 * s, y - 395 * s), (cx, y - 450 * s), (cx + 30 * s, y - 395 * s), (cx + 60 * s, y - 440 * s), (cx + 90 * s, y - 380 * s)], fill=primary, outline=accent)
     else:
         # Sleek Kurzgesagt-style minimalist illustrated protagonist (clean proportions, no boxy stomach smiley)
         halo_r = int(120 * s * (1.0 + 0.04 * math.sin(phase * 4.0 * math.pi)))
@@ -4390,7 +4565,7 @@ def _fetch_story_backdrop_if_available(
     style_suffix = gen_style_prompt(art_style)
     char_clause = f", featuring {character_desc}" if character_desc.strip() else ""
     theme_clause = f", theme: {theme}" if theme.strip() else ""
-    full_prompt = f"{vp or sk}{char_clause}{theme_clause}, topic: {topic}, {style_suffix}, vertical 9:16 composition"
+    full_prompt = f"{vp or sk}{char_clause}{theme_clause}, topic: {topic}, {style_suffix}, vertical 9:16 composition, strictly no text, no letters, no logos, no street signs, no watermarks"
 
     poll_key = os.environ.get("POLLINATIONS_API_KEY", "").strip()
     pixabay_key = os.environ.get("PIXABAY_API_KEY", "").strip()
@@ -4479,9 +4654,65 @@ def _draw_style_frame_decor(
             draw.line((gx, 60, gx, H - 60), fill=(72, 76, 86), width=2)
 
 
-def _build_style_themed_backdrop(W: int, H: int, theme_cfg: dict[str, Any], scene_idx: int) -> Image.Image:
-    """Renders a distinct art-style palette gradient backdrop (different per art_style & scene)."""
+_WORLD_PALETTES: dict[str, tuple[tuple[int, int, int], tuple[int, int, int], tuple[int, int, int]]] = {
+    "space": ((6, 8, 26), (20, 18, 58), (40, 22, 70)),
+    "ocean": ((4, 40, 74), (6, 92, 128), (2, 22, 46)),
+    "tech_ai": ((8, 12, 30), (14, 38, 70), (6, 70, 82)),
+    "finance": ((10, 24, 22), (16, 54, 44), (8, 26, 28)),
+    "history_myth": ((74, 38, 18), (150, 84, 36), (44, 22, 14)),
+    "nature": ((20, 74, 96), (52, 120, 90), (22, 56, 42)),
+}
+
+
+def _mix_rgb(a: tuple[int, int, int], b: tuple[int, int, int], k: float) -> tuple[int, int, int]:
+    return tuple(max(0, min(255, int(a[i] * (1 - k) + b[i] * k))) for i in range(3))  # type: ignore[return-value]
+
+
+def _hue_shift(rgb: tuple[int, int, int], deg: float) -> tuple[int, int, int]:
+    import colorsys
+    h, l_, sat = colorsys.rgb_to_hls(rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0)
+    r, g, b = colorsys.hls_to_rgb((h + deg / 360.0) % 1.0, l_, sat)
+    return int(r * 255), int(g * 255), int(b * 255)
+
+
+def _topic_seed(*parts: str) -> int:
+    return zlib.crc32("|".join(p.lower().strip() for p in parts).encode("utf-8", "ignore"))
+
+
+def _topic_character_colors(topic: str, visual_world: str) -> dict[str, str]:
+    """Deterministic per-topic colours so different topics never share one default look."""
+    rng = random.Random(_topic_seed(topic, visual_world, "char"))
+    base = rng.randint(0, 359)
+
+    def hx(rgb: tuple[int, int, int]) -> str:
+        return "#%02X%02X%02X" % rgb
+
+    primary = _hue_shift((200, 70, 60), base)
+    accent = _hue_shift((245, 196, 81), base + rng.choice([40, 90, 150, 200]))
+    aura = _hue_shift((56, 189, 248), base + rng.choice([120, 180, 240]))
+    skin = rng.choice([(198, 134, 66), (141, 85, 36), (224, 172, 105), (255, 219, 172), (110, 70, 40)])
+    return {"primary_hex": hx(primary), "accent_hex": hx(accent), "skin_hex": hx(skin), "aura_hex": hx(aura)}
+
+
+def _build_style_themed_backdrop(
+    W: int,
+    H: int,
+    theme_cfg: dict[str, Any],
+    scene_idx: int,
+    visual_world: str = "",
+    seed_key: str = "",
+) -> Image.Image:
+    """
+    Topic-specific backdrop: world palette (space/ocean/tech/finance/history/nature) blended with the art style,
+    hue-rotated per topic, plus world scenery drawn from a topic+scene seeded RNG.
+    """
     c1, c2, c3 = theme_cfg["bg_top"], theme_cfg["bg_mid"], theme_cfg["bg_bot"]
+    seed = _topic_seed(seed_key, visual_world, str(scene_idx // 2))
+    rng = random.Random(seed ^ (scene_idx * 7919))
+    if visual_world in _WORLD_PALETTES:
+        w1, w2, w3 = _WORLD_PALETTES[visual_world]
+        shift = (seed % 61) - 30 if seed_key else 0
+        c1, c2, c3 = (_hue_shift(_mix_rgb(x, y, 0.72), shift) for x, y in ((c1, w1), (c2, w2), (c3, w3)))
     if scene_idx % 2 == 1:
         c1, c2 = c2, c1
     arr = np.zeros((H, W, 3), dtype=np.uint8)
@@ -4494,25 +4725,101 @@ def _build_style_themed_backdrop(W: int, H: int, theme_cfg: dict[str, Any], scen
             u = (y - split) / float(max(H - split, 1))
             arr[y, :] = [int(c2[i] + (c3[i] - c2[i]) * u) for i in range(3)]
     img = Image.fromarray(arr)
-    draw = ImageDraw.Draw(img)
-    # Subtle geometric atmosphere matching art style
-    rng = random.Random(3000 + scene_idx * 91 + sum(c1))
+    draw = ImageDraw.Draw(img, "RGBA")
+    acc = tuple(theme_cfg["accent"])[:3]
+    sec = tuple(theme_cfg["secondary"])[:3]
     fstyle = theme_cfg["frame_style"]
+    light = _mix_rgb(c2, (255, 255, 255), 0.35)
+    dark = _mix_rgb(c3, (0, 0, 0), 0.45)
+
+    if visual_world == "space":
+        for _ in range(rng.randint(40, 80)):
+            sx, sy, sr = rng.randint(20, W - 20), rng.randint(60, int(H * 0.7)), rng.choice([1, 2, 2, 3, 4])
+            draw.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=(255, 255, 255, rng.randint(110, 255)))
+        px, py, pr = rng.randint(140, W - 140), rng.randint(300, 900), rng.randint(90, 230)
+        pc = _hue_shift((190, 110, 80), rng.randint(0, 359))
+        draw.ellipse((px - pr, py - pr, px + pr, py + pr), fill=pc + (255,))
+        draw.ellipse((px - pr * 0.2, py - pr, px + pr, py + pr * 0.8), fill=_mix_rgb(pc, (0, 0, 0), 0.45) + (140,))
+        if rng.random() < 0.6:
+            draw.ellipse((px - pr * 1.7, py - pr * 0.22, px + pr * 1.7, py + pr * 0.22), outline=light + (200,), width=5)
+    elif visual_world == "ocean":
+        for _ in range(4):
+            rx = rng.randint(-100, W)
+            draw.polygon([(rx, 0), (rx + rng.randint(60, 160), 0), (rx + rng.randint(300, 560), int(H * 0.7)), (rx + 120, int(H * 0.7))], fill=light + (28,))
+        for _ in range(rng.randint(18, 34)):
+            bx, by, br = rng.randint(30, W - 30), rng.randint(200, H - 300), rng.randint(5, 22)
+            draw.ellipse((bx - br, by - br, bx + br, by + br), outline=(220, 245, 255, 170), width=3)
+        for k in range(7):
+            bx = k * (W // 6) - 40
+            draw.polygon([(bx, H), (bx + 90, H - rng.randint(120, 300)), (bx + 190, H)], fill=dark + (255,))
+    elif visual_world == "tech_ai":
+        for _ in range(rng.randint(10, 18)):
+            x, y = rng.randint(0, W // 40) * 40, rng.randint(2, H // 40) * 40
+            pts = [(x, y)]
+            for _ in range(rng.randint(2, 4)):
+                x += rng.choice([-1, 1]) * rng.randint(2, 6) * 40 if rng.random() < 0.5 else 0
+                y += rng.randint(1, 5) * 40
+                pts.append((x, y))
+            draw.line(pts, fill=acc + (120,), width=3)
+            ex, ey = pts[-1]
+            draw.ellipse((ex - 9, ey - 9, ex + 9, ey + 9), fill=sec + (230,))
+        for gy in range(0, H, 160):
+            draw.line((0, gy, W, gy), fill=light + (14,), width=1)
+    elif visual_world == "finance":
+        for gy in range(200, int(H * 0.8), 150):
+            draw.line((0, gy, W, gy), fill=light + (30,), width=2)
+        x = 40
+        val = rng.randint(900, 1200)
+        while x < W - 40:
+            o = val
+            val = max(300, min(1500, val + rng.randint(-120, 150)))
+            top, bot = min(o, val), max(o, val)
+            col = (60, 200, 120, 150) if val >= o else (230, 80, 80, 150)
+            draw.line((x + 17, top - 60, x + 17, bot + 60), fill=col, width=3)
+            draw.rectangle((x, top, x + 34, bot), fill=col)
+            x += 62
+    elif visual_world == "history_myth":
+        sx, sy = rng.randint(200, W - 200), rng.randint(260, 560)
+        draw.ellipse((sx - 150, sy - 150, sx + 150, sy + 150), fill=_mix_rgb(c1, (255, 210, 120), 0.5) + (110,))
+        draw.ellipse((sx - 90, sy - 90, sx + 90, sy + 90), fill=(255, 226, 150, 235))
+        base_y = int(H * 0.66)
+        for _ in range(rng.randint(2, 4)):
+            cx = rng.randint(-100, W + 100)
+            hw = rng.randint(180, 420)
+            if rng.random() < 0.5:
+                draw.polygon([(cx - hw, base_y), (cx, base_y - int(hw * 0.8)), (cx + hw, base_y)], fill=dark + (255,))
+            else:
+                for c in range(4):
+                    draw.rectangle((cx - hw // 2 + c * hw // 4, base_y - 220, cx - hw // 2 + c * hw // 4 + 28, base_y), fill=dark + (255,))
+                draw.polygon([(cx - hw // 2 - 20, base_y - 220), (cx, base_y - 300), (cx + hw // 2 + 20, base_y - 220)], fill=dark + (255,))
+        draw.rectangle((0, base_y, W, H), fill=dark + (255,))
+    else:  # nature / unknown: layered hills, sun, trees, clouds
+        sx, sy = rng.randint(120, W - 120), rng.randint(220, 480)
+        draw.ellipse((sx - 80, sy - 80, sx + 80, sy + 80), fill=(255, 236, 170, 235))
+        for _ in range(rng.randint(2, 4)):
+            cx, cy = rng.randint(0, W), rng.randint(140, 760)
+            for k in range(3):
+                draw.ellipse((cx + k * 70 - 90, cy - 36, cx + k * 70 + 90, cy + 36), fill=(255, 255, 255, 70))
+        for layer in range(3):
+            base = int(H * (0.52 + layer * 0.08))
+            col = _mix_rgb(c3, (10, 40, 20), 0.2 + layer * 0.25) + (255,)
+            pts = [(0, H)] + [(x, base + int(math.sin(x / (160.0 + 60 * layer) + rng.random() * 6) * (70 - 12 * layer))) for x in range(0, W + 60, 60)] + [(W, H)]
+            draw.polygon(pts, fill=col)
+        for _ in range(rng.randint(4, 9)):
+            tx, ty = rng.randint(30, W - 30), rng.randint(int(H * 0.62), int(H * 0.8))
+            th = rng.randint(70, 150)
+            draw.rectangle((tx - 6, ty - th // 3, tx + 6, ty), fill=(60, 40, 24, 255))
+            draw.polygon([(tx - th // 3, ty - th // 3), (tx, ty - th), (tx + th // 3, ty - th // 3)], fill=_mix_rgb(c3, (30, 120, 50), 0.6) + (255,))
+
+    # Art-style overlay keeps style identity on top of the topic scenery
     if fstyle == "comic_panel":
-        # Halftone pop-art dots
         for gy in range(80, H - 80, 96):
             for gx in range(80, W - 80, 96):
-                draw.ellipse((gx - 8, gy - 8, gx + 8, gy + 8), fill=tuple(min(255, c + 24) for c in c2))
+                draw.ellipse((gx - 6, gy - 6, gx + 6, gy + 6), fill=_mix_rgb(c2, (255, 255, 255), 0.15) + (90,))
     elif fstyle == "scanlines":
-        # Perspective cyber grid in bottom third
         for gx in range(0, W + 120, 120):
-            draw.line((W // 2, int(H * 0.65), gx, H), fill=theme_cfg["secondary"], width=2)
-    else:
-        for _ in range(42):
-            sx, sy = rng.randint(40, W - 40), rng.randint(80, int(H * 0.65))
-            sr = rng.choice([2, 3, 4])
-            draw.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=theme_cfg["accent"])
-    return img
+            draw.line((W // 2, int(H * 0.65), gx, H), fill=sec + (160,), width=2)
+    return img.convert("RGB")
 
 
 def _render_motion_story_scene(
@@ -4563,7 +4870,7 @@ def _render_motion_story_scene(
         used_urls=used_urls,
     )
     has_photo_bg = photo_bg is not None
-    bg_base = photo_bg if has_photo_bg else _build_style_themed_backdrop(W, H, theme_cfg, scene_idx)
+    bg_base = photo_bg if has_photo_bg else _build_style_themed_backdrop(W, H, theme_cfg, scene_idx, visual_world=visual_world, seed_key=topic)
 
     sample_all = f"{top_label} {stat_text} {quote_title} {quote_text} {callout_label}"
     font_med = _load_font(36, bold=True, text_sample=sample_all)
@@ -4723,6 +5030,7 @@ def run_motion_story_engine(
     art_style: str = "dark_cinematic",
     theme: str = "Universal Storytelling",
     character_desc: str = "",
+    fact_brief: str = "",
 ) -> dict[str, Any]:
     """
     All-Rounder 2D Animated Story & Universal Character Engine (`--engine motion_story`):
@@ -4754,6 +5062,7 @@ def run_motion_story_engine(
         theme=theme,
         character_desc=character_desc,
         language_hint=lang_hint,
+        fact_brief=fact_brief,
     )
     character = story_pkg["character"]
     scenes = story_pkg["scenes"]
@@ -4941,34 +5250,97 @@ def _previous_topics(ledger_data: dict[str, Any]) -> list[str]:
     return topics
 
 
-def _parse_rss_titles(xml_bytes: bytes, limit: int = 12) -> list[str]:
-    titles: list[str] = []
+def _parse_rss_entries(xml_bytes: bytes, limit: int = 12) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
+    seen: set[str] = set()
     try:
         root = ET.fromstring(xml_bytes)
         for item in root.findall(".//item"):
             t_el = item.find("title")
             if t_el is not None and t_el.text:
                 clean = " ".join(t_el.text.split()).strip()
-                # Strip trailing publisher suffix like " - Reuters"
                 clean = re.sub(r"\s+[-|]\s+[^-|]{2,40}$", "", clean).strip()
-                if len(clean) >= 6 and clean not in titles:
-                    titles.append(clean)
-            if len(titles) >= limit:
+                d_el = item.find("description")
+                raw_desc = html.unescape(d_el.text or "") if d_el is not None else ""
+                clean_desc = " ".join(re.sub(r"<[^>]+>", " ", raw_desc).split()).strip()[:220]
+                if len(clean) >= 6 and clean not in seen:
+                    seen.add(clean)
+                    entries.append((clean, clean_desc))
+            if len(entries) >= limit:
                 break
     except Exception:
         pass
-    return titles
+    return entries
 
 
-def _fetch_live_trending_headlines(max_items: int = 18) -> list[str]:
+def _parse_rss_titles(xml_bytes: bytes, limit: int = 12) -> list[str]:
+    return [t for t, _ in _parse_rss_entries(xml_bytes, limit=limit)]
+
+
+def fetch_wikipedia_brief(topic: str, max_chars: int = 1400) -> str:
     """
-    Fetches live daily trending topics 100% free (zero API keys) from:
+    Free, keyless Verified Fact Brief for ANY topic (manual or auto): Wikipedia search + intro extract.
+    Returns "" when nothing relevant is found (caller then uses the no-invented-numbers rule).
+    """
+    topic = (topic or "").strip()
+    if not topic:
+        return ""
+    script = _detect_script(topic)
+    langs = ([script[0]] if script and script[0] in ("ml", "hi", "bn", "pa", "gu", "ta", "te", "kn", "th", "ar", "he", "ja", "ko", "zh") else []) + ["en"]
+    q_tokens = _topic_tokens(topic) or {w for w in re.findall(r"\w+", topic.lower()) if len(w) >= 2}
+    hdr = {"User-Agent": "JagnorClippingBot/1.0 (https://github.com/jagnor110-cell/Jagnor)", "Accept": "application/json"}
+    for lang in langs:
+        try:
+            base = f"https://{lang}.wikipedia.org/w/api.php"
+            sq = urllib.parse.urlencode({"action": "query", "list": "search", "srsearch": topic, "srlimit": 3, "format": "json"})
+            body, _ = urlopen_with_retry(urllib.request.Request(f"{base}?{sq}", headers=hdr), timeout=15, max_attempts=2, base_backoff=1.0)
+            hits = (json.loads(body).get("query") or {}).get("search") or []
+            for h in hits:
+                title = str(h.get("title") or "")
+                t_tokens = _topic_tokens(title) or {w for w in re.findall(r"\w+", title.lower()) if len(w) >= 2}
+                if q_tokens and not (q_tokens & t_tokens) and lang == "en":
+                    continue
+                eq = urllib.parse.urlencode({"action": "query", "prop": "extracts|pageprops", "exintro": 1, "explaintext": 1,
+                                             "redirects": 1, "titles": title, "format": "json"})
+                body2, _ = urlopen_with_retry(urllib.request.Request(f"{base}?{eq}", headers=hdr), timeout=15, max_attempts=2, base_backoff=1.0)
+                pages = (json.loads(body2).get("query") or {}).get("pages") or {}
+                for pg in pages.values():
+                    if "disambiguation" in (pg.get("pageprops") or {}):
+                        continue
+                    ext = re.sub(r"\s+", " ", str(pg.get("extract") or "")).strip()
+                    if len(ext) < 80 or re.search(r"may (also )?refer to", ext[:200], re.I):
+                        continue
+                    cut = ext[:max_chars]
+                    if len(ext) > max_chars and "." in cut:
+                        cut = cut[: cut.rfind(".") + 1]
+                    return f"Wikipedia ({title}): {cut}"
+        except Exception as err:
+            log.warning("Wikipedia brief (%s) unavailable: %s", lang, err)
+    return ""
+
+
+def enrich_fact_brief(topic: str, fact_brief: str) -> str:
+    """Merge trending headline brief with Wikipedia background; never overrides a precise headline match."""
+    has_real = bool(fact_brief.strip()) and "headline only" not in fact_brief.lower()
+    wiki = fetch_wikipedia_brief(topic)
+    if not wiki:
+        return fact_brief
+    if has_real:
+        return f"{fact_brief}\nBackground: {wiki}"
+    base = fact_brief.strip()
+    return f"{wiki}\n{base}" if base else wiki
+
+
+def _fetch_live_trending_items(max_items: int = 18) -> list[tuple[str, str]]:
+    """
+    Fetches live daily trending topics + RSS summary snippets 100% free (zero API keys) from:
       1) Google Trends Daily RSS (US & India)
       2) Google News Top Stories RSS
       3) Hacker News Top Stories (Tech/AI/Science)
     Fails gracefully to [] when offline.
     """
-    headlines: list[str] = []
+    items: list[tuple[str, str]] = []
+    seen: set[str] = set()
     rss_urls = [
         "https://trends.google.com/trending/rss?geo=US",
         "https://trends.google.com/trending/rss?geo=IN",
@@ -4978,13 +5350,13 @@ def _fetch_live_trending_headlines(max_items: int = 18) -> list[str]:
         try:
             req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (JagnorTrendScout/2.0)"})
             with urllib.request.urlopen(req, timeout=12) as resp:
-                for title in _parse_rss_titles(resp.read(), limit=8):
-                    if title not in headlines:
-                        headlines.append(title)
+                for title, desc in _parse_rss_entries(resp.read(), limit=8):
+                    if title not in seen:
+                        seen.add(title)
+                        items.append((title, desc))
         except Exception as exc:
             log.debug("Trend RSS skipped (%s): %s", u, exc)
 
-    # Hacker News Top Stories (Tech / AI / Science)
     try:
         req = urllib.request.Request(
             "https://hacker-news.firebaseio.com/v0/topstories.json",
@@ -5001,34 +5373,48 @@ def _fetch_live_trending_headlines(max_items: int = 18) -> list[str]:
                 with urllib.request.urlopen(sreq, timeout=8) as sresp:
                     item = json.loads(sresp.read().decode("utf-8"))
                 t = " ".join(str(item.get("title") or "").split()).strip()
-                if len(t) >= 8 and t not in headlines:
-                    headlines.append(t)
+                if len(t) >= 8 and t not in seen:
+                    seen.add(t)
+                    items.append((t, f"Trending on Hacker News: {t}"))
             except Exception:
                 continue
     except Exception as exc:
         log.debug("Hacker News trend fetch skipped: %s", exc)
 
-    return headlines[:max_items]
+    return items[:max_items]
 
 
-def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
+def _fetch_live_trending_headlines(max_items: int = 18) -> list[str]:
+    return [t for t, _ in _fetch_live_trending_items(max_items=max_items)]
+
+
+def pick_fresh_auto_topic_with_context(theme: str, brain: CompanyBrain, engine: str) -> tuple[str, str]:
     """
-    Live Trending Topic Selector for scheduled daily runs (1 motion_story + 1 ai_faceless/day):
-      1) Pulls live trending headlines from Google Trends RSS, Google News RSS & Hacker News.
-      2) Uses the 4-Brain Free AI Council to pick the most viral, Shorts-worthy non-duplicate angle.
-      3) Falls back to AI Council ideation or a curated evergreen pool if offline.
+    Live Trending Topic Selector returning `(topic_title, grounded_fact_brief)` so the
+    script council uses real headline facts instead of inventing numbers or dates.
     """
     ledger_data, _ = load_ledger(brain.ledger_path.parent)
     all_previous = _previous_topics(ledger_data)
     recent_titles = all_previous[-12:]
 
-    live_trends = [t for t in _fetch_live_trending_headlines(max_items=30) if _is_safe_topic(t)][:18]
+    raw_items = [(t, d) for t, d in _fetch_live_trending_items(max_items=30) if _is_safe_topic(t)][:18]
+    live_trends = [t for t, _ in raw_items]
     if live_trends:
         log.info("Live Trend Scout fetched %d real-time trending topics.", len(live_trends))
 
+    def _match_fact_brief(chosen: str) -> str:
+        ct = _topic_tokens(chosen)
+        scored = []
+        for t, d in raw_items:
+            overlap = len(ct & _topic_tokens(f"{t} {d}"))
+            if overlap >= max(2, (len(ct) * 2 + 4) // 5):  # >=2 shared words and ~40% of the title
+                scored.append((overlap, f"{t}. {d}".strip()))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return " | ".join(s for _, s in scored[:2]) if scored else ""
+
     council = AICouncil()
     if live_trends:
-        trend_bullets = "\n".join(f"- {t}" for t in live_trends)
+        trend_bullets = "\n".join(f"- {t}" + (f" ({d[:110]})" if d else "") for t, d in raw_items)
         prompt = (
             f"Engine: {engine} | Theme: {theme}\n"
             f"Live Trending Headlines Right Now:\n{trend_bullets}\n\n"
@@ -5062,7 +5448,11 @@ def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
                 and not _is_similar_topic(cand, all_previous)
             ):
                 log.info("Trending auto-topic selected via [%s]: %s", provider, cand)
-                return cand
+                brief = _match_fact_brief(cand) or (
+                    f"Trending headline only: {cand}. No other verified facts available - use no numbers, dates or sales figures."
+                    if live_trends else ""
+                )
+                return cand, brief
             log.info("AI topic from [%s] rejected (preface/unsafe/duplicate): %r", provider, cand[:80])
 
     # Without the AI Council a raw headline would become a template script with no facts behind it,
@@ -5085,8 +5475,12 @@ def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
     for cand in fallback_pool:
         if not _is_similar_topic(cand, all_previous):
             log.info("Auto-topic selected from curated pool: %s", cand)
-            return cand
-    return f"{theme} Untold Story {time.strftime('%Y%m%d%H%M', time.gmtime())}"
+            return cand, ""
+    return f"{theme} Untold Story {time.strftime('%Y%m%d%H%M', time.gmtime())}", ""
+
+
+def pick_fresh_auto_topic(theme: str, brain: CompanyBrain, engine: str) -> str:
+    return pick_fresh_auto_topic_with_context(theme, brain, engine)[0]
 
 
 def main() -> int:
@@ -5227,7 +5621,11 @@ def main() -> int:
                     raise RuntimeError(f"All {len(candidate_urls)} trending candidates failed. Last error: {last_err}")
 
             elif args.engine == "motion_story":
-                active_topic = pick_fresh_auto_topic(args.theme, brain, "motion_story") if args.auto_topic else (args.title or args.niche)
+                if args.auto_topic:
+                    active_topic, fact_brief = pick_fresh_auto_topic_with_context(args.theme, brain, "motion_story")
+                else:
+                    active_topic, fact_brief = (args.title or args.niche), ""
+                fact_brief = enrich_fact_brief(active_topic, fact_brief)
                 manifest = run_motion_story_engine(
                     topic=active_topic,
                     job_dir=job_dir,
@@ -5237,9 +5635,14 @@ def main() -> int:
                     art_style=args.art_style,
                     theme=args.theme,
                     character_desc=args.character,
+                    fact_brief=fact_brief,
                 )
             elif args.engine == "ai_faceless":
-                active_topic = pick_fresh_auto_topic(args.theme, brain, "ai_faceless") if args.auto_topic else (args.title or args.niche)
+                if args.auto_topic:
+                    active_topic, fact_brief = pick_fresh_auto_topic_with_context(args.theme, brain, "ai_faceless")
+                else:
+                    active_topic, fact_brief = (args.title or args.niche), ""
+                fact_brief = enrich_fact_brief(active_topic, fact_brief)
                 manifest = run_ai_faceless_engine(
                     topic=active_topic,
                     job_dir=job_dir,
@@ -5249,6 +5652,7 @@ def main() -> int:
                     art_style=args.art_style,
                     theme=args.theme,
                     character_desc=args.character,
+                    fact_brief=fact_brief,
                 )
             elif args.engine == "raw_video_drop":
                 manifest = run_raw_video_drop_engine(
