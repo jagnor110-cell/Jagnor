@@ -1,15 +1,24 @@
 {
   "engine": "clipping",
-  "source_mode": "ai_faceless",
+  "source_mode": "motion_story",
   "status": "APPROVAL_PENDING",
-  "source_url": "ai_faceless:How deep is space actually is ",
+  "source_url": "motion_story:Why GTA VI Is Breaking Every Gaming Record",
   "language": "English",
   "settings_applied": {
-    "topic": "How deep is space actually is ",
-    "theme": "Explanation ",
-    "art_style": "dark_cinematic",
-    "voice": "serious_female",
+    "topic": "Why GTA VI Is Breaking Every Gaming Record",
+    "theme": "Universal Storytelling",
+    "art_style": "original",
+    "voice": "happy_female",
     "character_desc": ""
+  },
+  "character": {
+    "name": "Vera 'Vice' Kane",
+    "archetype": "streetwise outlaw",
+    "primary_hex": "#FF2D95",
+    "accent_hex": "#00E5FF",
+    "skin_hex": "#C68642",
+    "aura_hex": "#FFD166",
+    "visual_world": "history_myth"
   },
   "council_models_used": [
     "openrouter:openrouter/free",
@@ -19,19 +28,19 @@
   ],
   "clips": [
     {
-      "clip_id": "faceless_01",
+      "clip_id": "story_01",
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 27.14,
-      "duration_sec": 27.14,
-      "mp4_path": "jobs/latest/out/faceless_how_deep_is_space_actual_202611212009.mp4",
-      "layout_mode": "ai_faceless_9x16",
+      "end_sec": 42.77,
+      "duration_sec": 42.77,
+      "mp4_path": "jobs/latest/out/story_why_gta_vi_is_breaking_e_202611220345.mp4",
+      "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "Falling Into Dark Cosmic Silence #Shorts",
-      "ig_caption": "🌌 *Dive into the dark abyss.* #DarkCinematic #RimLighting #VoidAesthetic",
-      "hook_overlay": "FALLING INTO COSMIC SILENCE",
-      "council_score": 9.6,
+      "yt_title": "GTA VI Neon Record Breaker #Shorts",
+      "ig_caption": "GTA VI isn’t just a game — it’s a universal story that’s already breaking every record in the book. From neon-lit freedom to record-shattering launches, the hype is global. 🌍🚗 Which part of the journey are you most excited for? #GTAVI #GamingRecords #UniversalStorytelling #OpenWorldLegacy #NeonAesthetics #FirstMonthHype",
+      "hook_overlay": "GTA VI: WHERE EVERY STORY BREAKS...",
+      "council_score": 9.7,
       "council_models_used": [
         "openrouter:openrouter/free",
         "openrouter:openrouter/free",
@@ -39,7 +48,7 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "ai_faceless:How deep is space actually is "
+      "source_url": "motion_story:Why GTA VI Is Breaking Every Gaming Record"
     }
   ]
 }
