@@ -1563,7 +1563,7 @@ class AICouncil:
         fact_clause = f"Verified Fact Brief (stick strictly to these facts; NEVER invent stats or release years):\n{fact_brief}\n" if fact_brief.strip() else ""
         s1 = self.invoke_stage(
             "gemini",
-            "You are Stage 1 (Gemini Viral Strategist). Outline a 5-scene 35-second faceless vertical video script. NEVER invent unverified numbers, sales figures, or release dates. NEVER include camera directions in narration (no 'the camera pulls back'). NEVER ask for logos, signs, or words in visual_prompt.",
+            "You are Stage 1 (Gemini Viral Strategist). Outline a 5-scene 35-second faceless vertical video script. NEVER invent unverified numbers, sales figures, or release dates. NEVER include camera directions in narration (no 'the camera pulls back'). NEVER ask for logos, signs, or words in visual_prompt. Scene 1 MUST explicitly name the exact topic subject, and NEVER say 'trending on tech platforms' or 'viral online'.",
             f"Theme: {theme}\nArt Style: {art_style} ({style_desc})\nTopic: {topic}\nLanguage: {language_hint}\n"
             f"Character/Subject Lock: {character_desc or 'Topic-matched consistent visual subject'}\n"
             f"{fact_clause}"
@@ -1669,7 +1669,7 @@ class AICouncil:
         fact_clause = f"Verified Fact Brief (ONLY cite numbers/dates from here or well-established history; NEVER invent stats or future sales figures):\n{fact_brief}\n" if fact_brief.strip() else ""
         s1 = self.invoke_stage(
             "gemini",
-            "You are Stage 1 (Gemini Story & Motion Director). Write a factually accurate, gripping 5-scene 40-second story script where EVERY scene has a DIFFERENT visual action. STRICT RULES: (1) NEVER invent unverified numbers, sales figures, or release years. (2) NEVER write camera directions in narration (never say 'the camera pulls back' or 'watch the screen'). (3) NEVER put logos, signs, or words in visual_prompt.",
+            "You are Stage 1 (Gemini Story & Motion Director). Write a factually accurate, gripping 5-scene 40-second story script where EVERY scene has a DIFFERENT visual action. STRICT RULES: (1) NEVER invent unverified numbers, sales figures, or release years. (2) NEVER write camera directions in narration (never say 'the camera pulls back' or 'watch the screen'). (3) NEVER put logos, signs, or words in visual_prompt. (4) Scene 1 MUST explicitly name the exact topic subject (never vague phrases like 'a devastating disease'). (5) NEVER mention 'trending on platforms' or 'viral online' — tell the actual story.",
             f"Topic: {topic}\nTheme: {theme}\nArt Style: {art_style} ({style_desc})\nLanguage: {language_hint}\n"
             f"Subject/Character: {char_hint}\n{fact_clause}ICP:\n{brain.identity_icp}\n"
             f"For each of the 5 scenes, pick a UNIQUE, context-appropriate `action` from [{actions_csv}]:\n"
@@ -1869,6 +1869,32 @@ def get_ytdlp_cookie_args(job_dir: Path) -> list[str]:
     return ["--cookies", str(cookie_file)]
 
 
+_YTDLP_CAPS: dict[str, bool] = {}
+
+
+def _ytdlp_supports(flag: str) -> bool:
+    if flag not in _YTDLP_CAPS:
+        try:
+            out = subprocess.run(["yt-dlp", "--help"], capture_output=True, text=True, timeout=60).stdout
+            _YTDLP_CAPS[flag] = flag in out
+        except Exception:
+            _YTDLP_CAPS[flag] = False
+    return _YTDLP_CAPS[flag]
+
+
+def _ytdlp_ejs_args() -> list[str]:
+    """
+    YouTube n-challenge/PO-token support flags, only when the installed yt-dlp understands them.
+    yt-dlp enables only `deno` by default; GitHub runners ship Node, so enable it explicitly.
+    """
+    args: list[str] = []
+    if _ytdlp_supports("--js-runtimes") and not shutil.which("deno") and shutil.which("node"):
+        args += ["--js-runtimes", "node"]
+    if _ytdlp_supports("--remote-components"):
+        args += ["--remote-components", "ejs:github"]
+    return args
+
+
 def discover_instagram_trending(
     niche_query: str,
     brain: CompanyBrain,
@@ -1939,7 +1965,7 @@ def discover_youtube_trending(
         cmd = [
             "yt-dlp",
             *cookie_args,
-            "--extractor-args", "youtube:player_client=default,web_creator",
+            *_ytdlp_ejs_args(),
             f"ytsearch{max_results}:{query_str}",
             "--dump-json",
             "--no-playlist",
@@ -2461,15 +2487,29 @@ def ingest_video(
         ffprobe_metadata(video_path, min_duration=15.0)
         return video_path, info_path
 
-    meta_res = run_cmd([
-        "yt-dlp",
-        *cookie_args,
-        "--extractor-args", "youtube:player_client=default,web_creator",
-        "--dump-single-json",
-        "--no-playlist",
-        url,
-    ])
-    info = json.loads(meta_res.stdout)
+    # 3-tier resilient YouTube strategy: defeats SABR-only / web_creator PO-token / missing-JS-runtime errors
+    ejs = _ytdlp_ejs_args()
+    meta_attempts: list[list[str]] = [
+        [*cookie_args, *ejs, "--extractor-args", "youtube:player_client=default,web_safari"],
+        [*cookie_args, *ejs],
+        [*ejs, "--extractor-args", "youtube:player_client=android_vr,web_embedded"],
+    ]
+    meta_res = None
+    last_meta_err: Exception | None = None
+    for attempt_idx, extra_args in enumerate(meta_attempts):
+        try:
+            meta_res = run_cmd(["yt-dlp", *extra_args, "--dump-single-json", "--no-playlist", url])
+            # Download with the client strategy that just worked first, then the others.
+            meta_attempts = meta_attempts[attempt_idx:] + meta_attempts[:attempt_idx]
+            break
+        except Exception as exc:
+            last_meta_err = exc
+            log.info("yt-dlp metadata attempt failed (%s); trying next client strategy...", str(exc)[:160])
+    if meta_res is None:
+        raise RuntimeError(f"yt-dlp metadata failed across all client strategies: {last_meta_err}")
+
+    json_lines = [ln for ln in meta_res.stdout.splitlines() if ln.strip().startswith("{")]
+    info = json.loads(json_lines[-1] if json_lines else meta_res.stdout)
     channel_id = info.get("channel_id", "")
     extractor = (info.get("extractor") or "").lower()
     license_str = (info.get("license") or "").lower()
@@ -2483,23 +2523,43 @@ def ingest_video(
             f"DEAD_LETTER: License '{info.get('license')}' is not Creative Commons and channel '{channel_id}' is not allowlisted."
         )
 
-    run_cmd([
-        "yt-dlp",
-        *cookie_args,
-        "--extractor-args", "youtube:player_client=default,web_creator",
-        "--geo-bypass",
-        "--no-playlist",
-        "--write-info-json",
-        "--write-subs",
-        "--write-auto-subs",
-        "--sub-langs", "en.*,en",
-        "--sub-format", "json3",
-        "-f", "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-        "--merge-output-format", "mp4",
-        "--remux-video", "mp4",
-        "-o", out_tpl,
-        url,
-    ])
+    dl_ok = False
+    last_dl_err: Exception | None = None
+    for extra_args in meta_attempts:
+        try:
+            run_cmd([
+                "yt-dlp",
+                *extra_args,
+                "--geo-bypass",
+                "--no-playlist",
+                "--write-info-json",
+                "--write-subs",
+                "--write-auto-subs",
+                "--sub-langs", "en.*,en",
+                "--sub-format", "json3",
+                "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+                "--merge-output-format", "mp4",
+                "--remux-video", "mp4",
+                "-o", out_tpl,
+                url,
+            ])
+            dl_ok = True
+            break
+        except Exception as exc:
+            last_dl_err = exc
+            # A subtitle-only failure (e.g. HTTP 429) makes yt-dlp exit non-zero even though the video finished.
+            done = [
+                p for p in job_dir.glob("source.*")
+                if p.suffix.lower() in {".mp4", ".mkv", ".webm", ".mov", ".m4v"} and p.stat().st_size > 100_000
+            ]
+            err_l = str(exc).lower()
+            if done and ("429" in err_l or "subtitle" in err_l or "too many requests" in err_l):
+                log.warning("yt-dlp reported an error but the video file exists (%s); continuing.", str(exc)[:120])
+                dl_ok = True
+                break
+            log.warning("yt-dlp download strategy failed (%s); trying next client strategy...", str(exc)[:180])
+    if not dl_ok:
+        raise RuntimeError(f"yt-dlp download failed across all client strategies: {last_dl_err}")
 
     video_path = job_dir / "source.mp4"
     if not video_path.exists():
@@ -2915,6 +2975,20 @@ def sanitize_ass_text(raw: str) -> str:
     return re.sub(r"[{}\\\r\n]+", "", raw).strip()
 
 
+def _ass_font_family(script_info: tuple[str, str] | None) -> str:
+    """Real fontconfig family names for libass (e.g. there is no 'Noto Sans Korean')."""
+    if not script_info:
+        return "Noto Sans"
+    lang, name = script_info
+    return {
+        "ja": "Noto Sans CJK JP", "ko": "Noto Sans CJK KR", "zh": "Noto Sans CJK SC",
+        "ml": "Noto Sans Malayalam", "hi": "Noto Sans Devanagari", "bn": "Noto Sans Bengali",
+        "pa": "Noto Sans Gurmukhi", "gu": "Noto Sans Gujarati", "ta": "Noto Sans Tamil",
+        "te": "Noto Sans Telugu", "kn": "Noto Sans Kannada", "th": "Noto Sans Thai",
+        "ar": "Noto Sans Arabic", "he": "Noto Sans Hebrew",
+    }.get(lang, f"Noto Sans {name}")
+
+
 def write_ass_captions(
     segments: list[IndexedSegment],
     start_seg_id: int,
@@ -2929,9 +3003,10 @@ def write_ass_captions(
     hook_margin_v = int(res_y * (0.12 if res_y >= res_x else 0.08))
     font_default = 72 if res_y >= 1350 else 58
     font_hook = 58 if res_y >= 1350 else 48
-    sample_ass = f"{hook_overlay} " + " ".join(s.text for s in segments[:3])
+    in_clip = [sg.text for sg in segments if start_seg_id <= sg.segment_id <= end_seg_id] or [sg.text for sg in segments[:3]]
+    sample_ass = f"{hook_overlay} " + " ".join(in_clip)
     script_info = _detect_script(sample_ass)
-    ass_font = f"Noto Sans {script_info[1]}" if script_info else "Noto Sans"
+    ass_font = _ass_font_family(script_info)
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {res_x}
@@ -3582,49 +3657,68 @@ def _apply_art_style_filter(im: Image.Image, art_style: str) -> Image.Image:
             return im.convert("RGB")
 
         if style in {"anime", "comic_book"}:
-            # Bilateral color smoothing + crisp ink edge overlay (cel-shaded illustration look)
-            smooth = cv2.bilateralFilter(bgr, d=9, sigmaColor=75, sigmaSpace=75)
-            smooth = cv2.bilateralFilter(smooth, d=9, sigmaColor=75, sigmaSpace=75)
+            # Bilateral smoothing + cel-shaded color quantization + crisp dark ink edges
+            smooth = cv2.bilateralFilter(bgr, d=9, sigmaColor=85, sigmaSpace=85)
+            smooth = cv2.bilateralFilter(smooth, d=9, sigmaColor=85, sigmaSpace=85)
+            step = 32 if style == "comic_book" else 24
+            quant = ((smooth // step) * step + step // 2).astype(np.uint8)
             gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
             edges = cv2.adaptiveThreshold(
-                cv2.medianBlur(gray, 5), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 7
+                cv2.medianBlur(gray, 5), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 6
             )
+            if style == "comic_book":
+                # Slightly thicken comic ink lines for graphic-novel consistency
+                edges = cv2.erode(edges, np.ones((2, 2), np.uint8), iterations=1)
             edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
-            out = cv2.bitwise_and(smooth, edges_bgr)
-            # Boost vibrance slightly
+            out = cv2.bitwise_and(quant, edges_bgr)
             hsv = cv2.cvtColor(out, cv2.COLOR_BGR2HSV).astype(np.float32)
-            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.28, 0, 255)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * (1.35 if style == "comic_book" else 1.28), 0, 255)
             out = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
         elif style == "cyberpunk":
-            # High-contrast cyan/magenta neon split-tone grading
-            out = cv2.bilateralFilter(bgr, d=7, sigmaColor=50, sigmaSpace=50).astype(np.float32)
-            out[:, :, 0] = np.clip(out[:, :, 0] * 1.28 + 18, 0, 255)  # Blue/Cyan boost
-            out[:, :, 1] = np.clip(out[:, :, 1] * 0.88, 0, 255)
-            out[:, :, 2] = np.clip(out[:, :, 2] * 1.22 + 12, 0, 255)  # Magenta/Red boost
-            out = out.astype(np.uint8)
+            # Smooth neon noir + high-contrast cyan/magenta split-tone + dark shadow crush
+            smooth = cv2.bilateralFilter(bgr, d=9, sigmaColor=65, sigmaSpace=65).astype(np.float32)
+            smooth[:, :, 0] = np.clip(smooth[:, :, 0] * 1.38 + 22, 0, 255)  # Electric cyan/blue
+            smooth[:, :, 1] = np.clip(smooth[:, :, 1] * 0.82, 0, 255)
+            smooth[:, :, 2] = np.clip(smooth[:, :, 2] * 1.32 + 16, 0, 255)  # Neon magenta/red
+            out = cv2.convertScaleAbs(smooth.astype(np.uint8), alpha=1.18, beta=-16)
         elif style == "oil_painting":
-            out = cv2.stylization(bgr, sigma_s=60, sigma_r=0.45)
+            # Rich classical painterly brushstroke texture + warm museum chiaroscuro contrast
+            painted = cv2.stylization(bgr, sigma_s=75, sigma_r=0.40)
+            painted = cv2.stylization(painted, sigma_s=45, sigma_r=0.55)
+            f_p = painted.astype(np.float32)
+            f_p[:, :, 0] = np.clip(f_p[:, :, 0] * 0.90, 0, 255)
+            f_p[:, :, 1] = np.clip(f_p[:, :, 1] * 1.02, 0, 255)
+            f_p[:, :, 2] = np.clip(f_p[:, :, 2] * 1.12 + 6, 0, 255)
+            out = cv2.convertScaleAbs(f_p.astype(np.uint8), alpha=1.12, beta=-8)
         elif style == "minimalist_sketch":
-            gray_sketch, _ = cv2.pencilSketch(bgr, sigma_s=50, sigma_r=0.07, shade_factor=0.04)
-            # Dark slate paper with warm gold-tinted sketch highlights
-            inv = 255 - gray_sketch
+            # High-contrast editorial ink & charcoal sketch on dark slate paper with warm gold highlights
+            gray_sketch, _ = cv2.pencilSketch(bgr, sigma_s=55, sigma_r=0.06, shade_factor=0.035)
+            inv = cv2.normalize(255 - gray_sketch, None, 0, 255, cv2.NORM_MINMAX).astype(np.float32)
             out = np.zeros_like(bgr)
-            out[:, :, 0] = np.clip(22 + inv * 0.45, 0, 255).astype(np.uint8)
-            out[:, :, 1] = np.clip(28 + inv * 0.72, 0, 255).astype(np.uint8)
-            out[:, :, 2] = np.clip(38 + inv * 0.88, 0, 255).astype(np.uint8)
+            out[:, :, 0] = np.clip(20 + inv * 0.42, 0, 255).astype(np.uint8)
+            out[:, :, 1] = np.clip(26 + inv * 0.74, 0, 255).astype(np.uint8)
+            out[:, :, 2] = np.clip(34 + inv * 0.92, 0, 255).astype(np.uint8)
         elif style == "3d_pixar":
-            out = cv2.edgePreservingFilter(bgr, flags=1, sigma_s=55, sigma_r=0.45)
-            hsv = cv2.cvtColor(out, cv2.COLOR_BGR2HSV).astype(np.float32)
-            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.25, 0, 255)
-            hsv[:, :, 2] = np.clip(hsv[:, :, 2] * 1.06, 0, 255)
+            # Soft global-illumination stylized 3D shading + vibrant warm highlights
+            smooth = cv2.edgePreservingFilter(bgr, flags=1, sigma_s=65, sigma_r=0.48)
+            smooth = cv2.bilateralFilter(smooth, d=7, sigmaColor=55, sigmaSpace=55)
+            hsv = cv2.cvtColor(smooth, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.32, 0, 255)
+            hsv[:, :, 2] = np.clip(hsv[:, :, 2] * 1.08, 0, 255)
             out = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
         else:
-            # dark_cinematic: deep shadows, teal/amber film grade
-            out = bgr.astype(np.float32)
-            out[:, :, 0] = np.clip(out[:, :, 0] * 1.08, 0, 255)
-            out[:, :, 1] = np.clip(out[:, :, 1] * 0.96, 0, 255)
-            out[:, :, 2] = np.clip(out[:, :, 2] * 1.05, 0, 255)
-            out = cv2.convertScaleAbs(out, alpha=1.08, beta=-14)
+            # dark_cinematic: moody teal/amber film grade + soft edge vignette
+            h_im, w_im = bgr.shape[:2]
+            kx = cv2.getGaussianKernel(w_im, w_im * 0.62)
+            ky = cv2.getGaussianKernel(h_im, h_im * 0.62)
+            mask = (ky @ kx.T)
+            mask = (mask / max(float(mask.max()), 1e-6)) * 0.45 + 0.55
+            out_f = bgr.astype(np.float32)
+            out_f[:, :, 0] = np.clip(out_f[:, :, 0] * 1.12, 0, 255)
+            out_f[:, :, 1] = np.clip(out_f[:, :, 1] * 0.95, 0, 255)
+            out_f[:, :, 2] = np.clip(out_f[:, :, 2] * 1.08, 0, 255)
+            out_f *= mask[:, :, None]
+            out = cv2.convertScaleAbs(np.clip(out_f, 0, 255).astype(np.uint8), alpha=1.14, beta=-18)
 
         return Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))
 
@@ -3980,6 +4074,7 @@ def _fetch_free_ai_scene_image(
 
 VOICE_PRESETS: dict[str, tuple[str, str, str]] = {
     # preset_name: (edge_tts_voice, rate, pitch)
+    "original": ("en-US-AndrewNeural", "+0%", "+0Hz"),
     "deep_male": ("en-US-ChristopherNeural", "-6%", "-14Hz"),
     "serious_male": ("en-GB-RyanNeural", "-4%", "-6Hz"),
     "mysterious_male": ("en-US-SteffanNeural", "-12%", "-10Hz"),
@@ -5378,7 +5473,7 @@ def _fetch_live_trending_items(max_items: int = 18) -> list[tuple[str, str]]:
                 t = " ".join(str(item.get("title") or "").split()).strip()
                 if len(t) >= 8 and t not in seen:
                     seen.add(t)
-                    items.append((t, f"Trending on Hacker News: {t}"))
+                    items.append((t, ""))
             except Exception:
                 continue
     except Exception as exc:
