@@ -1,15 +1,16 @@
 {
-  "spend_date_utc": "2026-11-22",
+  "spend_date_utc": "2026-11-23",
   "processed_items": [
     "ai_faceless:how deep is space actually is:20261121",
     "ai_faceless:revolutionary pill just c:20261122",
+    "motion_story:gold hits record high: why it matters:20261123",
     "motion_story:how far voyager 1 has traveled into deep space:20261121",
     "motion_story:how to unlock hidden auto drive in gta 6:20261122",
     "motion_story:new pill could end pancreatic cancer forever:20261122",
     "motion_story:why gta vi is breaking every gaming record:20261122"
   ],
   "allowlisted_channels": [],
-  "daily_spend_usd": 0.42,
+  "daily_spend_usd": 0.1,
   "daily_budget_cap_usd": 5.0,
   "publish_log": [
     {
@@ -100,6 +101,17 @@
       "summary": {
         "topic": "Revolutionary Pill Just C",
         "mp4_path": "jobs/latest/out/faceless_revolutionary_pill_just_202611221618.mp4"
+      }
+    },
+    {
+      "timestamp": 1795409218,
+      "engine": "motion_story",
+      "item_key": "motion_story:gold hits record high: why it matters:20261123",
+      "cost_usd": 0.1,
+      "summary": {
+        "topic": "Gold Hits Record High: Why It Matters",
+        "character": "Aurelius",
+        "mp4_path": "jobs/latest/out/story_gold_hits_record_high_wh_202611230446.mp4"
       }
     }
   ]
