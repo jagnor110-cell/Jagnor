@@ -1,7 +1,7 @@
 {
   "engine": "clipping",
   "source_mode": "motion_story",
-  "status": "APPROVAL_PENDING",
+  "status": "PUBLISHED",
   "source_url": "motion_story:Gold Hits Record High: Why It Matters",
   "language": "English",
   "settings_applied": {
@@ -49,7 +49,23 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:Gold Hits Record High: Why It Matters"
+      "source_url": "motion_story:Gold Hits Record High: Why It Matters",
+      "published_platforms": {
+        "youtube": "ureDGh_p-yc"
+      },
+      "published": true,
+      "receipt": {
+        "clip_id": "story_01",
+        "youtube": "ureDGh_p-yc"
+      }
+    }
+  ],
+  "approved_at": 1795409268,
+  "published_at": 1795409270,
+  "published_receipts": [
+    {
+      "clip_id": "story_01",
+      "youtube": "ureDGh_p-yc"
     }
   ]
 }
