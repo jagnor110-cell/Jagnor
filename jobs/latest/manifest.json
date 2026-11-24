@@ -3,7 +3,7 @@
   "source_mode": "motion_story",
   "is_long_form": false,
   "target_duration_sec": 45,
-  "status": "APPROVAL_PENDING",
+  "status": "PUBLISHED",
   "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)",
   "language": "English",
   "settings_applied": {
@@ -63,7 +63,23 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)"
+      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)",
+      "published_platforms": {
+        "youtube": "OjXRlNEu64g"
+      },
+      "published": true,
+      "receipt": {
+        "clip_id": "story_01",
+        "youtube": "OjXRlNEu64g"
+      }
+    }
+  ],
+  "approved_at": 1795517807,
+  "published_at": 1795517809,
+  "published_receipts": [
+    {
+      "clip_id": "story_01",
+      "youtube": "OjXRlNEu64g"
     }
   ]
 }
