@@ -1,1 +1,435 @@
+name: Jagnor Clipping AI Company
 
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Stage: full, build, publish, queue_auto_content (queue topic/notes for daily auto-release), or save_auto_schedule"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - full
+          - build
+          - publish
+          - queue_auto_content
+          - save_auto_schedule
+      auto_release_mode:
+        description: "[save_auto_schedule] Daily 9 AM IST mode: automatic_publish, automatic_build_only (review first), or manual_only (pause auto)"
+        required: false
+        default: "automatic_publish"
+        type: choice
+        options:
+          - automatic_publish
+          - automatic_build_only
+          - manual_only
+      engine:
+        description: "Business Engine to run"
+        required: true
+        default: "motion_story"
+        type: choice
+        options:
+          - motion_story
+          - ai_faceless
+          - clipping
+          - raw_video_drop
+          - carousel_funnel
+          - digital_product
+          - b2b_agency
+      title_or_topic:
+        description: "[motion_story / ai_faceless] Leave BLANK to auto-pick a live trending topic (or type custom topic / product / client)"
+        required: false
+        default: ""
+      notes_or_points:
+        description: "[carousel / digital_product / b2b_agency] Slide points (separated by ;) or product/client notes"
+        required: false
+        default: ""
+      price_usd:
+        description: "[digital_product / b2b_agency ONLY] Sale price in USD (leave blank for video engines)"
+        required: false
+        default: ""
+      theme:
+        description: "[motion_story / ai_faceless] Content theme"
+        required: true
+        default: "Universal Storytelling"
+        type: choice
+        options:
+          - Universal Storytelling
+          - Trending Tech & AI
+          - Space & Science
+          - History & Mythology
+          - Psychology & Self-Improvement
+          - Finance & Business
+          - Health & Medical Breakthroughs
+          - Gaming & Pop Culture
+          - Survival & Unexplained Mysteries
+      character_desc:
+        description: "[motion_story] Optional character idea (leave blank to auto-create universally)"
+        required: false
+        default: ""
+      art_style:
+        description: "[all video engines] Visual art style (use 'original' to match clipped video exactly)"
+        required: true
+        default: "original"
+        type: choice
+        options:
+          - original
+          - dark_cinematic
+          - anime
+          - cyberpunk
+          - 3d_pixar
+          - comic_book
+          - minimalist_sketch
+          - oil_painting
+          - editorial_mascot
+      duration_preset:
+        description: "[motion_story] Video length: short_45s (9:16 Short/Reel) or long_3m / long_5m / long_8m (16:9 YouTube)"
+        required: false
+        default: "short_45s"
+        type: choice
+        options:
+          - short_45s
+          - long_3m
+          - long_5m
+          - long_8m
+      aspect_ratio:
+        description: "[clipping / raw_video_drop] Output video aspect ratio"
+        required: true
+        default: "9:16"
+        type: choice
+        options:
+          - "9:16"
+          - "16:9"
+          - "1:1"
+          - "4:5"
+      series_mode:
+        description: "[motion_story / ai_faceless] Make a 3-day Part 1/2/3 continuing series (off = single standalone video)"
+        required: false
+        default: false
+        type: boolean
+      dialogue_mode:
+        description: "[motion_story] Multi-character animated conversation (3 characters, multiple voices & coordinated movements)"
+        required: false
+        default: false
+        type: boolean
+      render_engine:
+        description: "[motion_story] Motion renderer: python (fast built-in) or remotion (30fps React/SVG studio motion graphics)"
+        required: false
+        default: "python"
+        type: choice
+        options:
+          - python
+          - remotion
+      voice:
+        description: "[all video engines] Narrator Voice & Mood (use 'original' for natural voice / original clip audio)"
+        required: true
+        default: "original"
+        type: choice
+        options:
+          - original
+          - deep_male
+          - serious_male
+          - mysterious_male
+          - happy_male
+          - indian_storyteller_male
+          - deep_female
+          - serious_female
+          - mysterious_female
+          - happy_female
+          - malayalam_mysterious_male
+          - malayalam_female
+          - hindi_serious_male
+      niche_query:
+        description: "[clipping] Niche keywords/hashtag to find trending videos"
+        required: false
+        default: "AI agents automation tech podcast"
+      trend_platform:
+        description: "[clipping] Source platform to scan for trending videos"
+        required: true
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - youtube
+          - instagram
+      source_url:
+        description: "[clipping] Optional specific YouTube or Instagram video URL"
+        required: false
+        default: ""
+      slice_start:
+        description: "[clipping] Optional start time for long videos/streams (e.g. 1:30:00 — clips 15 min from here)"
+        required: false
+        default: ""
+      allow_all_licenses:
+        description: "[clipping] Override CC-only license check (ONLY if you own/have permission)"
+        required: false
+        default: false
+        type: boolean
+      skip_spacing_check:
+        description: "[publish] Bypass minimum gap between posts"
+        required: false
+        default: false
+        type: boolean
+      dry_run_publish:
+        description: "[publish] Dry-run social API calls (test mode)"
+        required: false
+        default: false
+        type: boolean
+
+  schedule:
+    # Daily Slot (9:00 AM IST / 03:30 UTC): 1x daily trending `motion_story` Short
+    - cron: "30 3 * * *"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "jagnor-clipping-company"
+  cancel-in-progress: false
+
+jobs:
+  run-clipping-company:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      # 4-Brain Free AI Council (100% Free-Tier Stack)
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      # 2 Free Visual APIs for Motion-Animated Faceless Shorts
+      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+      # Gmail SMTP Reporting Secrets
+      COMPANY_GMAIL: ${{ secrets.COMPANY_GMAIL }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      REPORT_TO_EMAIL: ${{ secrets.REPORT_TO_EMAIL }}
+      # Media & Social Publishing Secrets (Isolated per company)
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      YT_COOKIES_TXT: ${{ secrets.YT_COOKIES_TXT }}
+      PUBLIC_VIDEO_BASE_URL: ${{ secrets.PUBLIC_VIDEO_BASE_URL }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+      WHOP_COMPANY_ID: ${{ secrets.WHOP_COMPANY_ID }}
+      WHOP_API_KEY: ${{ secrets.WHOP_API_KEY }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Step 0 — Resolve or Save Automatic Release Settings & Content Queue
+        id: auto_cfg
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_STAGE: ${{ github.event.inputs.stage || 'full' }}
+          INPUT_AUTO_MODE: ${{ github.event.inputs.auto_release_mode || 'automatic_publish' }}
+          INPUT_ENGINE: ${{ github.event.inputs.engine || 'motion_story' }}
+          INPUT_TITLE: ${{ github.event.inputs.title_or_topic }}
+          INPUT_NOTES: ${{ github.event.inputs.notes_or_points }}
+          INPUT_URL: ${{ github.event.inputs.source_url }}
+          INPUT_SLICE_START: ${{ github.event.inputs.slice_start }}
+          INPUT_THEME: ${{ github.event.inputs.theme || 'Trending Science, Space & Untold Stories' }}
+          INPUT_ART_STYLE: ${{ github.event.inputs.art_style || 'anime' }}
+          INPUT_VOICE: ${{ github.event.inputs.voice || 'deep_male' }}
+          INPUT_DURATION: ${{ github.event.inputs.duration_preset || 'short_45s' }}
+          INPUT_SERIES_MODE: ${{ github.event.inputs.series_mode }}
+          INPUT_DIALOGUE_MODE: ${{ github.event.inputs.dialogue_mode }}
+          INPUT_RENDER_ENGINE: ${{ github.event.inputs.render_engine || 'python' }}
+          INPUT_ALLOW_ALL: ${{ github.event.inputs.allow_all_licenses }}
+        run: |
+          python3 - <<'PYCFG'
+          import json, os, time
+          from pathlib import Path
+
+          brain_dir = Path("brain")
+          brain_dir.mkdir(parents=True, exist_ok=True)
+          cfg_path = brain_dir / "schedule_config.json"
+          queue_path = brain_dir / "auto_queue.json"
+          ledger_path = brain_dir / "05_memory_ledger.json"
+          gh_out = Path(os.environ["GITHUB_OUTPUT"])
+
+          defaults = {
+              "auto_release_mode": "automatic_publish",
+              "engine": "motion_story",
+              "series_mode": True,
+              "duration_preset": "short_45s",
+              "dialogue_mode": False,
+              "render_engine": "python",
+              "theme": "Trending Science, Space & Untold Stories",
+              "art_style": "anime",
+              "voice": "deep_male",
+          }
+          saved = dict(defaults)
+          if cfg_path.exists():
+              try:
+                  saved.update(json.loads(cfg_path.read_text(encoding="utf-8")))
+              except Exception:
+                  pass
+
+          queue = []
+          if queue_path.exists():
+              try:
+                  raw_q = json.loads(queue_path.read_text(encoding="utf-8"))
+                  if isinstance(raw_q, list):
+                      queue = raw_q
+              except Exception:
+                  pass
+
+          event_name = os.environ.get("EVENT_NAME", "")
+          stage = os.environ.get("INPUT_STAGE", "full")
+
+          def emit(k, v):
+              clean = str(v if v is not None else "").replace("\r", " ").replace("\n", " ").strip()
+              with gh_out.open("a", encoding="utf-8") as f:
+                  f.write(f"{k}={clean}\n")
+
+          if event_name != "schedule" and stage == "queue_auto_content":
+              raw_title = (os.environ.get("INPUT_TITLE") or "").strip()
+              raw_url = (os.environ.get("INPUT_URL") or "").strip()
+              engine = os.environ.get("INPUT_ENGINE") or "motion_story"
+              if not raw_title and not raw_url:
+                  raise SystemExit("ERROR: Enter at least one topic in title_or_topic (or a URL in source_url for clipping) to queue.")
+              topics = [t.strip() for t in raw_title.split(";") if t.strip()] if (raw_title and engine != "clipping") else [raw_title]
+              added = 0
+              for t in topics:
+                  queue.append({
+                      "queued_at": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
+                      "engine": engine,
+                      "title": t,
+                      "notes": (os.environ.get("INPUT_NOTES") or "").strip(),
+                      "url": raw_url,
+                      "slice_start": (os.environ.get("INPUT_SLICE_START") or "").strip(),
+                      "theme": os.environ.get("INPUT_THEME") or saved["theme"],
+                      "art_style": os.environ.get("INPUT_ART_STYLE") or saved["art_style"],
+                      "voice": os.environ.get("INPUT_VOICE") or saved["voice"],
+                      "duration_preset": os.environ.get("INPUT_DURATION") or saved.get("duration_preset", "short_45s"),
+                      "series_mode": os.environ.get("INPUT_SERIES_MODE") == "true",
+                      "dialogue_mode": os.environ.get("INPUT_DIALOGUE_MODE") == "true",
+                      "render_engine": os.environ.get("INPUT_RENDER_ENGINE") or saved.get("render_engine", "python"),
+                      "allow_all_licenses": os.environ.get("INPUT_ALLOW_ALL") == "true",
+                  })
+                  added += 1
+              queue_path.write_text(json.dumps(queue, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+              print(f"Queued {added} item(s) for automatic daily release. Total waiting in queue: {len(queue)}")
+              emit("run_build", "false")
+              emit("run_publish", "false")
+              emit("commit_cfg", "true")
+
+          elif event_name != "schedule" and stage == "save_auto_schedule":
+              new_cfg = {
+                  "auto_release_mode": os.environ.get("INPUT_AUTO_MODE") or "automatic_publish",
+                  "engine": os.environ.get("INPUT_ENGINE") or "motion_story",
+                  "series_mode": os.environ.get("INPUT_SERIES_MODE") == "true",
+                  "duration_preset": os.environ.get("INPUT_DURATION") or "short_45s",
+                  "dialogue_mode": os.environ.get("INPUT_DIALOGUE_MODE") == "true",
+                  "render_engine": os.environ.get("INPUT_RENDER_ENGINE") or "python",
+                  "theme": os.environ.get("INPUT_THEME") or "Trending Science, Space & Untold Stories",
+                  "art_style": os.environ.get("INPUT_ART_STYLE") or "anime",
+                  "voice": os.environ.get("INPUT_VOICE") or "deep_male",
+              }
+              cfg_path.write_text(json.dumps(new_cfg, indent=2) + "\n", encoding="utf-8")
+              print("Saved automatic release settings:", json.dumps(new_cfg))
+              emit("run_build", "false")
+              emit("run_publish", "false")
+              emit("commit_cfg", "true")
+
+          elif event_name == "schedule":
+              mode = saved.get("auto_release_mode", "automatic_publish")
+              if mode == "manual_only":
+                  print("Automatic daily release is paused (auto_release_mode=manual_only). Skipping scheduled run.")
+                  emit("run_build", "false")
+                  emit("run_publish", "false")
+                  emit("commit_cfg", "false")
+              else:
+                  emit("run_build", "true")
+                  emit("run_publish", "false" if mode == "automatic_build_only" else "true")
+                  emit("commit_cfg", "false")
+
+                  # Check if a multi-day series is already in progress (Part 2/3 or Part 3/3)
+                  active_series = None
+                  if ledger_path.exists():
+                      try:
+                          ld = json.loads(ledger_path.read_text(encoding="utf-8"))
+                          cand = ld.get("active_series")
+                          if isinstance(cand, dict) and cand.get("base_topic") and int(cand.get("day", 0)) < int(cand.get("max_days", 1)):
+                              active_series = cand
+                      except Exception:
+                          pass
+
+                  if active_series is not None:
+                      print(f"Continuing active series: {active_series['base_topic']} (next Part {int(active_series['day']) + 1}/{active_series['max_days']})")
+                      emit("sched_engine", active_series.get("engine") or saved["engine"])
+                      emit("sched_series_days", str(active_series.get("max_days", 3)))
+                      emit("sched_theme", active_series.get("theme") or saved["theme"])
+                      emit("sched_art_style", active_series.get("art_style") or saved["art_style"])
+                      emit("sched_voice", active_series.get("voice") or saved["voice"])
+                      emit("sched_topic", active_series["base_topic"])
+                      emit("sched_notes", "")
+                      emit("sched_url", "")
+                      emit("sched_slice_start", "")
+                      emit("sched_allow_all", "false")
+                      emit("sched_duration", active_series.get("duration_preset") or saved.get("duration_preset", "short_45s"))
+                      _s_dlg = active_series.get("dialogue_mode") if "dialogue_mode" in active_series else saved.get("dialogue_mode")
+                      emit("sched_dialogue_mode", "true" if _s_dlg else "false")
+                      emit("sched_render_engine", active_series.get("render_engine") or saved.get("render_engine", "python"))
+                  elif queue:
+                      item = queue.pop(0)
+                      queue_path.write_text(json.dumps(queue, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                      print(f"Popped queued content for automatic release: {item.get('title') or item.get('url')} ({len(queue)} remaining)")
+                      emit("sched_engine", item.get("engine") or saved["engine"])
+                      emit("sched_series_days", "3" if item.get("series_mode") else "1")
+                      emit("sched_theme", item.get("theme") or saved["theme"])
+                      emit("sched_art_style", item.get("art_style") or saved["art_style"])
+                      emit("sched_voice", item.get("voice") or saved["voice"])
+                      emit("sched_topic", item.get("title") or "")
+                      emit("sched_notes", item.get("notes") or "")
+                      emit("sched_url", item.get("url") or "")
+                      emit("sched_slice_start", item.get("slice_start") or "")
+                      emit("sched_allow_all", "true" if item.get("allow_all_licenses") else "false")
+                      emit("sched_duration", item.get("duration_preset") or saved.get("duration_preset", "short_45s"))
+                      emit("sched_dialogue_mode", "true" if item.get("dialogue_mode") else "false")
+                      emit("sched_render_engine", item.get("render_engine") or saved.get("render_engine", "python"))
+                  else:
+                      print("Auto queue empty — using automatic trending topic selection.")
+                      emit("sched_engine", saved["engine"])
+                      emit("sched_series_days", "3" if saved.get("series_mode", True) else "1")
+                      emit("sched_theme", saved["theme"])
+                      emit("sched_art_style", saved["art_style"])
+                      emit("sched_voice", saved["voice"])
+                      emit("sched_topic", "")
+                      emit("sched_notes", "")
+                      emit("sched_url", "")
+                      emit("sched_slice_start", "")
+                      emit("sched_allow_all", "false")
+                      emit("sched_duration", saved.get("duration_preset", "short_45s"))
+                      emit("sched_dialogue_mode", "true" if saved.get("dialogue_mode") else "false")
+                      emit("sched_render_engine", saved.get("render_engine", "python"))
+          else:
+              emit("run_build", "true" if stage in ("build", "full") else "false")
+              emit("run_publish", "true" if stage in ("publish", "full") else "false")
+              emit("commit_cfg", "false")
+          PYCFG
+
+          if grep -q "commit_cfg=true" "$GITHUB_OUTPUT"; then
+            git config user.name "Jagnor Clipping Bot"
+            git config user.email "actions@github.com"
+            git add brain/
+            if ! git diff --staged --quiet; then
+              git commit -m "chore(schedule): update automatic release queue & settings [skip ci]"
+              git pull --rebase -X theirs origin main || (git rebase --abort || true)
+              git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)
+            fi
+          f
