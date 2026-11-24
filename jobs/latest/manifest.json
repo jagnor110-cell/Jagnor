@@ -1,71 +1,69 @@
 {
   "engine": "clipping",
   "source_mode": "motion_story",
-  "status": "PUBLISHED",
-  "source_url": "motion_story:Gold Hits Record High: Why It Matters",
+  "is_long_form": false,
+  "target_duration_sec": 45,
+  "status": "APPROVAL_PENDING",
+  "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)",
   "language": "English",
   "settings_applied": {
-    "topic": "Gold Hits Record High: Why It Matters",
-    "theme": "Trending Science, Space & Untold Stories",
+    "topic": "Massive Volcano Erupts: What You Need to Know (Part 1/3)",
+    "theme": "History & Mythology",
     "art_style": "anime",
-    "voice": "deep_male",
+    "voice": "original",
     "character_desc": ""
   },
   "character": {
-    "name": "Aurelius",
-    "archetype": "anime financial guardian",
-    "primary_hex": "#D4AF37",
-    "accent_hex": "#1A1A2E",
-    "skin_hex": "#F2C9A0",
-    "aura_hex": "#FFD700",
-    "visual_world": "space"
+    "name": "Host",
+    "archetype": "mythic storyteller",
+    "primary_hex": "#FF4500",
+    "accent_hex": "#FFD700",
+    "skin_hex": "#FFDBAC",
+    "aura_hex": "#8B0000",
+    "visual_world": "history_myth"
   },
   "council_models_used": [
-    "gemini-native",
+    "groq-failover",
     "groq-native",
-    "nvidia-nim-native",
+    "openrouter:openrouter/free",
     "openrouter:openrouter/free"
   ],
   "script_source": "ai",
+  "episode_continuity": {
+    "recap": "When a volcano awakens, history erupts. Ancient myths say the gods themselves stir the earth, turning fire into legend. Deep beneath, a mantle plume rises, feeding the beast with molten fire.",
+    "ending_line": "What will history remember of this eruption? Will the myths be true?",
+    "visual_prompts": [
+      "anime-style volcanic landscape, erupting volcano, dynamic lighting, no or",
+      "anime-style depiction of a mythic deity raising a mountain, swirling clouds, no or",
+      "anime-style cross-section of Earth, mantle plume, island surface, no or",
+      "anime-style tectonic plates colliding, ash cloud, no or",
+      "anime-style aftermath of eruption, ash-covered landscape, no or"
+    ],
+    "used_media_urls": []
+  },
   "clips": [
     {
       "clip_id": "story_01",
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 38.09,
-      "duration_sec": 38.09,
-      "mp4_path": "jobs/latest/out/story_gold_hits_record_high_wh_202611230446.mp4",
+      "end_sec": 26.16,
+      "duration_sec": 26.16,
+      "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611241055.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "Gold Surge Anime Style | Market Impact #Shorts",
-      "ig_caption": "Gold’s record surge isn’t just a price spike—it’s a signal of deep economic shifts. How will this affect your portfolio? #Gold #Economy #Finance #GoldStandard #AnimeFinance #MarketTrends",
-      "hook_overlay": "GOLD HITS RECORD HIGH—WHY IT MATTERS",
+      "yt_title": ": Anime Volcano Awakens – History Erupts | Part 1/3 #Shorts",
+      "ig_caption": "Part 1/3: Massive Volcano Erupts – History & Mythology. Dive into the ancient myths and the science behind the eruption. 🔥🌋 #Volcano #Mythology #History #Petrology #Seismic #Geochronology",
+      "hook_overlay": "WHEN A VOLCANO AWAKENS, HISTORY...",
       "council_score": 9.7,
       "council_models_used": [
-        "gemini-native",
+        "groq-failover",
         "groq-native",
-        "nvidia-nim-native",
+        "openrouter:openrouter/free",
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:Gold Hits Record High: Why It Matters",
-      "published_platforms": {
-        "youtube": "ureDGh_p-yc"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "ureDGh_p-yc"
-      }
-    }
-  ],
-  "approved_at": 1795409268,
-  "published_at": 1795409270,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "ureDGh_p-yc"
+      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)"
     }
   ]
 }
