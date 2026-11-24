@@ -423,13 +423,227 @@ jobs:
               emit("commit_cfg", "false")
           PYCFG
 
-          if grep -q "commit_cfg=true" "$GITHUB_OUTPUT"; then
-            git config user.name "Jagnor Clipping Bot"
-            git config user.email "actions@github.com"
-            git add brain/
-            if ! git diff --staged --quiet; then
-              git commit -m "chore(schedule): update automatic release queue & settings [skip ci]"
-              git pull --rebase -X theirs origin main || (git rebase --abort || true)
-              git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)
+      - name: Step 0b — Commit Automatic Release Queue & Settings
+        if: ${{ steps.auto_cfg.outputs.commit_cfg == 'true' }}
+        run: |
+          git config user.name "Jagnor Clipping Bot"
+          git config user.email "actions@github.com"
+          git add brain/
+          git diff --staged --quiet || (git commit -m "chore(schedule): update automatic release queue & settings [skip ci]" && (git pull --rebase -X theirs origin main || git rebase --abort || true) && (git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)))
+
+      - name: Install System FFmpeg & Fonts
+        if: ${{ steps.auto_cfg.outputs.run_build == 'true' || steps.auto_cfg.outputs.run_publish == 'true' }}
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg libmagic1 fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-indic
+
+      - name: Install Python Dependencies (yt-dlp + faster-whisper CPU + edge-tts + OpenCV + Pillow)
+        if: ${{ steps.auto_cfg.outputs.run_build == 'true' || steps.auto_cfg.outputs.run_publish == 'true' }}
+        run: |
+          python3 -m pip install --upgrade pip
+          # NOTE: mediapipe is intentionally NOT installed. Current releases dropped `mp.solutions` and pull in
+          # opencv-contrib-python, which clashes with opencv-python-headless and breaks cv2 face data files.
+          # The worker uses OpenCV Haar face tracking (auto-downloads its model) and falls back to a centered crop.
+          pip install "yt-dlp[default]" faster-whisper edge-tts opencv-python-headless pillow numpy
+
+      - name: Step 1 — Run 4-Brain Free AI Council & Render 9:16 Short to public/
+        if: ${{ steps.auto_cfg.outputs.run_build == 'true' }}
+        env:
+          INPUT_ENGINE: ${{ github.event.inputs.engine || 'motion_story' }}
+          INPUT_URL: ${{ github.event.inputs.source_url }}
+          INPUT_SLICE_START: ${{ github.event.inputs.slice_start }}
+          INPUT_NICHE: ${{ github.event.inputs.niche_query || 'AI agents automation tech podcast' }}
+          INPUT_TREND_PLAT: ${{ github.event.inputs.trend_platform || 'auto' }}
+          INPUT_TITLE: ${{ github.event.inputs.title_or_topic }}
+          INPUT_NOTES: ${{ github.event.inputs.notes_or_points }}
+          INPUT_PRICE: ${{ github.event.inputs.price_usd || '17' }}
+          INPUT_ART_STYLE: ${{ github.event.inputs.art_style || 'original' }}
+          INPUT_DURATION: ${{ github.event.inputs.duration_preset || 'short_45s' }}
+          INPUT_ASPECT_RATIO: ${{ github.event.inputs.aspect_ratio || '9:16' }}
+          INPUT_THEME: ${{ github.event.inputs.theme || 'Universal Storytelling' }}
+          INPUT_CHARACTER: ${{ github.event.inputs.character_desc }}
+          INPUT_SERIES_MODE: ${{ github.event.inputs.series_mode }}
+          INPUT_DIALOGUE_MODE: ${{ github.event.inputs.dialogue_mode }}
+          INPUT_RENDER_ENGINE: ${{ github.event.inputs.render_engine || 'python' }}
+          INPUT_VOICE: ${{ github.event.inputs.voice || 'deep_male' }}
+          INPUT_ALLOW_ALL: ${{ github.event.inputs.allow_all_licenses }}
+          SCHED_ENGINE: ${{ steps.auto_cfg.outputs.sched_engine }}
+          SCHED_SERIES_DAYS: ${{ steps.auto_cfg.outputs.sched_series_days }}
+          SCHED_THEME: ${{ steps.auto_cfg.outputs.sched_theme }}
+          SCHED_ART_STYLE: ${{ steps.auto_cfg.outputs.sched_art_style }}
+          SCHED_VOICE: ${{ steps.auto_cfg.outputs.sched_voice }}
+          SCHED_TOPIC: ${{ steps.auto_cfg.outputs.sched_topic }}
+          SCHED_NOTES: ${{ steps.auto_cfg.outputs.sched_notes }}
+          SCHED_URL: ${{ steps.auto_cfg.outputs.sched_url }}
+          SCHED_SLICE_START: ${{ steps.auto_cfg.outputs.sched_slice_start }}
+          SCHED_ALLOW_ALL: ${{ steps.auto_cfg.outputs.sched_allow_all }}
+          SCHED_DURATION: ${{ steps.auto_cfg.outputs.sched_duration }}
+          SCHED_DIALOGUE_MODE: ${{ steps.auto_cfg.outputs.sched_dialogue_mode }}
+          SCHED_RENDER_ENGINE: ${{ steps.auto_cfg.outputs.sched_render_engine }}
+        run: |
+          ALLOW_FLAG=""
+          if [ "$INPUT_ALLOW_ALL" = "true" ]; then
+            ALLOW_FLAG="--allow-all-licenses"
+          fi
+
+          DIALOGUE_FLAG=""
+          if [ "$INPUT_DIALOGUE_MODE" = "true" ]; then
+            DIALOGUE_FLAG="--dialogue-mode"
+          fi
+
+          AUTO_TOPIC_FLAG=""
+          SERIES_DAYS="1"
+          if [ "$INPUT_SERIES_MODE" = "true" ]; then
+            SERIES_DAYS="3"
+          fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            INPUT_ENGINE="${SCHED_ENGINE:-motion_story}"
+            SERIES_DAYS="${SCHED_SERIES_DAYS:-3}"
+            INPUT_THEME="${SCHED_THEME:-Trending Science, Space & Untold Stories}"
+            INPUT_ART_STYLE="${SCHED_ART_STYLE:-anime}"
+            INPUT_VOICE="${SCHED_VOICE:-deep_male}"
+            INPUT_TITLE="${SCHED_TOPIC:-}"
+            INPUT_NOTES="${SCHED_NOTES:-}"
+            INPUT_URL="${SCHED_URL:-}"
+            INPUT_SLICE_START="${SCHED_SLICE_START:-}"
+            INPUT_DURATION="${SCHED_DURATION:-short_45s}"
+            INPUT_RENDER_ENGINE="${SCHED_RENDER_ENGINE:-python}"
+            if [ "$SCHED_DIALOGUE_MODE" = "true" ]; then
+              DIALOGUE_FLAG="--dialogue-mode"
             fi
-          f
+            if [ "$SCHED_ALLOW_ALL" = "true" ]; then
+              ALLOW_FLAG="--allow-all-licenses"
+            fi
+            if [ -z "$INPUT_TITLE" ] && { [ "$INPUT_ENGINE" = "motion_story" ] || [ "$INPUT_ENGINE" = "ai_faceless" ]; }; then
+              AUTO_TOPIC_FLAG="--auto-topic"
+            fi
+          elif [ -z "$INPUT_TITLE" ] && { [ "$INPUT_ENGINE" = "motion_story" ] || [ "$INPUT_ENGINE" = "ai_faceless" ]; }; then
+            AUTO_TOPIC_FLAG="--auto-topic"
+          fi
+
+          CLEAN_PRICE=$(echo "${INPUT_PRICE:-17}" | grep -oE '[0-9]+(\.[0-9]+)?' | head -n1 || true)
+          CLEAN_PRICE="${CLEAN_PRICE:-17}"
+          TARGET_SEC="45"
+          case "$INPUT_DURATION" in
+            long_3m) TARGET_SEC="180" ;;
+            long_5m) TARGET_SEC="300" ;;
+            long_8m) TARGET_SEC="480" ;;
+            *) TARGET_SEC="45" ;;
+          esac
+
+          python3 jagnor_master_worker.py \
+            --stage build \
+            --engine "$INPUT_ENGINE" \
+            --url "$INPUT_URL" \
+            --slice-start "$INPUT_SLICE_START" \
+            --niche "$INPUT_NICHE" \
+            --trend-platform "$INPUT_TREND_PLAT" \
+            --title "$INPUT_TITLE" \
+            --client "$INPUT_TITLE" \
+            --notes "$INPUT_NOTES" \
+            --price "$CLEAN_PRICE" \
+            --art-style "$INPUT_ART_STYLE" \
+            --aspect-ratio "$INPUT_ASPECT_RATIO" \
+            --theme "$INPUT_THEME" \
+            --character "$INPUT_CHARACTER" \
+            --voice "$INPUT_VOICE" \
+            --device auto \
+            --model base \
+            --job-dir ./jobs/latest \
+            --brain-dir ./brain \
+            --public-dir ./public \
+            --inbox-dir ./inbox_videos \
+            $ALLOW_FLAG \
+            --series-days "$SERIES_DAYS" \
+            --target-duration "$TARGET_SEC" \
+            $DIALOGUE_FLAG \
+            --render-engine "$INPUT_RENDER_ENGINE" \
+            $AUTO_TOPIC_FLAG
+
+      - name: Step 2 — Prune Old Media & Commit Rendered Short to public/ (with .nojekyll)
+        if: ${{ steps.auto_cfg.outputs.run_build == 'true' }}
+        run: |
+          mkdir -p public brain jobs/latest
+          touch .nojekyll public/.nojekyll
+          if [ ! -f "public/index.html" ]; then
+            echo "<html><body><h1>Jagnor Clipping AI Media Host</h1></body></html>" > public/index.html
+          fi
+          ls -t public/*.mp4 2>/dev/null | tail -n +16 | xargs -r rm -f
+          ls -t public/*.png public/*.jpg public/*.zip 2>/dev/null | tail -n +61 | xargs -r rm -f
+          rm -f jobs/latest/source.* jobs/latest/dropped_source.mp4 jobs/latest/audio_16k.wav jobs/latest/.yt_cookies.txt
+          git config user.name "Jagnor Clipping Bot"
+          git config user.email "actions@github.com"
+          rm -f brain/*.lock jobs/latest/*.lock
+          git add .nojekyll public/ brain/
+          if [ -f "jobs/latest/manifest.json" ]; then
+            git add jobs/latest/manifest.json
+          fi
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(pipeline): export animated story short to public/ & update ledger [skip ci]"
+            git pull --rebase -X theirs origin main || (git rebase --abort || true)
+            git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)
+          fi
+
+      - name: Step 3 — Wait 45s for GitHub Pages CDN Propagation
+        if: ${{ steps.auto_cfg.outputs.run_publish == 'true' }}
+        run: sleep 45
+
+      - name: Step 4 — Publish to YouTube Shorts & Instagram Reels
+        if: ${{ steps.auto_cfg.outputs.run_publish == 'true' }}
+        env:
+          INPUT_SKIP_SPACING: ${{ github.event.inputs.skip_spacing_check }}
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run_publish }}
+        run: |
+          SPACING_FLAG=""
+          if [ "$INPUT_SKIP_SPACING" = "true" ]; then
+            SPACING_FLAG="--skip-spacing-check"
+          fi
+
+          DRY_FLAG=""
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            DRY_FLAG="--dry-run-publish"
+          fi
+
+          PLATFORMS=""
+          if [ -n "$YT_CLIENT_ID" ] && [ -n "$YT_CLIENT_SECRET" ] && [ -n "$YT_REFRESH_TOKEN" ]; then
+            PLATFORMS="youtube"
+          fi
+          if [ -n "$IG_USER_ID" ] && [ -n "$IG_ACCESS_TOKEN" ] && [ -n "$PUBLIC_VIDEO_BASE_URL" ]; then
+            PLATFORMS="${PLATFORMS:+$PLATFORMS,}instagram"
+          fi
+
+          if [ -z "$DRY_FLAG" ] && [ -z "$PLATFORMS" ] && [ "${{ github.event.inputs.engine }}" != "b2b_agency" ]; then
+            echo "No YouTube or Instagram secrets configured yet — skipping live upload cleanly (files are saved in public/)."
+            exit 0
+          fi
+
+          if [ -z "$PLATFORMS" ]; then
+            PLATFORMS="youtube,instagram"
+          fi
+
+          python3 jagnor_master_worker.py \
+            --stage publish \
+            --approve-manifest \
+            --platforms "$PLATFORMS" \
+            --min-gap-hours 3.5 \
+            --job-dir ./jobs/latest \
+            --brain-dir ./brain \
+            --public-dir ./public \
+            $SPACING_FLAG \
+            $DRY_FLAG
+
+      - name: Step 5 — Commit Published Receipts to Company Brain Ledger
+        if: ${{ steps.auto_cfg.outputs.run_publish == 'true' }}
+        run: |
+          git config user.name "Jagnor Clipping Bot"
+          git config user.email "actions@github.com"
+          rm -f brain/*.lock jobs/latest/*.lock
+          git add brain/
+          if [ -f "jobs/latest/manifest.json" ]; then
+            git add jobs/latest/manifest.json
+          fi
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(publish): log YouTube Shorts & Instagram Reels receipts [skip ci]"
+            git pull --rebase -X theirs origin main || (git rebase --abort || true)
+            git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main)
+          fi
