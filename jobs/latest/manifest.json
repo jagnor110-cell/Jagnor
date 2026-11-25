@@ -3,41 +3,41 @@
   "source_mode": "motion_story",
   "is_long_form": false,
   "target_duration_sec": 45,
-  "status": "PUBLISHED",
-  "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)",
+  "status": "APPROVAL_PENDING",
+  "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 2/3)",
   "language": "English",
   "settings_applied": {
-    "topic": "Massive Volcano Erupts: What You Need to Know (Part 1/3)",
+    "topic": "Massive Volcano Erupts: What You Need to Know (Part 2/3)",
     "theme": "History & Mythology",
     "art_style": "anime",
     "voice": "original",
     "character_desc": ""
   },
   "character": {
-    "name": "Host",
-    "archetype": "mythic storyteller",
-    "primary_hex": "#FF4500",
+    "name": "Dr. Kaela",
+    "archetype": "anime geologist explorer",
+    "primary_hex": "#FF6B35",
     "accent_hex": "#FFD700",
-    "skin_hex": "#FFDBAC",
-    "aura_hex": "#8B0000",
+    "skin_hex": "#F5D0C0",
+    "aura_hex": "#FF4500",
     "visual_world": "history_myth"
   },
   "council_models_used": [
-    "groq-failover",
+    "openrouter:openrouter/free",
     "groq-native",
     "openrouter:openrouter/free",
     "openrouter:openrouter/free"
   ],
   "script_source": "ai",
   "episode_continuity": {
-    "recap": "When a volcano awakens, history erupts. Ancient myths say the gods themselves stir the earth, turning fire into legend. Deep beneath, a mantle plume rises, feeding the beast with molten fire.",
-    "ending_line": "What will history remember of this eruption? Will the myths be true?",
+    "recap": "Massive Volcano Erupts: What You Need to Know, beyond myth, hidden mechanics stir beneath the sea. Beneath the ocean, diverging plates open seams where quiet lava builds new seafloor. Converging plates fuel violent eruptions, sending ash and gas through the restless Pacific.",
+    "ending_line": "Far from plate boundaries, mantle plumes create hotspot chains, and the finale awaits. What will you do when the next eruption hits?",
     "visual_prompts": [
-      "anime-style volcanic landscape, erupting volcano, dynamic lighting, no or",
-      "anime-style depiction of a mythic deity raising a mountain, swirling clouds, no or",
-      "anime-style cross-section of Earth, mantle plume, island surface, no or",
-      "anime-style tectonic plates colliding, ash cloud, no or",
-      "anime-style aftermath of eruption, ash-covered landscape, no or"
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep ocean abyss, a",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, underwater mid-ocea",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep Pacific underw",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, East African rift v",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, vast open ocean at "
     ],
     "used_media_urls": []
   },
@@ -47,39 +47,23 @@
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 26.16,
-      "duration_sec": 26.16,
-      "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611241055.mp4",
+      "end_sec": 35.18,
+      "duration_sec": 35.18,
+      "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611250439.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": ": Anime Volcano Awakens – History Erupts | Part 1/3 #Shorts",
-      "ig_caption": "Part 1/3: Massive Volcano Erupts – History & Mythology. Dive into the ancient myths and the science behind the eruption. 🔥🌋 #Volcano #Mythology #History #Petrology #Seismic #Geochronology",
-      "hook_overlay": "WHEN A VOLCANO AWAKENS, HISTORY...",
+      "yt_title": "Anime Volcano Eruption: Hidden Mechanics | Part 2/3 #Shorts",
+      "ig_caption": "Discover the unseen forces behind volcanic eruptions. Which myth do you think holds the truth? #Volcano #Mythology #Anime #SubmarineVolcano #AnimeGeology #CelShading",
+      "hook_overlay": "🔥 HIDDEN VOLCANO MECHANICS...",
       "council_score": 9.7,
       "council_models_used": [
-        "groq-failover",
+        "openrouter:openrouter/free",
         "groq-native",
         "openrouter:openrouter/free",
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 1/3)",
-      "published_platforms": {
-        "youtube": "OjXRlNEu64g"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "OjXRlNEu64g"
-      }
-    }
-  ],
-  "approved_at": 1795517807,
-  "published_at": 1795517809,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "OjXRlNEu64g"
+      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 2/3)"
     }
   ]
 }

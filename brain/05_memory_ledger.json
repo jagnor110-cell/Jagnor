@@ -1,5 +1,5 @@
 {
-  "spend_date_utc": "2026-11-24",
+  "spend_date_utc": "2026-11-25",
   "processed_items": [
     "ai_faceless:how deep is space actually is:20261121",
     "ai_faceless:revolutionary pill just c:20261122",
@@ -7,6 +7,7 @@
     "motion_story:how far voyager 1 has traveled into deep space:20261121",
     "motion_story:how to unlock hidden auto drive in gta 6:20261122",
     "motion_story:massive volcano erupts: what you need to know (part 1/3):20261124",
+    "motion_story:massive volcano erupts: what you need to know (part 2/3):20261125",
     "motion_story:new pill could end pancreatic cancer forever:20261122",
     "motion_story:why gta vi is breaking every gaming record:20261122"
   ],
@@ -137,6 +138,17 @@
         "character": "Host",
         "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611241055.mp4"
       }
+    },
+    {
+      "timestamp": 1795581616,
+      "engine": "motion_story",
+      "item_key": "motion_story:massive volcano erupts: what you need to know (part 2/3):20261125",
+      "cost_usd": 0.1,
+      "summary": {
+        "topic": "Massive Volcano Erupts: What You Need to Know (Part 2/3)",
+        "character": "Dr. Kaela",
+        "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611250439.mp4"
+      }
     }
   ],
   "completed_series_topics": [
@@ -146,7 +158,7 @@
     "engine": "motion_story",
     "base_topic": "Massive Volcano Erupts: What You Need to Know",
     "fact_brief": "Trending headline only: Massive Volcano Erupts: What You Need to Know. No other verified facts available - use no numbers, dates or sales figures.",
-    "day": 1,
+    "day": 2,
     "max_days": 3,
     "art_style": "anime",
     "series_index": 0,
@@ -155,6 +167,11 @@
         "part": 1,
         "recap": "When a volcano awakens, history erupts. Ancient myths say the gods themselves stir the earth, turning fire into legend. Deep beneath, a mantle plume rises, feeding the beast with molten fire.",
         "ending_line": "What will history remember of this eruption? Will the myths be true?"
+      },
+      {
+        "part": 2,
+        "recap": "Massive Volcano Erupts: What You Need to Know, beyond myth, hidden mechanics stir beneath the sea. Beneath the ocean, diverging plates open seams where quiet lava builds new seafloor. Converging plates fuel violent eruptions, sending ash and gas through the restless Pacific.",
+        "ending_line": "Far from plate boundaries, mantle plumes create hotspot chains, and the finale awaits. What will you do when the next eruption hits?"
       }
     ],
     "used_visual_prompts": [
@@ -162,10 +179,15 @@
       "anime-style depiction of a mythic deity raising a mountain, swirling clouds, no or",
       "anime-style cross-section of Earth, mantle plume, island surface, no or",
       "anime-style tectonic plates colliding, ash cloud, no or",
-      "anime-style aftermath of eruption, ash-covered landscape, no or"
+      "anime-style aftermath of eruption, ash-covered landscape, no or",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep ocean abyss, a",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, underwater mid-ocea",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep Pacific underw",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, East African rift v",
+      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, vast open ocean at "
     ],
     "used_media_urls": [],
-    "updated_utc": "2026-11-24",
+    "updated_utc": "2026-11-25",
     "duration_preset": "short_45s",
     "dialogue_mode": false,
     "render_engine": "python",
