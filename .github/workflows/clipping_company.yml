@@ -230,6 +230,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set up Node.js 20 LTS (for yt-dlp EJS & Remotion Studio)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Step 0 — Resolve or Save Automatic Release Settings & Content Queue
         id: auto_cfg
         env:
