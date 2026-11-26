@@ -3,41 +3,41 @@
   "source_mode": "motion_story",
   "is_long_form": false,
   "target_duration_sec": 45,
-  "status": "PUBLISHED",
-  "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 2/3)",
+  "status": "APPROVAL_PENDING",
+  "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 3/3)",
   "language": "English",
   "settings_applied": {
-    "topic": "Massive Volcano Erupts: What You Need to Know (Part 2/3)",
+    "topic": "Massive Volcano Erupts: What You Need to Know (Part 3/3)",
     "theme": "History & Mythology",
     "art_style": "anime",
     "voice": "original",
     "character_desc": ""
   },
   "character": {
-    "name": "Dr. Kaela",
-    "archetype": "anime geologist explorer",
-    "primary_hex": "#FF6B35",
-    "accent_hex": "#FFD700",
-    "skin_hex": "#F5D0C0",
-    "aura_hex": "#FF4500",
+    "name": "Astra",
+    "archetype": "explorer",
+    "primary_hex": "#FF5733",
+    "accent_hex": "#C70039",
+    "skin_hex": "#F0E68C",
+    "aura_hex": "#DAF7A6",
     "visual_world": "history_myth"
   },
   "council_models_used": [
     "openrouter:openrouter/free",
     "groq-native",
     "openrouter:openrouter/free",
-    "openrouter:openrouter/free"
+    "groq-native"
   ],
   "script_source": "ai",
   "episode_continuity": {
-    "recap": "Massive Volcano Erupts: What You Need to Know, beyond myth, hidden mechanics stir beneath the sea. Beneath the ocean, diverging plates open seams where quiet lava builds new seafloor. Converging plates fuel violent eruptions, sending ash and gas through the restless Pacific.",
-    "ending_line": "Far from plate boundaries, mantle plumes create hotspot chains, and the finale awaits. What will you do when the next eruption hits?",
+    "recap": "Massive Volcano Erupts: What You Need to Know (Part 3/3): Far from plate boundaries, mantle plumes spark chains of islands. What will you do? Islands drift away, carried by silent tectonic whispers across endless ages of formation. Will you follow the drifting islands? Why do chains bend? Earth’s secrets shift beneath ",
+    "ending_line": "When the earth awakens anew, what will your world choose in this ever-shifting fiery dance?",
     "visual_prompts": [
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep ocean abyss, a",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, underwater mid-ocea",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep Pacific underw",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, East African rift v",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, vast open ocean at "
+      "anime-style deep indigo void with a single glowing golden plume rising, vibrant cel shading, Makoto ",
+      "anime-style twilight horizon where island silhouettes gradually fade into mist, vibrant cel shading,",
+      "anime-style abstract golden chain floating in dark space, sharply bent like a question mark, vibrant",
+      "anime-style calm caldera at twilight with faint internal glow, no ash, no eruption, just dormant pul",
+      "anime-style twilight sky with a lone mountain peak glowing faintly, no, vibrant cel shading, Makoto "
     ],
     "used_media_urls": []
   },
@@ -47,39 +47,23 @@
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 35.18,
-      "duration_sec": 35.18,
-      "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611250439.mp4",
+      "end_sec": 43.27,
+      "duration_sec": 43.27,
+      "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611260438.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "Anime Volcano Eruption: Hidden Mechanics | Part 2/3 #Shorts",
-      "ig_caption": "Discover the unseen forces behind volcanic eruptions. Which myth do you think holds the truth? #Volcano #Mythology #Anime #SubmarineVolcano #AnimeGeology #CelShading",
-      "hook_overlay": "🔥 HIDDEN VOLCANO MECHANICS...",
+      "yt_title": "Hidden Mantle Plumes & Island Chains | Part 3/3 #Shorts",
+      "ig_caption": "Discover the unseen forces behind volcanic chains 🌋 #VolcanoMystery #AnimeHistory #MantlePlumes #HotspotVolcanism #IslandChainGeology",
+      "hook_overlay": "WHAT FUELS THE WORLD’S HIDDEN...",
       "council_score": 9.7,
       "council_models_used": [
         "openrouter:openrouter/free",
         "groq-native",
         "openrouter:openrouter/free",
-        "openrouter:openrouter/free"
+        "groq-native"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 2/3)",
-      "published_platforms": {
-        "youtube": "a16jRsyjWJI"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "a16jRsyjWJI"
-      }
-    }
-  ],
-  "approved_at": 1795581665,
-  "published_at": 1795581666,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "a16jRsyjWJI"
+      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 3/3)"
     }
   ]
 }
