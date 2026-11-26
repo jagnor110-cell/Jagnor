@@ -143,9 +143,12 @@ def format_manifest_report(
     public_base = _get_public_base_url()
 
     subject = f"[Jagnor AI | {engine}] {status} (stage={stage})"
+    rt = m.get("red_team_audit") if isinstance(m.get("red_team_audit"), dict) else {}
+    rt_line = f"Red-Team Critic: {rt.get('verdict', 'N/A')} (issues={len(rt.get('issues_found') or [])}, fixes={len(rt.get('fixes_applied') or [])})" if rt else "Red-Team Critic: N/A"
     lines: list[str] = [
         f"Pipeline Stage: {stage}",
         f"Business Engine: {engine}",
+        rt_line,
         f"Status: {status}",
         f"Timestamp (UTC): {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}",
         "",
@@ -239,7 +242,7 @@ def send_gmail_report(
     using `COMPANY_GMAIL` and `GMAIL_APP_PASSWORD`.
     """
     sender = os.environ.get("COMPANY_GMAIL", "").strip()
-    app_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+    app_password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
     recipient = (to_email or os.environ.get("REPORT_TO_EMAIL", "")).strip() or sender
 
     if dry_run:
@@ -258,17 +261,20 @@ def send_gmail_report(
 
     last_exc: Exception | None = None
     # Try STARTTLS on port 587 first (more reliable on GitHub Actions/Azure runners), then SSL on port 465
-    for mode in ("starttls_587", "ssl_465"):
+    import ssl
+    ctx = ssl.create_default_context()
+    for mode in ("starttls_587", "ssl_465", "starttls_587_retry"):
         try:
-            if mode == "starttls_587":
+            if mode.startswith("starttls_587"):
                 with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
                     smtp.ehlo()
-                    smtp.starttls()
+                    smtp.starttls(context=ctx)
                     smtp.ehlo()
                     smtp.login(sender, app_password)
                     smtp.send_message(msg)
             else:
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as smtp:
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30, context=ctx) as smtp:
+                    smtp.ehlo()
                     smtp.login(sender, app_password)
                     smtp.send_message(msg)
             log.info("Gmail report sent to %s via %s (%s)", recipient, mode, subject)
@@ -276,6 +282,7 @@ def send_gmail_report(
         except Exception as exc:
             last_exc = exc
             log.debug("Gmail SMTP (%s) failed: %s", mode, exc)
+            time.sleep(1.5)
     log.warning("Failed to send Gmail report: %s", last_exc)
     return False
 
@@ -1206,6 +1213,173 @@ def _honest_template_narrations(topic: str) -> list[str]:
     ]
 
 
+class RedTeamCriticRobot:
+    """
+    Dedicated Red-Team Critic & Decision Evaluator Specialist Robot:
+    Stress-tests every Council script and every Engine's final deliverable BEFORE rendering/publishing,
+    flags concrete defects, and forces immediate auto-repairs (or Board rewrites) without straying from instructions.
+    """
+
+    @staticmethod
+    def audit_and_fix_script(
+        pkg: dict[str, Any],
+        topic: str,
+        engine: str,
+        fact_brief: str = "",
+        is_long_form: bool = False,
+        council: Any = None,
+    ) -> dict[str, Any]:
+        issues: list[str] = []
+        fixes: list[str] = []
+
+        # 1. Title & Packaging Audit
+        yt_title = re.sub(r"[<>]+", "", str(pkg.get("yt_title") or "")).strip()
+        if not yt_title or len(yt_title) < 8:
+            issues.append("Weak or missing yt_title")
+            yt_title = f"{topic[:72].strip()}" + ("" if is_long_form else " #Shorts")
+            fixes.append("Rebuilt yt_title from topic")
+        if is_long_form and "#shorts" in yt_title.lower():
+            issues.append("Long-form 16:9 title leaked #Shorts tag")
+            yt_title = re.sub(r"\s*#shorts\b", "", yt_title, flags=re.IGNORECASE).strip()
+            fixes.append("Stripped #Shorts from 16:9 title")
+        elif not is_long_form and "#shorts" not in yt_title.lower():
+            issues.append("Short-form title missing #Shorts tag")
+            yt_title = f"{yt_title[:88].strip()} #Shorts"
+            fixes.append("Appended #Shorts to Shorts title")
+        pkg["yt_title"] = yt_title[:100]
+
+        # 2. Hook & Caption Audit
+        hook = str(pkg.get("hook_overlay") or "").strip()
+        if not hook or hook.lower() in {"watch this", "video", "short", "untitled"}:
+            issues.append("Generic or empty hook_overlay")
+            pkg["hook_overlay"] = " ".join(topic.split()[:5]).upper()[:42] or "MUST WATCH"
+            fixes.append("Replaced generic hook_overlay with topic hook")
+
+        ig_cap = str(pkg.get("ig_caption") or "").strip()
+        if len(ig_cap) < 20:
+            issues.append("IG caption too short")
+            pkg["ig_caption"] = f"{topic} — key breakdown. Follow for daily insights! #AI #Facts"
+            fixes.append("Expanded ig_caption with topic + CTA")
+
+        # 3. Scene-level Audit (for motion_story / ai_faceless)
+        scenes = pkg.get("scenes")
+        if isinstance(scenes, list) and scenes:
+            seen_narrs: set[str] = set()
+            for idx, sc in enumerate(scenes):
+                if not isinstance(sc, dict):
+                    continue
+                nr = _strip_camera_directions(str(sc.get("narration") or "").strip())
+                if re.search(r"\b(TBD|TODO|Lorem ipsum|\[insert)\b", nr, re.I):
+                    issues.append(f"Scene {idx+1} contained placeholder text")
+                    nr = f"Here is the key fact about {topic}."
+                    fixes.append(f"Replaced placeholder in Scene {idx+1}")
+                norm_nr = nr.lower()
+                if norm_nr in seen_narrs and idx > 0:
+                    issues.append(f"Scene {idx+1} duplicated earlier narration")
+                    nr = f"And here is what most people miss about {topic}: {nr}"
+                    fixes.append(f"Differentiated duplicate Scene {idx+1}")
+                seen_narrs.add(norm_nr)
+                sc["narration"] = nr
+                vp = _clean_visual_prompt(str(sc.get("visual_prompt") or f"{topic} scene"))
+                if not vp:
+                    vp = f"cinematic view of {topic}"
+                    fixes.append(f"Restored visual_prompt in Scene {idx+1}")
+                sc["visual_prompt"] = vp
+
+            # Optional 1-shot Board rewrite ONLY if script fell back to generic template & council has budget
+            if pkg.get("script_source") == "template" and council is not None and getattr(council, "_budget_left", lambda *_: False)(True):
+                issues.append("Script used generic template fallback")
+                rewrite_raw = council.invoke_stage(
+                    "groq",
+                    "You are a Red-Team Critic rewriting a weak template script into 5 sharp, topic-accurate scenes. Output ONLY strict JSON.",
+                    f"Topic: {topic}\nFact Brief: {fact_brief or 'Use undisputed general facts only'}\n"
+                    'Output ONLY JSON: {"yt_title": str, "hook_overlay": str, "ig_caption": str, '
+                    '"scenes": [{"narration": str, "visual_prompt": str, "stock_keywords": str}]}',
+                    final_pass=True,
+                )
+                rewritten = council._extract_json_dict(rewrite_raw) if hasattr(council, "_extract_json_dict") else None
+                if isinstance(rewritten, dict) and isinstance(rewritten.get("scenes"), list) and len(rewritten["scenes"]) >= 3:
+                    for k, rsc in enumerate(rewritten["scenes"][:len(scenes)]):
+                        if isinstance(rsc, dict) and str(rsc.get("narration") or "").strip():
+                            scenes[k]["narration"] = _strip_camera_directions(str(rsc["narration"]).strip())
+                            scenes[k]["visual_prompt"] = _clean_visual_prompt(str(rsc.get("visual_prompt") or scenes[k]["visual_prompt"]))
+                            if rsc.get("stock_keywords"):
+                                scenes[k]["stock_keywords"] = str(rsc["stock_keywords"])[:40].strip()
+                    pkg["script_source"] = "red_team_rewritten"
+                    fixes.append("Forced Board rewrite from template to topic-specific script")
+
+        pkg["red_team_audit"] = {
+            "stage": "pre_render_script",
+            "engine": engine,
+            "verdict": "FIXED" if fixes else "PASS",
+            "issues_found": issues,
+            "fixes_applied": fixes,
+        }
+        if fixes:
+            log.info("Red-Team Critic [%s]: flagged %d issue(s) -> auto-fixed (%s)", engine, len(issues), "; ".join(fixes[:3]))
+        else:
+            log.info("Red-Team Critic [%s]: script audit PASS (0 defects).", engine)
+        return pkg
+
+    @staticmethod
+    def audit_manifest(manifest: dict[str, Any], engine: str, public_dir: Path | None = None) -> dict[str, Any]:
+        """Post-build Red-Team Critic check across all 7 engines before APPROVAL_PENDING."""
+        issues: list[str] = []
+        fixes: list[str] = []
+        prior = manifest.get("red_team_audit") if isinstance(manifest.get("red_team_audit"), dict) else {}
+        if prior:
+            issues.extend(prior.get("issues_found") or [])
+            fixes.extend(prior.get("fixes_applied") or [])
+
+        if engine in {"motion_story", "ai_faceless", "clipping", "raw_video_drop"}:
+            clips = manifest.get("clips") or []
+            if not clips:
+                raise ValueError(f"RED_TEAM_BLOCKED [{engine}]: 0 clips produced.")
+            for c in clips:
+                raw_mp = str(c.get("mp4_path") or "").strip()
+                mp = _resolve_media_path(raw_mp, public_dir) if raw_mp else Path("__missing__")
+                if not raw_mp or not mp.is_file() or mp.stat().st_size < 10000:
+                    raise ValueError(f"RED_TEAM_BLOCKED [{engine}]: output MP4 missing/corrupt ({mp}).")
+                if not c.get("qa_verified", False):
+                    raise ValueError(f"RED_TEAM_BLOCKED [{engine}]: clip {c.get('clip_id')} failed QA verification.")
+                if not str(c.get("yt_title") or "").strip():
+                    c["yt_title"] = f"Jagnor {engine} Update #Shorts"
+                    issues.append("Clip missing yt_title")
+                    fixes.append("Auto-populated clip yt_title")
+        elif engine == "carousel_funnel":
+            slides = manifest.get("slide_jpg_paths") or manifest.get("slide_paths") or []
+            if len(slides) < 2:
+                raise ValueError(f"RED_TEAM_BLOCKED [carousel_funnel]: requires >=2 slides, got {len(slides)}.")
+            for sp_raw in slides:
+                sp_s = str(sp_raw or "").strip()
+                sp = _resolve_media_path(sp_s, public_dir) if sp_s else Path("__missing__")
+                if not sp_s or not sp.is_file() or sp.stat().st_size == 0:
+                    raise ValueError(f"RED_TEAM_BLOCKED [carousel_funnel]: slide missing/empty ({sp}).")
+        elif engine == "digital_product":
+            raw_z = str(manifest.get("zip_path") or "").strip()
+            raw_p = str(manifest.get("promo_mp4_path") or "").strip()
+            zp = _resolve_media_path(raw_z, public_dir) if raw_z else Path("__missing__")
+            pp = _resolve_media_path(raw_p, public_dir) if raw_p else Path("__missing__")
+            if not raw_z or not raw_p or not zp.is_file() or not pp.is_file() or not manifest.get("qa_verified", False):
+                raise ValueError("RED_TEAM_BLOCKED [digital_product]: product ZIP or QA-verified promo MP4 missing.")
+        elif engine == "b2b_agency":
+            for k in ("ops_summary_path", "proposal_path", "invoice_path"):
+                raw_f = str(manifest.get(k) or "").strip()
+                fp = _resolve_media_path(raw_f, public_dir) if raw_f else Path("__missing__")
+                if not raw_f or not fp.is_file() or fp.stat().st_size == 0:
+                    raise ValueError(f"RED_TEAM_BLOCKED [b2b_agency]: missing deliverable {k}.")
+
+        manifest["red_team_audit"] = {
+            "stage": "post_build_manifest",
+            "engine": engine,
+            "verdict": "FIXED" if fixes else "PASS",
+            "issues_found": issues,
+            "fixes_applied": fixes,
+        }
+        log.info("Red-Team Critic [%s]: post-build verdict=%s (issues=%d, fixes=%d)", engine, manifest["red_team_audit"]["verdict"], len(issues), len(fixes))
+        return manifest
+
+
 class AICouncil:
     """
     Executive Board of Directors (4 Free-Tier Specialist Directors + Adaptive Failover):
@@ -1274,9 +1448,15 @@ class AICouncil:
         return cleaned_msg
 
     def _call_gemini_native(self, system_prompt: str, user_prompt: str) -> str:
-        primary_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        primary_model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+        queue_models = list(dict.fromkeys([primary_model, "gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]))
+        tried: set[str] = set()
         last_err = ""
-        for model in dict.fromkeys([primary_model, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]):
+        while queue_models:
+            model = queue_models.pop(0)
+            if not model or model in tried:
+                continue
+            tried.add(model)
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
                 "systemInstruction": {"parts": [{"text": system_prompt}]},
@@ -1307,7 +1487,11 @@ class AICouncil:
                         return joined
                     last_err = f"{model}: empty/filtered candidate"
             except Exception as exc:
-                last_err = f"{model}: {str(exc)[:180]}"
+                err_s = str(exc)
+                last_err = f"{model}: {err_s[:180]}"
+                m_hint = re.search(r"use models/([a-zA-Z0-9._-]+)", err_s)
+                if m_hint and m_hint.group(1) not in tried:
+                    queue_models.insert(0, m_hint.group(1))
                 log.debug("Gemini model %s attempt failed: %s", model, exc)
                 continue
         raise RuntimeError(f"All native Gemini model endpoints failed ({last_err}).")
@@ -1338,9 +1522,10 @@ class AICouncil:
         fallback_models = [
             primary_model,
             "meta/llama-3.3-70b-instruct",
-            "nvidia/llama-3.1-nemotron-70b-instruct",
+            "meta/llama-3.1-70b-instruct",
+            "qwen/qwen2.5-72b-instruct",
         ]
-        for nv_model in list(dict.fromkeys(fallback_models))[:2]:
+        for nv_model in list(dict.fromkeys(fallback_models))[:3]:
             try:
                 return self._call_openai_compatible(
                     nv_url,
@@ -1560,6 +1745,77 @@ class AICouncil:
             e_id = next_id
 
         return s_id, e_id
+
+    def dispatch_department(
+        self,
+        brain: CompanyBrain,
+        inbox_dir: Path,
+        theme: str = "Universal Storytelling",
+        url: str = "",
+        explicit_title: str = "",
+        notes: str = "",
+    ) -> tuple[str, str]:
+        """
+        Executive Board Dispatcher (when `--engine auto`):
+        1) Deterministic priority checks first (zero wasted LLM calls):
+           - Explicit URL -> `clipping`
+           - Unprocessed MP4/MOV in `inbox_videos/` -> `raw_video_drop`
+           - Active mid-arc 3-day series -> continues `active_series["engine"]`
+        2) Otherwise balances recent department history from ledger + 1 fast Director call
+           to pick the highest-value department (`motion_story`, `ai_faceless`, `carousel_funnel`).
+        """
+        if (url or "").strip():
+            return "clipping", "Explicit source URL provided"
+
+        if inbox_dir.exists():
+            unprocessed = [
+                f for f in sorted(inbox_dir.iterdir())
+                if f.is_file() and f.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}
+                and f"raw_drop:{f.name}" not in brain.processed_items
+            ]
+            if unprocessed:
+                return "raw_video_drop", f"Found unprocessed inbox video: {unprocessed[0].name}"
+
+        ledger_dir = brain.ledger_path.parent if brain.ledger_path else brain.brain_dir
+        ledger_data, _ = load_ledger(ledger_dir)
+        cur_series = ledger_data.get("active_series")
+        if (
+            isinstance(cur_series, dict)
+            and cur_series.get("base_topic")
+            and int(cur_series.get("day", 0)) < int(cur_series.get("max_days", 1))
+            and cur_series.get("engine") in {"motion_story", "ai_faceless"}
+        ):
+            return str(cur_series["engine"]), f"Continuing active series ({cur_series.get('base_topic')})"
+
+        recent_engines = [
+            str(item.split(":", 1)[0])
+            for item in list(brain.processed_items)[-6:]
+            if ":" in str(item)
+        ]
+        # Deterministic rotation fallback so no department is starved
+        rotation = ("motion_story", "ai_faceless", "carousel_funnel")
+        last_eng = next((e for e in reversed(recent_engines) if e in rotation), "")
+        fallback_eng = rotation[(rotation.index(last_eng) + 1) % len(rotation)] if last_eng in rotation else "motion_story"
+
+        prompt = (
+            f"Theme: {theme}\nTitle/Topic: {explicit_title or '(auto-trending)'}\nNotes: {notes or '(none)'}\n"
+            f"Recent engines run: {recent_engines or ['none']}\n"
+            "Pick the SINGLE best department engine for today's automated release from: "
+            "[motion_story, ai_faceless, carousel_funnel]. "
+            "Prefer `motion_story` for narrative/dialogue explainers, `ai_faceless` for visual stock-video hooks, "
+            "and `carousel_funnel` if bullet-point notes are provided or to balance recent video runs. "
+            'Output ONLY JSON: {"engine": str, "reason": str}'
+        )
+        raw = self.invoke_stage(
+            "groq",
+            "You are the Executive Board Dispatcher. Pick the best department engine as strict JSON only.",
+            prompt,
+        )
+        parsed = self._extract_json_dict(raw) or {}
+        chosen = str(parsed.get("engine") or "").strip().lower()
+        if chosen in rotation:
+            return chosen, str(parsed.get("reason") or "Board strategic selection")[:120]
+        return fallback_eng, f"Deterministic department rotation (after {last_eng or 'none'})"
 
     def run_6_brain_clip_council(
         self,
@@ -1807,7 +2063,7 @@ class AICouncil:
             ]
 
         scenes = self._board_audit_scenes(scenes, topic, dialogue_mode=False)
-        return {
+        fl_pkg = {
             "hook_overlay": str(parsed.get("hook_overlay") or topic[:36]).upper()[:42],
             "yt_title": str(parsed.get("yt_title") or f"{topic[:48]} #Shorts")[:100],
             "ig_caption": str(parsed.get("ig_caption") or f"{topic} — what to know. Follow for more! #Shorts"),
@@ -1817,6 +2073,7 @@ class AICouncil:
             "theme": theme,
             "council_models_used": list(self.models_called),
         }
+        return RedTeamCriticRobot.audit_and_fix_script(fl_pkg, topic, "ai_faceless", fact_brief=fact_brief, is_long_form=False, council=self)
 
 
 
@@ -1989,7 +2246,7 @@ class AICouncil:
         scenes = _sanitize_motion_scenes(scenes, fact_brief)
         scenes = self._board_audit_scenes(scenes, topic, dialogue_mode=dialogue_mode)
 
-        return {
+        ms_pkg = {
             "hook_overlay": _trim_words(str(parsed.get("hook_overlay") or topic), 36).upper(),
             "yt_title": str(parsed.get("yt_title") or f"{topic[:48]} #Shorts")[:100],
             "ig_caption": str(parsed.get("ig_caption") or f"{topic} — the story in 30 seconds. Tell us your thoughts! #Shorts"),
@@ -2001,6 +2258,7 @@ class AICouncil:
             "theme": theme,
             "council_models_used": list(self.models_called),
         }
+        return RedTeamCriticRobot.audit_and_fix_script(ms_pkg, topic, "motion_story", fact_brief=fact_brief, is_long_form=is_long_story, council=self)
 
 
 # ============================================================================
@@ -6850,9 +7108,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--engine",
-        default="clipping",
-        choices=["motion_story", "ai_faceless", "clipping", "raw_video_drop", "digital_product", "b2b_agency", "carousel_funnel"],
-        help="Which monetization engine to execute during build stage",
+        default="auto",
+        choices=["auto", "motion_story", "ai_faceless", "clipping", "raw_video_drop", "digital_product", "b2b_agency", "carousel_funnel"],
+        help="Department engine to execute (`auto` = Executive AI Council chooses & pivots automatically)",
     )
     parser.add_argument("--job-dir", required=True, help="Working directory for this ticket/job")
     parser.add_argument("--brain-dir", default=None, help="Path to company `brain/` directory")
@@ -6959,177 +7217,245 @@ def main() -> int:
     try:
         if args.stage in {"build", "full"}:
             brain = CompanyBrain.load(brain_dir)
-            if args.engine == "clipping":
-                explicit_url = (args.url or "").strip()
-                if explicit_url:
-                    candidate_urls = [explicit_url]
-                else:
-                    cookie_args = get_ytdlp_cookie_args(job_dir)
-                    log.info("Launching Department #1 Trend Scout (niche='%s', platform='%s')...", args.niche, args.trend_platform)
-                    candidate_urls = discover_trending_candidates(
-                        niche_query=args.niche,
-                        brain=brain,
-                        trend_platform=args.trend_platform,
-                        require_cc=not args.allow_all_licenses,
-                        cookie_args=cookie_args,
-                    )
-
-                manifest = None
-                last_err: Exception | None = None
-                for cand_idx, cand_url in enumerate(candidate_urls, start=1):
-                    try:
-                        log.info("Attempting candidate %d/%d: %s", cand_idx, len(candidate_urls), cand_url)
-                        manifest = run_clipping_engine(
-                            url=cand_url,
-                            job_dir=job_dir,
-                            brain=brain,
-                            max_clips=args.max_clips,
-                            device=args.device,
-                            model_name=args.model,
-                            allow_all_licenses=args.allow_all_licenses,
-                            public_dir=public_dir,
-                            art_style=args.art_style,
-                            aspect_ratio=args.aspect_ratio,
-                            slice_start=args.slice_start,
-                        )
-                        break
-                    except Exception as err:
-                        log.warning("Candidate %d (%s) failed (%s); trying next candidate...", cand_idx, cand_url, err)
-                        cleanup_heavy_temp_files(job_dir)
-                        last_err = err
-                if manifest is None:
-                    raise RuntimeError(f"All {len(candidate_urls)} trending candidates failed. Last error: {last_err}")
-
-            elif args.engine == "motion_story":
-                series_state = None
-                active_style = args.art_style
-                if args.series_days > 1 or args.auto_topic or not (args.title or "").strip():
-                    active_topic, fact_brief, active_style, series_state = resolve_series_auto_topic(
-                        args.theme, brain, "motion_story", args.series_days, args.art_style,
-                        explicit_title="" if args.auto_topic else (args.title or ""),
-                    )
-                else:
-                    active_topic, fact_brief = args.title.strip(), ""
-                if (args.notes or "").strip():
-                    fact_brief = f"User Content Brief / Key Points: {args.notes.strip()}\n{fact_brief}".strip()
-                wiki_query = series_state["base_topic"] if series_state else active_topic
-                fact_brief = enrich_fact_brief(wiki_query, fact_brief)
-                prior_urls = set(series_state.get("used_media_urls") or []) if series_state else set()
-                manifest = run_motion_story_engine(
-                    topic=active_topic,
-                    job_dir=job_dir,
+            auto_mode = (args.engine == "auto")
+            active_engine = args.engine
+            if auto_mode:
+                exec_council = AICouncil()
+                active_engine, dispatch_reason = exec_council.dispatch_department(
                     brain=brain,
-                    voice=args.voice,
-                    public_dir=public_dir,
-                    art_style=active_style,
-                    theme=args.theme,
-                    character_desc=args.character,
-                    fact_brief=fact_brief,
-                    prior_media_urls=prior_urls,
-                    target_duration_sec=args.target_duration,
-                    dialogue_mode=args.dialogue_mode,
-                    render_engine=args.render_engine,
-                )
-                if series_state and manifest.get("clips"):
-                    _pl = f"Part {series_state['day']}/{series_state['max_days']}"
-                    _shorts_sfx = "" if int(args.target_duration or 45) > 60 else " #Shorts"
-                    for _c in manifest["clips"]:
-                        _yt = str(_c.get("yt_title") or "")
-                        if _pl.lower() not in _yt.lower():
-                            _base_yt = _yt.replace("#Shorts", "").replace("#shorts", "").strip()[:75]
-                            _c["yt_title"] = f"{_base_yt} | {_pl}{_shorts_sfx}"[:100]
-                if series_state is not None:
-                    _dur_map = {180: "long_3m", 300: "long_5m", 480: "long_8m"}
-                    series_state["duration_preset"] = _dur_map.get(int(args.target_duration or 45), "short_45s")
-                    series_state["dialogue_mode"] = bool(args.dialogue_mode)
-                    series_state["render_engine"] = args.render_engine
-                    series_state["voice"] = args.voice
-                    series_state["theme"] = args.theme
-                save_series_state(brain, series_state, manifest)
-            elif args.engine == "ai_faceless":
-                series_state = None
-                active_style = args.art_style
-                if args.series_days > 1 or args.auto_topic or not (args.title or "").strip():
-                    active_topic, fact_brief, active_style, series_state = resolve_series_auto_topic(
-                        args.theme, brain, "ai_faceless", args.series_days, args.art_style,
-                        explicit_title="" if args.auto_topic else (args.title or ""),
-                    )
-                else:
-                    active_topic, fact_brief = args.title.strip(), ""
-                if (args.notes or "").strip():
-                    fact_brief = f"User Content Brief / Key Points: {args.notes.strip()}\n{fact_brief}".strip()
-                wiki_query = series_state["base_topic"] if series_state else active_topic
-                fact_brief = enrich_fact_brief(wiki_query, fact_brief)
-                prior_urls = set(series_state.get("used_media_urls") or []) if series_state else set()
-                manifest = run_ai_faceless_engine(
-                    topic=active_topic,
-                    job_dir=job_dir,
-                    brain=brain,
-                    voice=args.voice,
-                    public_dir=public_dir,
-                    art_style=active_style,
-                    theme=args.theme,
-                    character_desc=args.character,
-                    fact_brief=fact_brief,
-                    prior_media_urls=prior_urls,
-                )
-                if series_state and manifest.get("clips"):
-                    _pl = f"Part {series_state['day']}/{series_state['max_days']}"
-                    for _c in manifest["clips"]:
-                        _yt = str(_c.get("yt_title") or "")
-                        if _pl.lower() not in _yt.lower():
-                            _base_yt = _yt.replace("#Shorts", "").replace("#shorts", "").strip()[:75]
-                            _c["yt_title"] = f"{_base_yt} | {_pl} #Shorts"[:100]
-                save_series_state(brain, series_state, manifest)
-            elif args.engine == "raw_video_drop":
-                manifest = run_raw_video_drop_engine(
                     inbox_dir=Path(args.inbox_dir),
-                    job_dir=job_dir,
-                    brain=brain,
-                    device=args.device,
-                    model_name=args.model,
-                    public_dir=public_dir,
-                    art_style=args.art_style,
-                    aspect_ratio=args.aspect_ratio,
+                    theme=args.theme,
+                    url=(args.url or ""),
+                    explicit_title=(args.title or ""),
+                    notes=(args.notes or ""),
                 )
-            elif args.engine == "digital_product":
-                src_dir = Path(args.source_app_dir) if args.source_app_dir else None
-                safe_prod_title = (args.title or "").strip() or "Jagnor Pro Automation Suite"
-                manifest = run_digital_product_engine(
-                    product_title=safe_prod_title,
-                    price_usd=args.price,
-                    source_app_dir=src_dir,
-                    job_dir=job_dir,
-                    brain=brain,
-                    public_dir=public_dir,
-                    voice=args.voice,
-                    notes=args.notes,
-                )
-            elif args.engine == "b2b_agency":
-                client_label = (args.client or "").strip()
-                if not client_label or client_label == "Acme Corp":
-                    client_label = (args.title or "").strip() or "Client Company"
-                manifest = run_b2b_agency_engine(
-                    client_name=client_label,
-                    discovery_notes=args.notes,
-                    price_usd=args.price,
-                    job_dir=job_dir,
-                    brain=brain,
-                    public_dir=public_dir,
-                )
-            elif args.engine == "carousel_funnel":
-                pts = [p.strip() for p in args.notes.split(";") if p.strip()]
-                safe_car_topic = (args.title or "").strip() or pick_fresh_auto_topic(args.theme, brain, "carousel_funnel")
-                manifest = run_carousel_funnel_engine(
-                    topic=safe_car_topic,
-                    points=pts,
-                    job_dir=job_dir,
-                    brain=brain,
-                    public_dir=public_dir,
-                )
-            else:
-                raise ValueError(f"Unsupported engine: {args.engine}")
+                log.info("Executive Board Dispatcher chose [%s] -> %s", active_engine, dispatch_reason)
 
+            def _execute_department(eng_name: str, repair_feedback: str = "") -> dict[str, Any]:
+                if eng_name == "clipping":
+                    explicit_url = (args.url or "").strip()
+                    if explicit_url:
+                        candidate_urls = [explicit_url]
+                    else:
+                        cookie_args = get_ytdlp_cookie_args(job_dir)
+                        log.info("Launching Department #1 Trend Scout (niche='%s', platform='%s')...", args.niche, args.trend_platform)
+                        candidate_urls = discover_trending_candidates(
+                            niche_query=args.niche,
+                            brain=brain,
+                            trend_platform=args.trend_platform,
+                            require_cc=not args.allow_all_licenses,
+                            cookie_args=cookie_args,
+                        )
+
+                    manifest = None
+                    last_err: Exception | None = None
+                    for cand_idx, cand_url in enumerate(candidate_urls, start=1):
+                        try:
+                            log.info("Attempting candidate %d/%d: %s", cand_idx, len(candidate_urls), cand_url)
+                            manifest = run_clipping_engine(
+                                url=cand_url,
+                                job_dir=job_dir,
+                                brain=brain,
+                                max_clips=args.max_clips,
+                                device=args.device,
+                                model_name=args.model,
+                                allow_all_licenses=args.allow_all_licenses,
+                                public_dir=public_dir,
+                                art_style=args.art_style,
+                                aspect_ratio=args.aspect_ratio,
+                                slice_start=args.slice_start,
+                            )
+                            break
+                        except Exception as err:
+                            log.warning("Candidate %d (%s) failed (%s); trying next candidate...", cand_idx, cand_url, err)
+                            cleanup_heavy_temp_files(job_dir)
+                            last_err = err
+                    if manifest is None:
+                        raise RuntimeError(f"All {len(candidate_urls)} trending candidates failed. Last error: {last_err}")
+
+                elif eng_name == "motion_story":
+                    series_state = None
+                    active_style = args.art_style
+                    if args.series_days > 1 or args.auto_topic or not (args.title or "").strip():
+                        active_topic, fact_brief, active_style, series_state = resolve_series_auto_topic(
+                            args.theme, brain, "motion_story", args.series_days, args.art_style,
+                            explicit_title="" if args.auto_topic else (args.title or ""),
+                        )
+                    else:
+                        active_topic, fact_brief = args.title.strip(), ""
+                    if (args.notes or "").strip():
+                        fact_brief = f"User Content Brief / Key Points: {args.notes.strip()}\n{fact_brief}".strip()
+                    if repair_feedback:
+                        fact_brief = f"RED-TEAM CRITIC REPAIR DIRECTIVE (FIX THIS): {repair_feedback}\n{fact_brief}".strip()
+                    wiki_query = series_state["base_topic"] if series_state else active_topic
+                    fact_brief = enrich_fact_brief(wiki_query, fact_brief)
+                    prior_urls = set(series_state.get("used_media_urls") or []) if series_state else set()
+                    eff_render = "python" if repair_feedback else args.render_engine
+                    manifest = run_motion_story_engine(
+                        topic=active_topic,
+                        job_dir=job_dir,
+                        brain=brain,
+                        voice=args.voice,
+                        public_dir=public_dir,
+                        art_style=active_style,
+                        theme=args.theme,
+                        character_desc=args.character,
+                        fact_brief=fact_brief,
+                        prior_media_urls=prior_urls,
+                        target_duration_sec=args.target_duration,
+                        dialogue_mode=args.dialogue_mode,
+                        render_engine=eff_render,
+                    )
+                    if series_state and manifest.get("clips"):
+                        _pl = f"Part {series_state['day']}/{series_state['max_days']}"
+                        _shorts_sfx = "" if int(args.target_duration or 45) > 60 else " #Shorts"
+                        for _c in manifest["clips"]:
+                            _yt = str(_c.get("yt_title") or "")
+                            if _pl.lower() not in _yt.lower():
+                                _base_yt = _yt.replace("#Shorts", "").replace("#shorts", "").strip()[:75]
+                                _c["yt_title"] = f"{_base_yt} | {_pl}{_shorts_sfx}"[:100]
+                    if series_state is not None:
+                        _dur_map = {180: "long_3m", 300: "long_5m", 480: "long_8m"}
+                        series_state["duration_preset"] = _dur_map.get(int(args.target_duration or 45), "short_45s")
+                        series_state["dialogue_mode"] = bool(args.dialogue_mode)
+                        series_state["render_engine"] = args.render_engine
+                        series_state["voice"] = args.voice
+                        series_state["theme"] = args.theme
+                    save_series_state(brain, series_state, manifest)
+                elif eng_name == "ai_faceless":
+                    series_state = None
+                    active_style = args.art_style
+                    if args.series_days > 1 or args.auto_topic or not (args.title or "").strip():
+                        active_topic, fact_brief, active_style, series_state = resolve_series_auto_topic(
+                            args.theme, brain, "ai_faceless", args.series_days, args.art_style,
+                            explicit_title="" if args.auto_topic else (args.title or ""),
+                        )
+                    else:
+                        active_topic, fact_brief = args.title.strip(), ""
+                    if (args.notes or "").strip():
+                        fact_brief = f"User Content Brief / Key Points: {args.notes.strip()}\n{fact_brief}".strip()
+                    if repair_feedback:
+                        fact_brief = f"RED-TEAM CRITIC REPAIR DIRECTIVE (FIX THIS): {repair_feedback}\n{fact_brief}".strip()
+                    wiki_query = series_state["base_topic"] if series_state else active_topic
+                    fact_brief = enrich_fact_brief(wiki_query, fact_brief)
+                    prior_urls = set(series_state.get("used_media_urls") or []) if series_state else set()
+                    manifest = run_ai_faceless_engine(
+                        topic=active_topic,
+                        job_dir=job_dir,
+                        brain=brain,
+                        voice=args.voice,
+                        public_dir=public_dir,
+                        art_style=active_style,
+                        theme=args.theme,
+                        character_desc=args.character,
+                        fact_brief=fact_brief,
+                        prior_media_urls=prior_urls,
+                    )
+                    if series_state and manifest.get("clips"):
+                        _pl = f"Part {series_state['day']}/{series_state['max_days']}"
+                        for _c in manifest["clips"]:
+                            _yt = str(_c.get("yt_title") or "")
+                            if _pl.lower() not in _yt.lower():
+                                _base_yt = _yt.replace("#Shorts", "").replace("#shorts", "").strip()[:75]
+                                _c["yt_title"] = f"{_base_yt} | {_pl} #Shorts"[:100]
+                    save_series_state(brain, series_state, manifest)
+                elif eng_name == "raw_video_drop":
+                    manifest = run_raw_video_drop_engine(
+                        inbox_dir=Path(args.inbox_dir),
+                        job_dir=job_dir,
+                        brain=brain,
+                        device=args.device,
+                        model_name=args.model,
+                        public_dir=public_dir,
+                        art_style=args.art_style,
+                        aspect_ratio=args.aspect_ratio,
+                    )
+                elif eng_name == "digital_product":
+                    src_dir = Path(args.source_app_dir) if args.source_app_dir else None
+                    safe_prod_title = (args.title or "").strip() or "Jagnor Pro Automation Suite"
+                    manifest = run_digital_product_engine(
+                        product_title=safe_prod_title,
+                        price_usd=args.price,
+                        source_app_dir=src_dir,
+                        job_dir=job_dir,
+                        brain=brain,
+                        public_dir=public_dir,
+                        voice=args.voice,
+                        notes=(f"{args.notes} | RED-TEAM FIX: {repair_feedback}".strip(" |") if repair_feedback else args.notes),
+                    )
+                elif eng_name == "b2b_agency":
+                    client_label = (args.client or "").strip()
+                    if not client_label or client_label == "Acme Corp":
+                        client_label = (args.title or "").strip() or "Client Company"
+                    manifest = run_b2b_agency_engine(
+                        client_name=client_label,
+                        discovery_notes=(f"{args.notes} | RED-TEAM FIX: {repair_feedback}".strip(" |") if repair_feedback else args.notes),
+                        price_usd=args.price,
+                        job_dir=job_dir,
+                        brain=brain,
+                        public_dir=public_dir,
+                    )
+                elif eng_name == "carousel_funnel":
+                    pts = [p.strip() for p in args.notes.split(";") if p.strip()]
+                    safe_car_topic = (args.title or "").strip() or pick_fresh_auto_topic(args.theme, brain, "carousel_funnel")
+                    manifest = run_carousel_funnel_engine(
+                        topic=safe_car_topic,
+                        points=pts,
+                        job_dir=job_dir,
+                        brain=brain,
+                        public_dir=public_dir,
+                    )
+                else:
+                    raise ValueError(f"Unsupported engine: {eng_name}")
+                return manifest
+
+            def _run_with_red_team_fix(eng_name: str) -> dict[str, Any]:
+                prev_items = set(brain.processed_items)
+                prev_spend = brain.daily_spend_usd
+                prev_ledger_bytes = (
+                    brain.ledger_path.read_bytes()
+                    if (brain.ledger_path and brain.ledger_path.exists())
+                    else None
+                )
+                cand_manifest = _execute_department(eng_name)
+                try:
+                    return RedTeamCriticRobot.audit_manifest(cand_manifest, eng_name, public_dir=public_dir)
+                except ValueError as rt_exc:
+                    if "RED_TEAM_BLOCKED" not in str(rt_exc):
+                        raise
+                    log.warning(
+                        "Red-Team Critic flagged defect in [%s] (%s) -> redirecting back to [%s] for targeted repair (attempt 2/2)...",
+                        eng_name, rt_exc, eng_name,
+                    )
+                    # Full rollback of failed attempt (processed_items, daily spend, & on-disk series ledger state)
+                    brain.processed_items.clear()
+                    brain.processed_items.update(prev_items)
+                    brain.daily_spend_usd = prev_spend
+                    if brain.ledger_path:
+                        if prev_ledger_bytes is not None:
+                            brain.ledger_path.write_bytes(prev_ledger_bytes)
+                        else:
+                            brain.ledger_path.unlink(missing_ok=True)
+                    cleanup_heavy_temp_files(job_dir)
+                    repaired_manifest = _execute_department(eng_name, repair_feedback=str(rt_exc))
+                    repaired_manifest = RedTeamCriticRobot.audit_manifest(repaired_manifest, eng_name, public_dir=public_dir)
+                    rt_block = repaired_manifest.setdefault("red_team_audit", {})
+                    rt_block["verdict"] = "FIXED"
+                    rt_block["repaired_by_engine"] = True
+                    rt_block.setdefault("issues_found", []).append(str(rt_exc))
+                    rt_block.setdefault("fixes_applied", []).append(f"Redirected to [{eng_name}] and repaired on attempt 2/2")
+                    return repaired_manifest
+
+            try:
+                manifest = _run_with_red_team_fix(active_engine)
+            except Exception as dept_exc:
+                if auto_mode and active_engine != "motion_story":
+                    log.warning("Auto-selected department [%s] failed (%s); Executive Board pivoting to [motion_story]...", active_engine, dept_exc)
+                    cleanup_heavy_temp_files(job_dir)
+                    active_engine = "motion_story"
+                    manifest = _run_with_red_team_fix("motion_story")
+                else:
+                    raise
             atomic_write_json(manifest_path, manifest)
             build_finished = True
             log.info("Build stage [%s] complete -> %s (status=%s)", args.engine, manifest_path, manifest.get("status"))
@@ -7165,7 +7491,7 @@ def main() -> int:
     except Exception as exc:
         log.error("Master pipeline halted: %s", exc)
         if (build_started and not build_finished) or not manifest_path.exists():
-            err_manifest = {"engine": args.engine}  # a failed build must not echo the previous run's stale manifest
+            err_manifest = {"engine": locals().get("active_engine", args.engine)}  # a failed build must not echo the previous run's stale manifest
         else:
             err_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         subj, body = format_manifest_report(err_manifest, stage=args.stage, error_msg=str(exc))
