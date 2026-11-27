@@ -3,41 +3,41 @@
   "source_mode": "motion_story",
   "is_long_form": false,
   "target_duration_sec": 45,
-  "status": "PUBLISHED",
-  "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 3/3)",
+  "status": "APPROVAL_PENDING",
+  "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)",
   "language": "English",
   "settings_applied": {
-    "topic": "Massive Volcano Erupts: What You Need to Know (Part 3/3)",
-    "theme": "History & Mythology",
-    "art_style": "anime",
-    "voice": "original",
+    "topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)",
+    "theme": "Trending Science, Space & Untold Stories",
+    "art_style": "comic_book",
+    "voice": "deep_male",
     "character_desc": ""
   },
   "character": {
-    "name": "Astra",
-    "archetype": "explorer",
-    "primary_hex": "#FF5733",
-    "accent_hex": "#C70039",
-    "skin_hex": "#F0E68C",
-    "aura_hex": "#DAF7A6",
-    "visual_world": "history_myth"
+    "name": "Host",
+    "archetype": "narrator",
+    "primary_hex": "#FFFFFF",
+    "accent_hex": "#FF0000",
+    "skin_hex": "#F0C9B4",
+    "aura_hex": "#00FF00",
+    "visual_world": "space"
   },
   "council_models_used": [
-    "openrouter:openrouter/free",
+    "gemini-native",
     "groq-native",
     "openrouter:openrouter/free",
-    "groq-native"
+    "groq-failover"
   ],
   "script_source": "ai",
   "episode_continuity": {
-    "recap": "Massive Volcano Erupts: What You Need to Know (Part 3/3): Far from plate boundaries, mantle plumes spark chains of islands. What will you do? Islands drift away, carried by silent tectonic whispers across endless ages of formation. Will you follow the drifting islands? Why do chains bend? Earth’s secrets shift beneath ",
-    "ending_line": "When the earth awakens anew, what will your world choose in this ever-shifting fiery dance?",
+    "recap": "The East Coast Thanksgiving storm transforms the busiest travel holiday into an atmospheric battleground of rain and wind. Frigid Canadian air collides directly with surging subtropical moisture, birthing a relentless extratropical cyclone along the coast. Over nine hundred thousand residents lose power as fierce coast",
+    "ending_line": "As freezing winds intensify overnight, airports face total gridlock. Follow for Part Two tomorrow as the freeze strikes.",
     "visual_prompts": [
-      "anime-style deep indigo void with a single glowing golden plume rising, vibrant cel shading, Makoto ",
-      "anime-style twilight horizon where island silhouettes gradually fade into mist, vibrant cel shading,",
-      "anime-style abstract golden chain floating in dark space, sharply bent like a question mark, vibrant",
-      "anime-style calm caldera at twilight with faint internal glow, no ash, no eruption, just dormant pul",
-      "anime-style twilight sky with a lone mountain peak glowing faintly, no, vibrant cel shading, Makoto "
+      "Comic book graphic novel illustration of massive swirling dark storm clouds descending over a coasta",
+      "Comic book panel of icy blue gale winds violently clashing with warm orange atmospheric currents abo",
+      "Comic book illustration of wooden utility poles swaying violently under gale force winds, electric t",
+      "Comic book illustration of a weather scientist studying a glowing circular radar screen mapping an i",
+      "Comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted"
     ],
     "used_media_urls": []
   },
@@ -47,39 +47,30 @@
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 43.27,
-      "duration_sec": 43.27,
-      "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611260438.mp4",
+      "end_sec": 43.3,
+      "duration_sec": 43.3,
+      "mp4_path": "jobs/latest/out/story_east_coast_thanksgiving_202611270436.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "Hidden Mantle Plumes & Island Chains | Part 3/3 #Shorts",
-      "ig_caption": "Discover the unseen forces behind volcanic chains 🌋 #VolcanoMystery #AnimeHistory #MantlePlumes #HotspotVolcanism #IslandChainGeology",
-      "hook_overlay": "WHAT FUELS THE WORLD’S HIDDEN...",
+      "yt_title": "Thanksgiving Storm Hits East Coast | Part 1/3 #Shorts",
+      "ig_caption": "Part 1: The storm begins. #ThanksgivingStorm #EastCoast",
+      "hook_overlay": "STORM HITS THE EAST COAST!",
       "council_score": 9.7,
       "council_models_used": [
-        "openrouter:openrouter/free",
+        "gemini-native",
         "groq-native",
         "openrouter:openrouter/free",
-        "groq-native"
+        "groq-failover"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:Massive Volcano Erupts: What You Need to Know (Part 3/3)",
-      "published_platforms": {
-        "youtube": "OpoBP_n5pbg"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "OpoBP_n5pbg"
-      }
+      "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)"
     }
   ],
-  "approved_at": 1795668021,
-  "published_at": 1795668023,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "OpoBP_n5pbg"
-    }
-  ]
+  "red_team_audit": {
+    "stage": "post_build_manifest",
+    "engine": "motion_story",
+    "verdict": "PASS",
+    "issues_found": [],
+    "fixes_applied": []
+  }
 }

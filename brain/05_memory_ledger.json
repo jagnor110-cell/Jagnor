@@ -1,8 +1,9 @@
 {
-  "spend_date_utc": "2026-11-26",
+  "spend_date_utc": "2026-11-27",
   "processed_items": [
     "ai_faceless:how deep is space actually is:20261121",
     "ai_faceless:revolutionary pill just c:20261122",
+    "motion_story:east coast thanksgiving storm: rain, wind, travel chaos (part 1/3):20261127",
     "motion_story:gold hits record high: why it matters:20261123",
     "motion_story:how far voyager 1 has traveled into deep space:20261121",
     "motion_story:how to unlock hidden auto drive in gta 6:20261122",
@@ -173,59 +174,51 @@
         "character": "Astra",
         "mp4_path": "jobs/latest/out/story_massive_volcano_erupts_w_202611260438.mp4"
       }
+    },
+    {
+      "timestamp": 1795754246,
+      "engine": "motion_story",
+      "item_key": "motion_story:east coast thanksgiving storm: rain, wind, travel chaos (part 1/3):20261127",
+      "cost_usd": 0.1,
+      "summary": {
+        "topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)",
+        "character": "Host",
+        "mp4_path": "jobs/latest/out/story_east_coast_thanksgiving_202611270436.mp4"
+      }
     }
   ],
   "completed_series_topics": [
-    "Massive Volcano Erupts: What You Need to Know"
+    "Massive Volcano Erupts: What You Need to Know",
+    "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos"
   ],
   "active_series": {
     "engine": "motion_story",
-    "base_topic": "Massive Volcano Erupts: What You Need to Know",
-    "fact_brief": "Trending headline only: Massive Volcano Erupts: What You Need to Know. No other verified facts available - use no numbers, dates or sales figures.",
-    "day": 3,
+    "base_topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos",
+    "fact_brief": "Thanksgiving Storm Hits the East Coast With Rain and Wind, Causing Travel Delays: Live Weather Updates. Thanksgiving Storm Hits the East Coast With Rain and Wind, Causing Travel Delays: Live Weather Updates The New York Times Live updates: Thanksgiving storm leaves roads flooded and more than 900,000 without power in easte",
+    "day": 1,
     "max_days": 3,
-    "art_style": "anime",
-    "series_index": 0,
+    "art_style": "comic_book",
+    "series_index": 1,
     "episodes": [
       {
         "part": 1,
-        "recap": "When a volcano awakens, history erupts. Ancient myths say the gods themselves stir the earth, turning fire into legend. Deep beneath, a mantle plume rises, feeding the beast with molten fire.",
-        "ending_line": "What will history remember of this eruption? Will the myths be true?"
-      },
-      {
-        "part": 2,
-        "recap": "Massive Volcano Erupts: What You Need to Know, beyond myth, hidden mechanics stir beneath the sea. Beneath the ocean, diverging plates open seams where quiet lava builds new seafloor. Converging plates fuel violent eruptions, sending ash and gas through the restless Pacific.",
-        "ending_line": "Far from plate boundaries, mantle plumes create hotspot chains, and the finale awaits. What will you do when the next eruption hits?"
-      },
-      {
-        "part": 3,
-        "recap": "Massive Volcano Erupts: What You Need to Know (Part 3/3): Far from plate boundaries, mantle plumes spark chains of islands. What will you do? Islands drift away, carried by silent tectonic whispers across endless ages of formation. Will you follow the drifting islands? Why do chains bend? Earth’s secrets shift beneath ",
-        "ending_line": "When the earth awakens anew, what will your world choose in this ever-shifting fiery dance?"
+        "recap": "The East Coast Thanksgiving storm transforms the busiest travel holiday into an atmospheric battleground of rain and wind. Frigid Canadian air collides directly with surging subtropical moisture, birthing a relentless extratropical cyclone along the coast. Over nine hundred thousand residents lose power as fierce coast",
+        "ending_line": "As freezing winds intensify overnight, airports face total gridlock. Follow for Part Two tomorrow as the freeze strikes."
       }
     ],
     "used_visual_prompts": [
-      "anime-style volcanic landscape, erupting volcano, dynamic lighting, no or",
-      "anime-style depiction of a mythic deity raising a mountain, swirling clouds, no or",
-      "anime-style cross-section of Earth, mantle plume, island surface, no or",
-      "anime-style tectonic plates colliding, ash cloud, no or",
-      "anime-style aftermath of eruption, ash-covered landscape, no or",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep ocean abyss, a",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, underwater mid-ocea",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, deep Pacific underw",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, East African rift v",
-      "High-budget Japanese anime style, vibrant cel shading, Makoto Shinkai aesthetic, vast open ocean at ",
-      "anime-style deep indigo void with a single glowing golden plume rising, vibrant cel shading, Makoto ",
-      "anime-style twilight horizon where island silhouettes gradually fade into mist, vibrant cel shading,",
-      "anime-style abstract golden chain floating in dark space, sharply bent like a question mark, vibrant",
-      "anime-style calm caldera at twilight with faint internal glow, no ash, no eruption, just dormant pul",
-      "anime-style twilight sky with a lone mountain peak glowing faintly, no, vibrant cel shading, Makoto "
+      "Comic book graphic novel illustration of massive swirling dark storm clouds descending over a coasta",
+      "Comic book panel of icy blue gale winds violently clashing with warm orange atmospheric currents abo",
+      "Comic book illustration of wooden utility poles swaying violently under gale force winds, electric t",
+      "Comic book illustration of a weather scientist studying a glowing circular radar screen mapping an i",
+      "Comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted"
     ],
     "used_media_urls": [],
-    "updated_utc": "2026-11-26",
+    "updated_utc": "2026-11-27",
     "duration_preset": "short_45s",
     "dialogue_mode": false,
     "render_engine": "python",
-    "voice": "original",
-    "theme": "History & Mythology"
+    "voice": "deep_male",
+    "theme": "Trending Science, Space & Untold Stories"
   }
 }
