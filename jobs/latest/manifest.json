@@ -3,41 +3,41 @@
   "source_mode": "motion_story",
   "is_long_form": false,
   "target_duration_sec": 45,
-  "status": "PUBLISHED",
-  "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)",
+  "status": "APPROVAL_PENDING",
+  "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)",
   "language": "English",
   "settings_applied": {
-    "topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)",
+    "topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)",
     "theme": "Trending Science, Space & Untold Stories",
     "art_style": "comic_book",
     "voice": "deep_male",
     "character_desc": ""
   },
   "character": {
-    "name": "Host",
-    "archetype": "narrator",
-    "primary_hex": "#FFFFFF",
-    "accent_hex": "#FF0000",
-    "skin_hex": "#F0C9B4",
-    "aura_hex": "#00FF00",
+    "name": "Alex Storm",
+    "archetype": "storm chaser host",
+    "primary_hex": "#1E3A8A",
+    "accent_hex": "#F97316",
+    "skin_hex": "#F2C6A0",
+    "aura_hex": "#38BDF8",
     "visual_world": "space"
   },
   "council_models_used": [
     "gemini-native",
     "groq-native",
     "openrouter:openrouter/free",
-    "groq-failover"
+    "openrouter:openrouter/free"
   ],
   "script_source": "ai",
   "episode_continuity": {
-    "recap": "The East Coast Thanksgiving storm transforms the busiest travel holiday into an atmospheric battleground of rain and wind. Frigid Canadian air collides directly with surging subtropical moisture, birthing a relentless extratropical cyclone along the coast. Over nine hundred thousand residents lose power as fierce coast",
-    "ending_line": "As freezing winds intensify overnight, airports face total gridlock. Follow for Part Two tomorrow as the freeze strikes.",
+    "recap": "During the East Coast Thanksgiving storm, massive extratropical weather systems collided, unleashing unprecedented hurricane-force gusts across twenty-two states. Winds peaked at staggering speeds in the highlands, snapping power lines and plunging hundreds of thousands into total darkness. Heavy rainfall saturated the",
+    "ending_line": "What will meteorologists call this rare, record-setting storm? Find out in Part Three.",
     "visual_prompts": [
-      "Comic book graphic novel illustration of massive swirling dark storm clouds descending over a coasta",
-      "Comic book panel of icy blue gale winds violently clashing with warm orange atmospheric currents abo",
-      "Comic book illustration of wooden utility poles swaying violently under gale force winds, electric t",
-      "Comic book illustration of a weather scientist studying a glowing circular radar screen mapping an i",
-      "Comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted"
+      "comic book illustration of massive swirling dark storm clouds descending over a coastal mountain ran",
+      "comic book panel of icy blue gale winds violently clashing with warm orange atmospheric currents abo",
+      "comic book illustration of torrential rain over eastern slopes and blizzard-like snow over western r",
+      "comic book illustration of a weather scientist studying a glowing circular radar screen mapping an i",
+      "comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted"
     ],
     "used_media_urls": []
   },
@@ -47,31 +47,23 @@
       "start_segment_id": 0,
       "end_segment_id": 4,
       "start_sec": 0.0,
-      "end_sec": 43.3,
-      "duration_sec": 43.3,
-      "mp4_path": "jobs/latest/out/story_east_coast_thanksgiving_202611270436.mp4",
+      "end_sec": 43.94,
+      "duration_sec": 43.94,
+      "mp4_path": "jobs/latest/out/story_east_coast_thanksgiving_202611280432.mp4",
       "layout_mode": "motion_story_2d_9x16",
       "qa_verified": true,
-      "yt_title": "Thanksgiving Storm Hits East Coast | Part 1/3 #Shorts",
-      "ig_caption": "Part 1: The storm begins. #ThanksgivingStorm #EastCoast",
-      "hook_overlay": "STORM HITS THE EAST COAST!",
+      "yt_title": "East Coast Thanksgiving Storm: Rain, Wind Chaos | Part 2/3 #Shorts",
+      "ig_caption": "East Coast Thanksgiving Storm Part 2—watch the chaos unfold. #StormScience #ThanksgivingStorm #EastCoastStorm #ThanksgivingChaos #TravelDisruption",
+      "hook_overlay": "STORM CHAOS UNLEASHED!",
       "council_score": 9.7,
       "council_models_used": [
         "gemini-native",
         "groq-native",
         "openrouter:openrouter/free",
-        "groq-failover"
+        "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 1/3)",
-      "published_platforms": {
-        "youtube": "XKuFozf2CQc"
-      },
-      "published": true,
-      "receipt": {
-        "clip_id": "story_01",
-        "youtube": "XKuFozf2CQc"
-      }
+      "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)"
     }
   ],
   "red_team_audit": {
@@ -80,13 +72,5 @@
     "verdict": "PASS",
     "issues_found": [],
     "fixes_applied": []
-  },
-  "approved_at": 1795754300,
-  "published_at": 1795754301,
-  "published_receipts": [
-    {
-      "clip_id": "story_01",
-      "youtube": "XKuFozf2CQc"
-    }
-  ]
+  }
 }

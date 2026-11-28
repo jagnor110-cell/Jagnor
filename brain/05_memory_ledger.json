@@ -1,9 +1,10 @@
 {
-  "spend_date_utc": "2026-11-27",
+  "spend_date_utc": "2026-11-28",
   "processed_items": [
     "ai_faceless:how deep is space actually is:20261121",
     "ai_faceless:revolutionary pill just c:20261122",
     "motion_story:east coast thanksgiving storm: rain, wind, travel chaos (part 1/3):20261127",
+    "motion_story:east coast thanksgiving storm: rain, wind, travel chaos (part 2/3):20261128",
     "motion_story:gold hits record high: why it matters:20261123",
     "motion_story:how far voyager 1 has traveled into deep space:20261121",
     "motion_story:how to unlock hidden auto drive in gta 6:20261122",
@@ -191,6 +192,17 @@
         "character": "Host",
         "mp4_path": "jobs/latest/out/story_east_coast_thanksgiving_202611270436.mp4"
       }
+    },
+    {
+      "timestamp": 1795840349,
+      "engine": "motion_story",
+      "item_key": "motion_story:east coast thanksgiving storm: rain, wind, travel chaos (part 2/3):20261128",
+      "cost_usd": 0.1,
+      "summary": {
+        "topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)",
+        "character": "Alex Storm",
+        "mp4_path": "jobs/latest/out/story_east_coast_thanksgiving_202611280432.mp4"
+      }
     }
   ],
   "completed_series_topics": [
@@ -201,7 +213,7 @@
     "engine": "motion_story",
     "base_topic": "East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos",
     "fact_brief": "Thanksgiving Storm Hits the East Coast With Rain and Wind, Causing Travel Delays: Live Weather Updates. Thanksgiving Storm Hits the East Coast With Rain and Wind, Causing Travel Delays: Live Weather Updates The New York Times Live updates: Thanksgiving storm leaves roads flooded and more than 900,000 without power in easte",
-    "day": 1,
+    "day": 2,
     "max_days": 3,
     "art_style": "comic_book",
     "series_index": 1,
@@ -210,6 +222,11 @@
         "part": 1,
         "recap": "The East Coast Thanksgiving storm transforms the busiest travel holiday into an atmospheric battleground of rain and wind. Frigid Canadian air collides directly with surging subtropical moisture, birthing a relentless extratropical cyclone along the coast. Over nine hundred thousand residents lose power as fierce coast",
         "ending_line": "As freezing winds intensify overnight, airports face total gridlock. Follow for Part Two tomorrow as the freeze strikes."
+      },
+      {
+        "part": 2,
+        "recap": "During the East Coast Thanksgiving storm, massive extratropical weather systems collided, unleashing unprecedented hurricane-force gusts across twenty-two states. Winds peaked at staggering speeds in the highlands, snapping power lines and plunging hundreds of thousands into total darkness. Heavy rainfall saturated the",
+        "ending_line": "What will meteorologists call this rare, record-setting storm? Find out in Part Three."
       }
     ],
     "used_visual_prompts": [
@@ -217,10 +234,15 @@
       "Comic book panel of icy blue gale winds violently clashing with warm orange atmospheric currents abo",
       "Comic book illustration of wooden utility poles swaying violently under gale force winds, electric t",
       "Comic book illustration of a weather scientist studying a glowing circular radar screen mapping an i",
-      "Comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted"
+      "Comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted",
+      "comic book illustration of massive swirling dark storm clouds descending over a coastal mountain ran",
+      "comic book panel of icy blue gale winds violently clashing with warm orange atmospheric currents abo",
+      "comic book illustration of torrential rain over eastern slopes and blizzard-like snow over western r",
+      "comic book illustration of a weather scientist studying a glowing circular radar screen mapping an i",
+      "comic book illustration of grounded passenger airplanes parked on a drenched airport runway buffeted"
     ],
     "used_media_urls": [],
-    "updated_utc": "2026-11-27",
+    "updated_utc": "2026-11-28",
     "duration_preset": "short_45s",
     "dialogue_mode": false,
     "render_engine": "python",
