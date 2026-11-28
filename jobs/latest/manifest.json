@@ -3,7 +3,7 @@
   "source_mode": "motion_story",
   "is_long_form": false,
   "target_duration_sec": 45,
-  "status": "APPROVAL_PENDING",
+  "status": "PUBLISHED",
   "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)",
   "language": "English",
   "settings_applied": {
@@ -63,7 +63,15 @@
         "openrouter:openrouter/free"
       ],
       "contains_synthetic_media": true,
-      "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)"
+      "source_url": "motion_story:East Coast Thanksgiving Storm: Rain, Wind, Travel Chaos (Part 2/3)",
+      "published_platforms": {
+        "youtube": "AUSdwci47w8"
+      },
+      "published": true,
+      "receipt": {
+        "clip_id": "story_01",
+        "youtube": "AUSdwci47w8"
+      }
     }
   ],
   "red_team_audit": {
@@ -72,5 +80,13 @@
     "verdict": "PASS",
     "issues_found": [],
     "fixes_applied": []
-  }
+  },
+  "approved_at": 1795840404,
+  "published_at": 1795840405,
+  "published_receipts": [
+    {
+      "clip_id": "story_01",
+      "youtube": "AUSdwci47w8"
+    }
+  ]
 }
